@@ -297,6 +297,41 @@ for `n > M`, and `≈ γ₀` for `n ≤ M`. The `i-orca` target is therefore a W
 `n` vectors in `ℝ^M` (the realized routing features) — directly an instance of the existing Welch
 machinery, now on the rule-activation side. The mildness (near-optimal packing) is the empirical caveat.
 
+## 5g. A generator-side coherence regularizer is also a null — the symmetry closes
+
+`experiments/coherence_reg.py`. Grok's algorithmic idea: add a soft-Welch loss penalizing the
+rules' firing coherence (`activation_decorrelation_penalty`, label-free — mean squared off-diagonal
+of the rule-pattern correlation) to reduce cross-talk in the overpacked regime. Tested at `n_hard=24`,
+`M ∈ {8,12}` (2–3× overpacked, where coherence is forced), sweeping the reg weight. Held-out, 3 seeds:
+
+| M | reg | margin | acc | coh_μ |
+|---|---|---|---|---|
+| 8 | 0.0 | 1.83 | 0.75 | 0.289 |
+| 8 | 2.0 | 1.86 | 0.75 | 0.279 |
+| 12 | 0.0 | 2.73 | 0.83 | 0.242 |
+| 12 | 2.0 | 2.74 | 0.81 | 0.230 |
+
+The regularizer **works on its target** — it lowers the realized coherence `coh_μ` — but **margin and
+accuracy are flat** (|Δmargin| ≤ 0.04, |Δacc| ≤ 0.02, within seed noise), even at 2–3× overpacking. So
+the generator-side coherence regularizer is a **null**, exactly like the frame-side `frame_potential`
+(§5b). The residual coherence the regularizer removes is not what limits the margin.
+
+**This closes a symmetry.** Four theory-guided knobs have now been tested against plain end-to-end SGD:
+
+| knob | side | result |
+|---|---|---|
+| `frame_reg` (decorrelate `U`) | frame / decode | null (§5b) |
+| min-margin rule allocation/targeting | generator | null (§5c) |
+| propose-score-select of frozen rules | generator | null (§5d) |
+| `coh_reg` (decorrelate rule firing) | generator | null (§5g) |
+
+None beats just training enough rules end-to-end. The consistent lever is **`M ≥ (effective rank of the
+routing features)`**, with SGD packing them near the Welch floor on its own. This is also why the
+coherence→margin *degradation* proof (Grok's Idea 1) is not worth formalizing: coherence is real and
+Welch-floored (proved, `RoutingWelch`), but it is empirically **decoupled from the margin** — a tight
+`γ ≤ γ₀(1−c·μ)` theorem would contradict the data. The honest theory boundary is: the *structural*
+packing bounds are provable (and proved); the *margin consequence* is mild and not a clean law.
+
 ## 6. Open questions
 
 - Does refining on **real fieldrun DLAs** raise retrievability above the frozen model, and at

@@ -1,0 +1,15 @@
+[coh-reg] dim=32 V=48 n_hard=24 (overpacked for M<24); sweep soft-Welch reg weight; held-out, seeds=3
+
+=== M=8 rules  (n_hard/M = 3.0x overpacked) ===
+  reg     margin    acc    coh_mu
+   0.0      1.83   0.75    0.289
+   0.1      1.79   0.74    0.286  (Δmargin -0.04, Δacc -0.01)
+   0.5      1.84   0.76    0.285  (Δmargin +0.01, Δacc +0.01)
+   2.0      1.86   0.75    0.279  (Δmargin +0.03, Δacc -0.00)
+
+=== M=12 rules  (n_hard/M = 2.0x overpacked) ===
+  reg     margin    acc    coh_mu
+   0.0      2.73   0.83    0.242
+   0.1      2.71   0.83    0.242  (Δmargin -0.02, Δacc -0.01)
+   0.5      2.69   0.82    0.238  (Δmargin -0.04, Δacc -0.01)
+   2.0      2.74   0.81    0.230  (Δmargin +0.01, Δacc -0.02)

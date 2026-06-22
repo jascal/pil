@@ -25,6 +25,22 @@ def candidate_activations(z: Tensor, W: Tensor) -> Tensor:
     return torch.relu(z @ W.T)
 
 
+def activation_decorrelation_penalty(h: Tensor, eps: float = 1e-8) -> Tensor:
+    """Soft-Welch regularizer on the GENERATOR side: mean squared off-diagonal correlation of the
+    M rules' firing patterns over a batch. ``h`` (B, M) rule activations -> scalar.
+
+    Label-free (uses only the activations, not the planted structure). Driving it down decorrelates
+    the rules' firing so they pack routing features with less cross-talk -- the generator-side analogue
+    of §5b's frame_potential on U. The §5b/§5f prediction is that, like the frame-side term, this is
+    largely a null once the rules are trained (SGD already packs near the Welch floor)."""
+    hc = h - h.mean(dim=0, keepdim=True)
+    hn = hc / (hc.norm(dim=0, keepdim=True) + eps)   # unit firing pattern per rule
+    G = hn.T @ hn                                     # (M, M) rule-pattern correlation
+    M = G.shape[0]
+    off = G - torch.diag(torch.diagonal(G))
+    return off.pow(2).sum() / max(M * (M - 1), 1)
+
+
 def ambiguity_resolution_score(
     acts: Tensor,
     targets: Tensor,
