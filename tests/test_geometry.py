@@ -14,6 +14,7 @@ from pil.geometry import (
     welch_bound,
 )
 from pil.learner import PILConfig, ProjectiveIncidenceLearner, create_synthetic_problem
+from pil.synthetic import create_clustered_problem, within_cluster_cosine
 
 
 def test_margin_batched_matches_bruteforce():
@@ -69,6 +70,19 @@ def test_participation_ratio_bounds():
     assert abs(participation_ratio(one_hot).item() - 1.0) < 1e-4
     flat = torch.ones(10)
     assert abs(participation_ratio(flat).item() - 10.0) < 1e-3
+
+
+def test_clustered_problem_plants_synonymy():
+    """The hard generator must actually plant high within-cluster synonymy and shapes."""
+    cfg = PILConfig(dim=24, n_propositions=96, n_sources_per_step=20, device="cpu", seed=0)
+    src, tgt, U_gt, cl = create_clustered_problem(
+        cfg, n_examples=64, n_clusters=12, cluster_spread=0.10
+    )
+    assert src.shape == (64, 20, 24)
+    assert tgt.shape == (64,) and U_gt.shape == (96, 24) and cl.shape == (96,)
+    wc = within_cluster_cosine(U_gt, cl)
+    # expected ~ 1/(1 + spread^2 * dim) = 1/(1+0.01*24) ~ 0.81; well above a random pair
+    assert wc > 0.6, f"within-cluster cosine too low: {wc}"
 
 
 def test_training_step_reduces_loss():

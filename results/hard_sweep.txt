@@ -1,0 +1,10 @@
+[hard] dim=24 V=192 (8x over-complete) clusters=24 spread=0.1
+[hard] planted within-cluster |cos|=0.816  welch_floor=0.0366  seeds=3
+frame_reg      retr      top1    margin       nll  fp_welch    wc_cos     align  syn_comp
+     0.00     0.395     0.993     1.240     1.949     1.346     0.291     0.634     0.886
+     0.02     0.401     0.994     1.241     1.949     1.333     0.290     0.635     0.882
+     0.05     0.395     0.995     1.240     1.949     1.308     0.289     0.635     0.889
+     0.10     0.400     0.994     1.241     1.949     1.244     0.286     0.637     0.880
+     0.20     0.398     0.994     1.242     1.948     1.161     0.283     0.639     0.880
+     0.50     0.395     0.995     1.242     1.948     1.094     0.278     0.642     0.883
+[hard] best retr at frame_reg=0.02 (retr 0.401 vs frame_reg=0 0.395; Δ=+0.006)  interior_optimum=no (Δ<0.02 = decode flat in frame_reg)

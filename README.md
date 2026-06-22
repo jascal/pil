@@ -62,9 +62,19 @@ Measured on the planted-frame synthetic (`dim=32`, `V=64`, `J=24`, 2000 steps, C
 
 First ablation finding (descriptive, not a headline): the frame-side term decorrelates the
 Gram monotonically (`fp/welch` 1.63 → 1.54 as `frame_reg` 0 → 0.2) at **zero** decode-side
-cost on this synthetic — but the effect is small because the regime is too easy (the margin
-term alone already yields a near-incoherent frame). It should bite where designed to:
-`V ≫ dim`, high synonymy (`ρ → 1`), and fieldrun-seeded sources.
+cost on this synthetic — but the effect is small because the regime is too easy.
+
+The **hard synthetic** (`experiments/hard_synthetic.py`: 8× over-complete, planted synonym
+clusters, `|cos|=0.82`) was built to stress it — and produced a clean **negative result**.
+Synonymy compressed margins exactly as intended (`top1≈0.99` but `retr≈0.40`, strongest
+competitor a synonym 88% of the time), yet sweeping `frame_reg` moves the frame geometry
+(`fp/welch` 1.35→1.09) with the decode outcome **flat** (`|Δretr| ≤ 0.01` across the entire
+synonymy×noise plane, in-sample). The frame regularizer is **redundant** where the margin term
+already shapes the frame and **impotent** where the bottleneck is source distinguishability:
+when synonyms have near-identical sources `d_j`, the margin is source-SNR-bound and no
+readout-frame objective can manufacture missing signal. So the lever for the confusable /
+forge-tax regime is the **generative proposer**, not frame regularization (see
+`docs/notes/pil_learning_dynamics.md` §5b).
 
 ## Repository structure
 
@@ -73,11 +83,13 @@ pil/
   pil/
     geometry.py      incidences, Gram, margins, frame potential (Welch-floored), PR, power diagram
     learner.py       ProjectiveIncidenceLearner: propose -> gate -> refine; labelled losses
+    synthetic.py     hard problems: over-complete + planted synonym clusters; trade diagnostics
     fieldrun_io.py   integration contract for seeding from real fieldrun probe dumps
     viz.py           optional matplotlib helpers (training curve, Gram heatmap)
   experiments/
-    synthetic_pil.py runnable planted-frame demo of the generate/gate/refine loop
-  tests/             correctness tests pinning the starter bugs
+    synthetic_pil.py  runnable planted-frame demo of the generate/gate/refine loop
+    hard_synthetic.py frame_reg sweep over the over-complete/synonym regime (the decode/frame trade)
+  tests/             correctness tests pinning the starter bugs + the hard-generator
   docs/notes/        design notes (learning dynamics; decode/frame split)
 ```
 
@@ -96,15 +108,18 @@ pil/
 
 ## Roadmap
 
-1. **Synthetic floor (done).** Planted-frame recovery; the generate→gate→refine loop;
-   decode-vs-frame metrics. ✔ runs, 6 tests green.
-2. **Seed from fieldrun.** Implement a `--pil-dump` emitter on the fieldrun side that writes
+1. **Synthetic floor (done).** Planted-frame recovery + the hard over-complete/synonym
+   regime; the generate→gate→refine loop; decode-vs-frame metrics. ✔ runs, 7 tests green.
+   Finding: frame regularization is decoupled from the decode; the bottleneck is source-side.
+2. **Smarter proposers (promoted — the validated lever).** Replace the Gaussian/`"frame"`
+   generator with structured partial solutions that *distinguish* confusable propositions —
+   SAE features (polygram / sae-forge), induction/number-mover circuit templates,
+   Gram-orthogonal complements of current frames. The hard-synthetic result says this, not
+   frame conditioning, is what moves retrievability in the synonym/forge-tax regime.
+3. **Seed from fieldrun.** Implement a `--pil-dump` emitter on the fieldrun side that writes
    the `pil.fieldrun_io` contract (real DLA sources `d_j`, frame `U`, per-position targets),
    then refine on real residuals. Question: does retrievability improve over the frozen model
-   at a stated fidelity cost?
-3. **Smarter proposers.** Replace the Gaussian/`"frame"` generator with structured partial
-   solutions — SAE features (polygram / sae-forge), induction/number-mover circuit templates,
-   Gram-orthogonal complements of current frames.
+   at a stated fidelity cost?  Add a train/holdout split here (the synthetics are in-sample).
 4. **Targeted geometry.** Domain/token-class-specific frames; measure forge-tax reduction
    per class against the cross-substrate baselines (it differs bio vs econ vs LM).
 5. **Export.** Retrievable fragment → semiring-Datalog (fieldrun's LOGIC_EXPORT path);

@@ -26,6 +26,11 @@ from .learner import (
     ProjectiveIncidenceLearner,
     create_synthetic_problem,
 )
+from .synthetic import (
+    create_clustered_problem,
+    frame_alignment,
+    within_cluster_cosine,
+)
 
 __version__ = "0.0.1"
 
@@ -33,6 +38,9 @@ __all__ = [
     "PILConfig",
     "ProjectiveIncidenceLearner",
     "create_synthetic_problem",
+    "create_clustered_problem",
+    "frame_alignment",
+    "within_cluster_cosine",
     "cosine_gram",
     "frame_potential",
     "gram_matrix",

@@ -88,7 +88,53 @@ here, but the effect is small — this regime is too easy (the margin term alone
 a near-incoherent frame at 1.6× Welch, and support PR is pinned by the planted sparsity).
 The frame objective is expected to matter only when the frame is genuinely stressed:
 `V ≫ dim`, high planted synonymy `ρ`, or real fieldrun-seeded sources where the Gram is dense.
-That harder synthetic + the fieldrun seam are the next two roadmap items.
+
+## 5b. Hard regime — the frame-potential term is decoupled from the decode (negative result)
+
+`experiments/hard_synthetic.py`: over-complete (`dim=24`, `V=192`, 8×) with planted synonym
+clusters (24 clusters, `spread=0.10` ⇒ planted within-cluster `|cos| = 0.82`, Welch floor
+0.037). The regime *worked as designed* — `syn_comp ≈ 0.88` (the strongest competitor is a
+synonym 88% of the time), and synonymy compressed margins so hard that `retr ≈ 0.40` while
+`top1 ≈ 0.99`. Sweep over `frame_reg` (3 seeds, 1500 steps):
+
+| `frame_reg` | retr | top1 | margin | nll | fp/welch | wc_cos | align(U,U_gt) |
+|---|---|---|---|---|---|---|---|
+| 0.00 | 0.395 | 0.99 | 1.240 | 1.949 | **1.346** | 0.291 | 0.634 |
+| 0.10 | 0.400 | 0.99 | 1.241 | 1.949 | 1.244 | 0.286 | 0.637 |
+| 0.50 | 0.395 | 0.99 | 1.242 | 1.948 | **1.094** | 0.278 | 0.642 |
+
+The frame term **does** what it claims — drives the frame potential 1.35 → 1.09× Welch and
+lowers learned synonym coherence — but every decode outcome (retr/top1/margin/nll) is **flat**.
+The predicted non-monotone optimum did **not** appear.
+
+Confirmed across the whole hardness plane (`Δretr = retr(fr=0.2) − retr(fr=0)`, single seed,
+1000 steps; baseline retr in brackets):
+
+| spread＼noise | 0.04 | 0.08 | 0.16 |
+|---|---|---|---|
+| 0.05 | +0.000 [0.02] | −0.002 [0.06] | −0.006 [0.38] |
+| 0.10 | +0.004 [0.32] | +0.000 [0.36] | +0.000 [0.56] |
+| 0.20 | +0.002 [0.80] | +0.010 [0.78] | −0.004 [0.79] |
+
+`|Δretr| ≤ 0.01` in every cell, while the baseline swings 0.02 → 0.80 with the *real* levers
+(synonymy `spread`, source SNR `noise`). Note these are **in-sample** retr (no holdout) — the
+easiest possible case for a regularizer to look good — so the null is *conservative*: a term
+that can't help even in-sample won't help out-of-sample.
+
+**Conclusion (descriptive).** The frame-potential regularizer is **redundant where the margin
+term already shapes the frame, and impotent where the bottleneck is source distinguishability.**
+When synonyms have near-identical *sources* (`d_j`), the achievable margin is bounded by source
+SNR, and no readout-frame (`U`) objective can manufacture signal that isn't in the sources —
+the information bottleneck is on the generative side, not the frame side. This is the PIL-local
+echo of the decode-vs-encode lesson: shaping the readout doesn't fix an upstream representational
+limit. **Roadmap consequence:** the lever for the confusable / forge-tax regime is the
+**generative proposer** (item 3 — propose sources that distinguish synonyms: SAE features,
+Gram-orthogonal complements, real fieldrun DLAs), *not* frame regularization. Keep `frame_reg`
+as a cheap, harmless conditioner; stop expecting it to move retrievability.
+
+Open variant not yet tried: a **targeted** frame penalty (only on confusable pairs `ρ > τ`)
+rather than the global frame potential — though the surface above suggests even that cannot beat
+a source-SNR bound.
 
 ## 6. Open questions
 
