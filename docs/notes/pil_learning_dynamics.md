@@ -188,37 +188,42 @@ not a better optimizer than SGD for placing rules. Targeting should only win whe
 assignment fails — very low budget with many hard facets and weak gradients — which this regime does
 not stress. That sharper regime is the open test.
 
-## 5d. Theory-guided propose-score-select doesn't beat SGD (the proposer-scoring negative)
+## 5d. The generative lever is training the feature, not selecting it (the decisive 2×2)
 
-`experiments/scored_proposer.py`. The sharp test of the propose-score-select blueprint (score
-candidate rules by a theory-guided criterion, select top-k), in the one regime §5c said selection
-*should* matter: the selected rules' input-weights are **frozen** (weak gradient on the feature they
-read), so SGD cannot repair a badly-chosen rule. Candidates are random input-weights `w`; a rule is
-`relu(⟨w,z⟩)`. Arms (matched budget M, finetune steps), hard-cluster within-acc, held-out:
+`experiments/scored_proposer.py`. Tests the propose-score-select blueprint, crossing **selection
+method** × **frozen/trainable input-weights** to disentangle "selection quality" from "trained vs
+frozen feature." A rule is `relu(⟨w,z⟩)`; `ambiguity` selects `w` by an η²-on-ambiguous-examples score,
+`random` by nothing; `sgd` is random-init trainable. Held-out, 3 seeds — `acc` = hard-cluster
+within-synonym accuracy (chance 0.5); `code` = clusters with **both** synonyms confidently decoded
+(the realized γ-separated code, `DecodeCapacity.thy`; max 24):
 
-| budget | random | variance | **ambiguity** | **sgd (trainable w)** |
-|---|---|---|---|---|
-| 2  | 0.492 | 0.473 | 0.517 | 0.489 |
-| 4  | 0.502 | 0.505 | 0.497 | 0.511 |
-| 8  | 0.540 | 0.529 | 0.532 | **0.722** |
-| 16 | 0.632 | 0.573 | 0.579 | **0.859** |
+| budget | sgd | ambig-frozen | ambig-train | rand-frozen | rand-train |
+|---|---|---|---|---|---|
+| 8  | 0.722 / 24 | 0.532 / 21 | **0.741 / 24** | 0.540 / 21 | **0.750 / 24** |
+| 16 | 0.859 / 24 | 0.579 / 23 | 0.852 / 24 | 0.632 / 24 | 0.854 / 24 |
+| 32 | 0.905 / 24 | 0.684 / 24 | 0.891 / 24 | 0.668 / 24 | 0.873 / 24 |
 
-**Two negatives:** (i) all frozen-input arms sit near chance (≤ 0.63) while SGD reaches 0.86 — *freezing
-the input-weights is catastrophic*; (ii) the theory-guided `ambiguity` η²-score does **not** beat
-`random` selection (0.579 vs 0.632 at M=16). So scoring/selecting which feature a rule reads is not the
-lever — **gradient-training the feature is**. Even a perfectly-chosen frozen feature can't be made
-useful, because the rule must co-adapt with the readout, which a frozen `w` forbids.
+**The split is entirely along frozen vs trainable, not selection vs random.** Making the scored arm's
+weights trainable (`ambig-train`) jumps it 0.53→0.74 at M=8, **matching SGD**, and `ambig-train ≈
+rand-train ≈ sgd` at every budget. So:
 
-This completes the triangulation. Across **three** independent angles — frame regularization (§5b),
-rule allocation/targeting under full SGD (§5c), and proposal scoring under frozen rules (§5d) — no
-theory-guided intervention beats plain end-to-end gradient training of the rules. The generative
-lever is gradient-trained rule features; the tropical/PIC theory's value is the **capacity limit**
-(now kernel-proved, `DecodeCapacity.thy`), *not* a better optimizer.
+1. **Selection is not the lever (falsifies "proposal quality is the bottleneck").** Once rules are
+   trained, theory-guided selection is indistinguishable from random init. Once they are frozen, no
+   selection method rescues them. The §5d-v1 "negative" was the frozen-vs-trainable axis, not selection.
+2. **Capacity is not the binding constraint here (refutes the separation-lemma-as-bottleneck reading).**
+   The structural metric **saturates**: even frozen rules at 0.58 accuracy realize the full γ-separated
+   code (24/24 clusters have both synonyms confidently decoded *somewhere*). So the bottleneck is **not**
+   "creating new γ-separated high-margin tokens" — that capacity is already realized. The gap is
+   **per-example routing**: getting the *right* decode for *each* input, which is a *training* problem
+   (the input→firing map), not a capacity or selection one.
 
-The one untested variant is **scored-init + trainable** (select a good `w`, then let SGD tune it) — by
-the §5c logic that reduces to "SGD from a slightly better init," expected to ≈ SGD, not beat it. The
-heavier MILP / tropical-LP proposers from the blueprint were deliberately skipped: the cheap test
-already answers whether *any* selection beats SGD here (it doesn't), so a solver is not yet warranted.
+This completes the triangulation across **three** independent angles — frame regularization (§5b), rule
+allocation under SGD (§5c), proposal scoring (§5d) — none beats plain end-to-end gradient training of
+the rules. The tropical/PIC theory's value is the **capacity limit** (kernel-proved `DecodeCapacity.thy`),
+which bounds *which* tokens can be confidently decoded — but within that capacity, the realized accuracy
+is set by trainable per-example routing, which the theory does not optimize. The blueprint's heavier
+MILP / tropical-LP proposers were deliberately skipped: a 2×2 already shows no selection beats SGD, and
+the binding constraint is routing, not selection — so a better *selector* cannot help.
 
 ## 6. Open questions
 

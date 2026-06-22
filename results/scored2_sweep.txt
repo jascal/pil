@@ -1,0 +1,8 @@
+[scored] dim=32 V=48 K=72 hard=13/24 frozen-input rules, eval=held-out, seeds=3
+
+(acc = hard-cluster within-synonym accuracy held-out, chance 0.5; code = # clusters with BOTH synonyms confidently decoded, max 24)
+
+  budget            sgd   ambig-frozen    ambig-train    rand-frozen     rand-train
+       8    0.722/  24    0.532/  21    0.741/  24    0.540/  21    0.750/  24
+      16    0.859/  24    0.579/  23    0.852/  24    0.632/  24    0.854/  24
+      32    0.905/  24    0.684/  24    0.891/  24    0.668/  24    0.873/  24
