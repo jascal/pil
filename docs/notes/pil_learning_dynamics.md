@@ -136,6 +136,58 @@ Open variant not yet tried: a **targeted** frame penalty (only on confusable pai
 rather than the global frame potential — though the surface above suggests even that cannot beat
 a source-SNR bound.
 
+## 5c. Compositional regime — generation IS the lever; targeting barely matters (positive + null)
+
+`experiments/compositional_pil.py`. The §5b negative result said the bottleneck is generative,
+not the frame — so this tests it directly. Synonyms share a one-hot **topic** atom (collide on
+`r`); a fraction of clusters are **hard** = the synonym parity is the **XOR** of two code-atoms
+(provably not linearly separable in `z`), the rest **easy** = parity read directly. A *frame-only*
+model is a linear readout of `z`; a generated rule is a ReLU hidden unit `relu(<w,z>+b)` emitted as
+a source. Three arms matched on total steps — `frame` (no rules), `untargeted` (M random rules),
+`targeted` (M rules seeded at the min-margin clusters' code-atoms, the clusters **discovered** from a
+frame-only warmup, not the planted flags). **Eval is held-out 25%** (the §5b in-sample caveat, fixed).
+
+Headline = hard-cluster within-synonym accuracy (the XOR a linear readout cannot do):
+
+| arm (signal=True, held-out) | hard_within_acc | hard_within_margin |
+|---|---|---|
+| frame (M=0) | **0.454** | −0.024 |
+| untargeted M=8 | 0.790 | 2.294 |
+| targeted M=8 | 0.765 | 2.024 |
+| untargeted M=16 | 0.899 | 3.305 |
+| targeted M=16 | 0.910 | 3.311 |
+| untargeted M=32 | 0.911 | 3.373 |
+| targeted M=32 | **0.934** | 3.812 |
+
+Control `signal=False` (parity is noise), held-out: frame 0.537, targeted 0.530, untargeted 0.490 —
+**all at chance.**
+
+**Two findings, honestly separated:**
+
+1. **POSITIVE — generation is the lever (theory's main claim confirmed).** Frame-tuning is pinned at
+   chance on the XOR (0.454, margin ≈ 0 — linear *provably* can't); adding rules lifts hard-cluster
+   accuracy to **0.93**. When the bottleneck is non-linear (composed / PIC-T3 weighted-threshold)
+   structure, the **generative step** moves it where no frame objective could (§5b). The held-out
+   control confirms the honest boundary: generation recovers signal only when it exists — it cannot
+   manufacture an absent discriminator (vs the in-sample 0.64 mirage from rule overfitting).
+
+2. **NULL — min-margin targeting barely beats spraying.** Targeted gives only a marginal high-budget
+   edge (0.934 vs 0.911 at M=32) and is slightly *behind* at low budget (0.765 vs 0.790 at M=8). The
+   mechanism is clear: **SGD already allocates rules to the at-risk facets** (the loss gradient drives
+   hidden units to the hard clusters), so explicit targeting adds an *initialization* head-start, not
+   better *allocation*. The frame-only warmup also can't rank *among* hard clusters (all ≈ chance), so
+   targeting collapses to "put rules on hard clusters" — which SGD does for free. At low budget the
+   rigid "fully fix a few clusters" (targeted) and the flexible "partially help many" (untargeted SGD)
+   average to the same hard-cluster accuracy.
+
+**Reading for the tropical principle (§ of the design conversation).** The decode-side *diagnosis*
+tropical algebra offers — which facets are at-risk, which rules are dead — is real, but in a
+differentiable setting **gradient descent already performs the allocation that targeting would
+hard-code**. So the tropical contribution here is *understanding / pruning / the capacity ceiling*,
+not a better optimizer than SGD for placing rules. Targeting should only win where SGD's credit
+assignment fails — very low budget with many hard facets and weak gradients — which this regime does
+not stress. That sharper regime is the open test.
+
 ## 6. Open questions
 
 - Does refining on **real fieldrun DLAs** raise retrievability above the frozen model, and at

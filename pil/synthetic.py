@@ -74,6 +74,86 @@ def create_clustered_problem(
     )
 
 
+def create_compositional_problem(
+    config: PILConfig,
+    n_examples: int = 2048,
+    n_clusters: int = 24,
+    frac_hard: float = 0.33,
+    topic_strength: float = 1.5,
+    atom_strength: float = 1.0,
+    noise: float = 0.08,
+    signal: bool = True,
+) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    """Synonyms that COLLIDE linearly but are separable by a non-linear (XOR) rule.
+
+    Each cluster ``c`` holds two synonyms ``2c`` (parity 0) and ``2c+1`` (parity 1) that share a
+    one-hot **topic** atom (so they collide on the summed residual ``r`` — a linear readout gets the
+    cluster but not the synonym). The synonym is set by a **pair of code-atoms** ``(p, q)``:
+
+      * **easy** clusters: parity is read directly, ``z_p = atom_strength * parity`` — linearly separable.
+      * **hard** clusters (``frac_hard`` of them): parity is the **XOR** of two bits placed on ``(p,q)``
+        — NOT linearly separable in ``z``, so the frame-only (linear) model is stuck at chance within
+        the cluster, but a generated ReLU rule that computes ``|z_p - z_q|`` recovers it.
+      * ``signal=False`` control: the hard clusters' bits are random (parity unrecoverable) — no rule
+        can help, the honest-boundary check.
+
+    Returns ``(z, A, targets, cluster_of, hard_clusters)``:
+      ``z``             (N, K)  atom activations, K = n_clusters (topics) + 2*n_clusters (code atoms)
+      ``A``             (K, dim) atom dictionary (unit rows)
+      ``targets``       (N,)
+      ``cluster_of``    (V,)    V = 2*n_clusters
+      ``hard_clusters`` (n_clusters,) bool
+    """
+    gen = torch.Generator(device="cpu").manual_seed(config.seed + 3)
+    dim = config.dim
+    V = 2 * n_clusters
+    K = 3 * n_clusters  # n_clusters topic atoms + 2 code atoms per cluster
+    A = normalize_rows(torch.randn(K, dim, generator=gen))
+    cluster_of = torch.arange(V) // 2
+    hard_clusters = torch.rand(n_clusters, generator=gen) < frac_hard
+
+    z = torch.zeros(n_examples, K)
+    targets = torch.empty(n_examples, dtype=torch.long)
+    for i in range(n_examples):
+        c = int(torch.randint(0, n_clusters, (1,), generator=gen))
+        y = int(torch.randint(0, 2, (1,), generator=gen))
+        targets[i] = 2 * c + y
+        z[i, c] = topic_strength  # one-hot topic
+        p = n_clusters + 2 * c
+        q = p + 1
+        if not hard_clusters[c]:
+            z[i, p] = atom_strength * y  # linearly readable
+        elif signal:
+            bp = int(torch.randint(0, 2, (1,), generator=gen))
+            z[i, p] = atom_strength * bp
+            z[i, q] = atom_strength * (bp ^ y)  # XOR: bp ^ bq = y
+        else:
+            z[i, p] = atom_strength * int(torch.randint(0, 2, (1,), generator=gen))
+            z[i, q] = atom_strength * int(torch.randint(0, 2, (1,), generator=gen))
+    z += noise * torch.randn(n_examples, K, generator=gen)
+
+    dev = config.device
+    return z.to(dev), A.to(dev), targets.to(dev), cluster_of.to(dev), hard_clusters.to(dev)
+
+
+def within_cluster_report(L: Tensor, targets: Tensor, hard_clusters: Tensor) -> dict[str, float]:
+    """Within-cluster (synonym-vs-synonym) accuracy/margin, split by hard/easy clusters.
+
+    The synonym of ``target`` is ``target ^ 1`` (clusters are consecutive pairs ``2c, 2c+1``).
+    The hard-cluster within-accuracy is the headline: it is the XOR the linear readout cannot do.
+    """
+    sib = targets ^ 1
+    m = L.gather(1, targets[:, None]).squeeze(1) - L.gather(1, sib[:, None]).squeeze(1)
+    is_hard = hard_clusters[targets // 2]
+    out: dict[str, float] = {}
+    for name, mask in (("hard", is_hard), ("easy", ~is_hard)):
+        if mask.sum() == 0:
+            continue
+        out[f"{name}_within_acc"] = (m[mask] > 0).float().mean().item()
+        out[f"{name}_within_margin"] = m[mask].mean().item()
+    return out
+
+
 def within_cluster_cosine(U: Tensor, cluster_of: Tensor) -> float:
     """Mean |cosine| between distinct same-cluster propositions in frame ``U`` (frame-side).
 

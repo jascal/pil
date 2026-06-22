@@ -76,6 +76,15 @@ readout-frame objective can manufacture missing signal. So the lever for the con
 forge-tax regime is the **generative proposer**, not frame regularization (see
 `docs/notes/pil_learning_dynamics.md` §5b).
 
+That prediction is then **confirmed** in the compositional regime (`experiments/compositional_pil.py`,
+§5c): when synonyms are XOR-coded (non-linearly separable — PIC-T3 weighted-threshold), a frame-only
+linear readout is pinned at chance (hard-cluster acc **0.454**, held-out) while **generated rules lift
+it to 0.93**. Two honest halves: (1) *generation is the lever* — rules recover what no frame objective
+could; (2) *but min-margin targeting barely beats random rules* (0.934 vs 0.911) — SGD already
+allocates rules to the at-risk facets, so tropical targeting buys initialization, not allocation. The
+held-out control (`signal=False` → all arms at chance) confirms generation can't manufacture absent
+signal.
+
 ## Repository structure
 
 ```
@@ -83,13 +92,15 @@ pil/
   pil/
     geometry.py      incidences, Gram, margins, frame potential (Welch-floored), PR, power diagram
     learner.py       ProjectiveIncidenceLearner: propose -> gate -> refine; labelled losses
-    synthetic.py     hard problems: over-complete + planted synonym clusters; trade diagnostics
+    synthetic.py     hard problems: over-complete + synonym clusters; XOR-coded compositional; diagnostics
+    proposer.py      RuleBank (the generative step) + min-margin-targeted rule seeding
     fieldrun_io.py   integration contract for seeding from real fieldrun probe dumps
     viz.py           optional matplotlib helpers (training curve, Gram heatmap)
   experiments/
-    synthetic_pil.py  runnable planted-frame demo of the generate/gate/refine loop
-    hard_synthetic.py frame_reg sweep over the over-complete/synonym regime (the decode/frame trade)
-  tests/             correctness tests pinning the starter bugs + the hard-generator
+    synthetic_pil.py    runnable planted-frame demo of the generate/gate/refine loop
+    hard_synthetic.py   frame_reg sweep over the over-complete/synonym regime (the decode/frame trade)
+    compositional_pil.py  frame vs untargeted vs targeted generation on XOR-coded synonyms (held-out)
+  tests/             correctness tests pinning the starter bugs + the generators
   docs/notes/        design notes (learning dynamics; decode/frame split)
 ```
 
@@ -111,11 +122,11 @@ pil/
 1. **Synthetic floor (done).** Planted-frame recovery + the hard over-complete/synonym
    regime; the generate→gate→refine loop; decode-vs-frame metrics. ✔ runs, 7 tests green.
    Finding: frame regularization is decoupled from the decode; the bottleneck is source-side.
-2. **Smarter proposers (promoted — the validated lever).** Replace the Gaussian/`"frame"`
-   generator with structured partial solutions that *distinguish* confusable propositions —
-   SAE features (polygram / sae-forge), induction/number-mover circuit templates,
-   Gram-orthogonal complements of current frames. The hard-synthetic result says this, not
-   frame conditioning, is what moves retrievability in the synonym/forge-tax regime.
+2. **Smarter proposers (validated as the lever; `RuleBank` shipped).** Generated rules recover
+   non-linear (composed) structure no frame objective can (§5c). Open: targeting that *beats* SGD
+   allocation (only matters in the weak-gradient / very-low-budget regime), and richer proposers —
+   SAE features (polygram / sae-forge), induction/number-mover templates — that distinguish
+   confusable propositions on real data rather than synthetic XOR.
 3. **Seed from fieldrun.** Implement a `--pil-dump` emitter on the fieldrun side that writes
    the `pil.fieldrun_io` contract (real DLA sources `d_j`, frame `U`, per-position targets),
    then refine on real residuals. Question: does retrievability improve over the frozen model

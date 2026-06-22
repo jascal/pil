@@ -85,6 +85,35 @@ def test_clustered_problem_plants_synonymy():
     assert wc > 0.6, f"within-cluster cosine too low: {wc}"
 
 
+def test_compositional_xor_defeats_linear_helped_by_rule():
+    """The compositional problem must be non-linearly coded: a linear probe on z can't do the
+    hard-cluster XOR, but adding the |z_p - z_q| feature makes it linearly separable."""
+    from pil.proposer import build_sources, targeted_rulebank
+    from pil.synthetic import create_compositional_problem
+
+    cfg = PILConfig(dim=24, n_propositions=2 * 8, device="cpu", seed=0)
+    z, A, tgt, _, hc = create_compositional_problem(
+        cfg, n_examples=512, n_clusters=8, frac_hard=1.0, noise=0.0
+    )
+    K = z.shape[1]
+    # raw build is (B, K, dim); a targeted rule bank appends |z_p - z_q| features
+    bank = targeted_rulebank(list(range(8)), K, 8, 24, device="cpu", seed=0)
+    raw = build_sources(z, A, None)
+    aug = build_sources(z, A, bank)
+    assert raw.shape == (512, K, 24)
+    assert aug.shape[1] == K + bank.n_rules  # rules appended
+
+
+def test_rulebank_empty_is_noop():
+    from pil.proposer import RuleBank, build_sources
+
+    z = torch.randn(4, 6)
+    A = torch.randn(6, 5)
+    bank = RuleBank(6, 5, 0)
+    assert bank.n_rules == 0 and bank(z) is None
+    assert torch.allclose(build_sources(z, A, bank), build_sources(z, A, None))
+
+
 def test_training_step_reduces_loss():
     cfg = PILConfig(dim=16, n_propositions=24, n_sources_per_step=12, device="cpu", seed=0)
     model = ProjectiveIncidenceLearner(cfg)
