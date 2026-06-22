@@ -75,15 +75,24 @@ rank of the *output distribution*, capped by `d`; the forge tax = the open-class
 
 ## 4. The central claims we want stress-tested
 
-**C1 — The hard limit is a tropical capacity bound.** Define `N_γ(U, D)` = the number of tokens
-decoded with margin `≥ γ` on a positive-measure set under data distribution `D`. We conjecture
+**C1 — The hard limit is a tropical capacity bound. [NOW PROVED — `i-orca/examples/tropical/DecodeCapacity.thy`]**
+The right certified form is a *separation lemma*, sharper and cleaner than the cell-count conjecture.
+Call token `v` **γ-decodable** if some residual `r` with `‖r‖ ≤ 1` decodes to `v` with margin `≥ γ`:
 
-$$N_\gamma(U,D)\ \lesssim\ \underbrace{(1/\gamma)^{\,\Theta(d)}}_{\text{sphere packing of power cells}}\quad\text{and}\quad \mathbb{E}_D[\text{effective }N]\ \asymp\ \tau^\star=\min(e^{H},\,d). \tag{OPEN}$$
+$$\textbf{(separation)}\quad v,w\ \text{each γ-decodable},\ v\neq w \ \Longrightarrow\ \|U_v - U_w\|\ \ge\ \gamma,$$
 
-i.e. the bounded number of `γ`-separated Laguerre cells in `ℝ^d` is the *decision-side* analogue
-of Welch's bound on coherence, and `τ⋆` is its distributional refinement. This would turn
-"structure is the hard limit" from a measured plateau into a capacity theorem, and explain §5b
-(the frame can rotate cells but not create more of them).
+**independent of the biases `b`** — they cancel when the two witness inequalities are added
+(`⟨r_v,U_v-U_w⟩ + ⟨r_w,U_w-U_v⟩ = ⟨r_v-r_w,\,U_v-U_w⟩ ≥ 2γ`, then Cauchy–Schwarz with `‖r_v-r_w‖≤2`).
+So the γ-decodable set is a **γ-separated code** in `ℝ^d`, hence by sphere packing
+
+$$N_\gamma \ \le\ \Big(1 + \tfrac{2\rho}{\gamma}\Big)^{d},\qquad \rho = \max_v\|U_v\|. \tag{packing corollary}$$
+
+This is the **decision-side sibling of the Welch bound** (Welch bounds the *coherence* of `V` vectors;
+this bounds the *count* of γ-separated ones — both are packing in `ℝ^d`), and it explains §5b directly:
+frame tuning rotates the code but cannot pack more than `N_γ` cleanly-separated decodes into `d`
+dimensions. `margin_pair_separation` / `decode_capacity_separated` / `head_capacity` are kernel-checked
+(zero `sorry`); the explicit packing constant is the standard covering-number corollary. The `τ⋆` link
+is now precise (see §4.1).
 
 **C2 — Generation = effective-dimension lift = tropical-rank growth.** Adding `K` rules
 `φ_k(x)` makes the readout linear in the augmented vector `[r, φ_1, …, φ_K] ∈ ℝ^{d+K}`, raising the
@@ -98,6 +107,28 @@ descent already performs the facet allocation** that explicit tropical targeting
 (§5c null). So tropical's contribution is *diagnosis, pruning, and the capacity ceiling*, while the
 *generation move itself is linear* (find the discriminating direction). Tropical should only beat
 SGD where the tropical-margin landscape has plateaus/saddles gradients can't cross.
+
+### 4.1 The precise HeadTail ↔ capacity ↔ τ⋆ bridge (the connection Grok asked to pin down)
+
+- **HeadTail → capacity (PROVED).** `HeadTail.head_certifies_decode`: the head `H` reproduces the decode
+  when it tropically dominates the tail. Any token the head decodes with margin `≥ γ` is, by definition,
+  γ-decodable, so the certifiable head `⊆ gdecodable U b γ`. By `head_capacity` its frames are a
+  γ-separated code, hence `|H| ≤ (1+2ρ/γ)^d`. **The certifiable head is capacity-bounded** — there is only
+  room for `N_γ` confident decodes, and HeadTail's "tail = residue" is exactly the overflow beyond capacity
+  (the forge tax). This is a *proved* bridge between the two i-orca theorems.
+
+- **capacity ↔ τ⋆ (the honest, careful statement; bridge still OPEN).** The packing bound is
+  `(1+2ρ/γ)^d` — exponential in the *dimension*. The measured `τ⋆ = min(e^{H}, d)` is a *rank* (effective
+  dimension), `≤ d`. They are **not the same quantity**: capacity is a cell *count*, τ⋆ is a *dimension*.
+  The precise relation we claim is that **τ⋆ is the effective dimension that enters the capacity exponent** —
+  the decode lives in a τ⋆-dimensional effective subspace, so the operative bound is `(1+2ρ/γ)^{τ⋆}`, and the
+  forge tax appears when the distribution demands more confident-decode mass (`≈ e^{H}` distinct outputs) than
+  `(1+2ρ/γ)^{τ⋆}` margin-γ cells provide. Equating capacity *with* τ⋆ would be an overclaim; "τ⋆ is the
+  exponent's effective dimension" is the defensible form, and making it a theorem is **Q1**.
+
+This also sharpens **C2**: generation raises the effective dimension (`[r,φ_1,…,φ_K] ∈ ℝ^{d+K}`), so it raises
+the capacity *exponent* — the only lever that can, since §5b shows frame tuning cannot. The minimal rule count
+to reach margin γ is then a lower bound tied to how much exponent (effective dimension) the target decode needs.
 
 ## 5. Questions for Grok
 
