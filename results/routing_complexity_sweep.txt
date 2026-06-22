@@ -1,0 +1,19 @@
+[routing] dim=32 V=48 (cell capacity FIXED, slack ~1e59); vary n_hard routing decisions x rule budget M; held-out, seeds=2
+
+hard-cluster within-acc   (rows = n_hard routing decisions, cols = rule budget M)
+ n_hard\M       2       4       8      16      32      64
+        4   0.465   0.518   0.808   0.915   0.935   0.950
+        8   0.496   0.529   0.757   0.840   0.900   0.917
+       16   0.498   0.521   0.745   0.889   0.908   0.947
+       24   0.535   0.595   0.759   0.858   0.915   0.948
+
+minimal M to reach acc>=0.85, and M/n_hard (rules per routing decision):
+  n_hard= 4:  M*= 16   M*/n_hard=4.00
+  n_hard= 8:  M*= 32   M*/n_hard=4.00
+  n_hard=16:  M*= 16   M*/n_hard=1.00
+  n_hard=24:  M*= 16   M*/n_hard=0.67
+
+collapse check -- acc at matched M/n_hard ratio ~1, ~2, ~4:
+  M/n_hard~  1:  accs=['0.52', '0.76', '0.89', '0.92']  spread=0.40
+  M/n_hard~  2:  accs=['0.81', '0.84', '0.91', '0.95']  spread=0.14
+  M/n_hard~  4:  accs=['0.92', '0.90', '0.95', '0.95']  spread=0.05

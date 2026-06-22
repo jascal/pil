@@ -46,6 +46,10 @@ def create_clustered_problem(
 
     Smaller ``cluster_spread`` and larger ``V/dim`` => harder. Expected within-cluster
     cosine of ``U_gt`` is ~ ``1 / (1 + cluster_spread**2 * dim)``.
+
+    ``n_hard`` (if set) overrides ``frac_hard`` and makes exactly the first ``n_hard``
+    clusters XOR-coded -- a deterministic routing-complexity knob (number of independent
+    non-linear routing decisions) at fixed cell capacity.
     """
     gen = torch.Generator(device="cpu").manual_seed(config.seed + 2)
     V, dim, J = config.n_propositions, config.dim, config.n_sources_per_step
@@ -79,6 +83,7 @@ def create_compositional_problem(
     n_examples: int = 2048,
     n_clusters: int = 24,
     frac_hard: float = 0.33,
+    n_hard: int | None = None,
     topic_strength: float = 1.5,
     atom_strength: float = 1.0,
     noise: float = 0.08,
@@ -110,7 +115,11 @@ def create_compositional_problem(
     K = 3 * n_clusters  # n_clusters topic atoms + 2 code atoms per cluster
     A = normalize_rows(torch.randn(K, dim, generator=gen))
     cluster_of = torch.arange(V) // 2
-    hard_clusters = torch.rand(n_clusters, generator=gen) < frac_hard
+    if n_hard is not None:
+        # deterministic routing complexity: the first n_hard clusters are XOR-coded
+        hard_clusters = torch.arange(n_clusters) < n_hard
+    else:
+        hard_clusters = torch.rand(n_clusters, generator=gen) < frac_hard
 
     z = torch.zeros(n_examples, K)
     targets = torch.empty(n_examples, dtype=torch.long)

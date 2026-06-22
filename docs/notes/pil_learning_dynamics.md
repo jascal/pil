@@ -232,6 +232,38 @@ is set by trainable per-example routing, which the theory does not optimize. The
 MILP / tropical-LP proposers were deliberately skipped: a 2×2 already shows no selection beats SGD, and
 the binding constraint is routing, not selection — so a better *selector* cannot help.
 
+## 5e. Realization cost is M-dominated, not per-routing-decision (a surprise vs the collapse hypothesis)
+
+`experiments/routing_complexity.py`. To operationalize "realization complexity" (Grok's TRC) before
+formalizing it, hold cell capacity fixed (slack ~1e59, §5d) and vary the **number of independent
+non-linear routing decisions** `n_hard` (XOR-coded clusters), measuring hard-cluster accuracy vs the
+rule budget `M`. Hypothesis: accuracy is governed by `M / n_hard` (rules per routing decision), so the
+curves collapse against that ratio. **The data refuted it.** Held-out, 2 seeds:
+
+| n_hard ＼ M | 2 | 4 | 8 | 16 | 32 | 64 |
+|---|---|---|---|---|---|---|
+| 4  | 0.465 | 0.518 | 0.808 | 0.915 | 0.935 | 0.950 |
+| 8  | 0.496 | 0.529 | 0.757 | 0.840 | 0.900 | 0.917 |
+| 16 | 0.498 | 0.521 | 0.745 | 0.889 | 0.908 | 0.947 |
+| 24 | 0.535 | 0.595 | 0.759 | 0.858 | 0.915 | 0.948 |
+
+**Accuracy depends on the absolute budget `M`, essentially not on `n_hard`.** Read the columns: at fixed
+`M` the accuracy is ~flat across 4→24 routing decisions (M=8 → ~0.76 for all; M=32 → ~0.91 for all). The
+collapse-against-`M/n_hard` fails (spread 0.40 at ratio 1), and the minimal `M` to reach 0.85 is ~16–32
+**regardless of `n_hard`** (so `M*/n_hard` falls from 4.0 to 0.67). So **24 disjoint XOR routings need no
+more rules than 4** — realization cost does **not** scale with the number of routing decisions.
+
+**Interpretation — superposition.** The `M` ReLU rules represent the `n_hard` routing features **in
+superposition**, amortized across decisions: 16 rules route 24 disjoint XORs at 0.86, 32 at 0.91, with
+accuracy set by the rule budget (how many features can be disentangled) and the interference, *not* by
+the decision count. This is the same superposition the rest of the program studies (Welch bound, the
+entangled core), now appearing on the *routing* side. So **TRC is a superposition-capacity quantity — how
+many routing features a budget of `M` rules can pack with tolerable interference — not a per-decision
+count.** That reframes the theory target (see §6 / Q2′): the realization bound should be Welch-flavoured
+(packing routing features into `M` rules), not a circuit-style "one gadget per XOR" count.
+
+Caveats: 2 seeds, mild non-monotone noise in the `n_hard` direction; the `M`-dominance is the robust signal.
+
 ## 6. Open questions
 
 - Does refining on **real fieldrun DLAs** raise retrievability above the frozen model, and at
