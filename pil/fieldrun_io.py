@@ -47,6 +47,7 @@ class IncidenceBundle:
     tgt_idx: Tensor   # (N,)        index of the target token within cands
     cands: Tensor     # (N, K)      candidate token ids
     margins: Tensor   # (N,)        model decode margin (top1 - top2)
+    ent: Tensor       # (N,)        full-vocab next-token entropy (nats); exp(ent) = effective output support
     meta: dict | None = None
 
     @property
@@ -61,8 +62,9 @@ def load_pil_dump(
 ) -> IncidenceBundle:
     """Load a `fieldrun --recursion-explain --pil-dump` JSON-lines file into an :class:`IncidenceBundle`.
 
-    Each line is ``{"pos","cur","target","tgt_idx","pred","margin","nb","cands","contrib"}`` with
+    Each line is ``{"pos","cur","target","tgt_idx","pred","margin","ent","nb","cands","contrib"}`` with
     ``contrib`` an ``nb x K`` matrix. Rows with a missing target (``tgt_idx == -1``) are dropped.
+    ``ent`` is optional (older dumps lack it) and defaults to NaN when absent.
     """
     path = Path(path)
     recs = []
@@ -81,8 +83,9 @@ def load_pil_dump(
     tgt_idx = torch.tensor([r["tgt_idx"] for r in recs], dtype=torch.long, device=device)
     cands = torch.tensor([r["cands"] for r in recs], dtype=torch.long, device=device)
     margins = torch.tensor([r["margin"] for r in recs], dtype=dtype, device=device)
+    ent = torch.tensor([r.get("ent", float("nan")) for r in recs], dtype=dtype, device=device)
     meta = {"path": str(path), "n": len(recs), "nb": contrib.shape[1], "k": contrib.shape[2]}
-    return IncidenceBundle(contrib=contrib, tgt_idx=tgt_idx, cands=cands, margins=margins, meta=meta)
+    return IncidenceBundle(contrib=contrib, tgt_idx=tgt_idx, cands=cands, margins=margins, ent=ent, meta=meta)
 
 
 @dataclass
