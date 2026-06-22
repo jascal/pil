@@ -37,6 +37,55 @@ from torch import Tensor
 
 
 @dataclass
+class IncidenceBundle:
+    """A loaded `fieldrun --pil-dump` (real-DLA seam): per natural-text position, the per-block DLA
+    incidence matrix ``contrib[block][cand] = <d_block, U_cand>`` to the top-K candidates, with the
+    ground-truth target and margin. The real-model analogue of the synthetic compositional sources —
+    each DLA block is a "rule", its per-candidate contribution the incidence."""
+
+    contrib: Tensor   # (N, nb, K)  per-block incidence to each candidate
+    tgt_idx: Tensor   # (N,)        index of the target token within cands
+    cands: Tensor     # (N, K)      candidate token ids
+    margins: Tensor   # (N,)        model decode margin (top1 - top2)
+    meta: dict | None = None
+
+    @property
+    def n_blocks(self) -> int:
+        return int(self.contrib.shape[1])
+
+
+def load_pil_dump(
+    path: str | Path,
+    device: str = "cpu",
+    dtype: torch.dtype = torch.float32,
+) -> IncidenceBundle:
+    """Load a `fieldrun --recursion-explain --pil-dump` JSON-lines file into an :class:`IncidenceBundle`.
+
+    Each line is ``{"pos","cur","target","tgt_idx","pred","margin","nb","cands","contrib"}`` with
+    ``contrib`` an ``nb x K`` matrix. Rows with a missing target (``tgt_idx == -1``) are dropped.
+    """
+    path = Path(path)
+    recs = []
+    with open(path) as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            r = json.loads(line)
+            if r.get("tgt_idx", -1) >= 0:
+                recs.append(r)
+    if not recs:
+        raise ValueError(f"{path}: no usable records (all targets out of the candidate set?)")
+
+    contrib = torch.tensor([r["contrib"] for r in recs], dtype=dtype, device=device)  # (N, nb, K)
+    tgt_idx = torch.tensor([r["tgt_idx"] for r in recs], dtype=torch.long, device=device)
+    cands = torch.tensor([r["cands"] for r in recs], dtype=torch.long, device=device)
+    margins = torch.tensor([r["margin"] for r in recs], dtype=dtype, device=device)
+    meta = {"path": str(path), "n": len(recs), "nb": contrib.shape[1], "k": contrib.shape[2]}
+    return IncidenceBundle(contrib=contrib, tgt_idx=tgt_idx, cands=cands, margins=margins, meta=meta)
+
+
+@dataclass
 class ProbeBundle:
     """A loaded fieldrun probe dump, ready to feed :class:`ProjectiveIncidenceLearner`."""
 

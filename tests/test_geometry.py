@@ -148,6 +148,31 @@ def test_packing_bound_and_separation():
     assert gamma_decodable_count(L, gamma=1.0) == 2
 
 
+def test_load_pil_dump(tmp_path):
+    """The fieldrun --pil-dump loader parses JSON lines into the incidence bundle and drops
+    records whose target fell outside the candidate set (tgt_idx == -1)."""
+    import json
+
+    from pil.fieldrun_io import load_pil_dump
+
+    recs = [
+        {"pos": 1, "cur": 5, "target": 9, "tgt_idx": 0, "pred": 9, "margin": 2.0, "nb": 2,
+         "cands": [9, 3, 7], "contrib": [[1.0, 0.2, 0.1], [0.5, 0.1, 0.0]]},
+        {"pos": 2, "cur": 9, "target": 4, "tgt_idx": -1, "pred": 3, "margin": 1.0, "nb": 2,
+         "cands": [3, 7, 1], "contrib": [[0.9, 0.3, 0.1], [0.4, 0.2, 0.0]]},  # dropped (tgt_idx -1)
+    ]
+    path = tmp_path / "dump.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in recs) + "\n")
+    b = load_pil_dump(str(path))
+    assert b.contrib.shape == (1, 2, 3)        # one usable record, nb=2, K=3
+    assert b.n_blocks == 2
+    assert int(b.tgt_idx[0]) == 0
+    assert abs(float(b.margins[0]) - 2.0) < 1e-6
+    # logits reconstruct: block sum over candidates
+    logits = b.contrib.sum(dim=1)
+    assert int(logits.argmax(1)[0]) == 0       # candidate 0 is the decode
+
+
 def test_rulebank_empty_is_noop():
     from pil.proposer import RuleBank, build_sources
 

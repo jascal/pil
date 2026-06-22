@@ -332,6 +332,34 @@ Welch-floored (proved, `RoutingWelch`), but it is empirically **decoupled from t
 `γ ≤ γ₀(1−c·μ)` theorem would contradict the data. The honest theory boundary is: the *structural*
 packing bounds are provable (and proved); the *margin consequence* is mild and not a clean law.
 
+## 5h. The fieldrun seam — first real-model numbers (rank transfers, packing does not)
+
+The synthetic story is mapped; the open question is whether it transfers to a real model. The
+**`fieldrun --pil-dump`** seam (in fieldrun's `recursion_probe.rs`, gated behind `--recursion-explain`)
+emits, per natural-text position, the full per-block DLA incidence matrix `contrib[block][cand] =
+⟨d_block, U_cand⟩` over the top-K candidates (target forced in) as JSON lines; `pil.fieldrun_io.load_pil_dump`
+loads it; `experiments/real_dla_analysis.py` runs the real-model analogues. The DLA blocks are the "rules"
+(M = nb), each position is a routing decision, and we analyse the model's **own decode** (argmax vs
+runner-up), not whether it's correct.
+
+First run — **Qwen2.5-0.5B**, 115 natural-text positions, nb=49 DLA blocks:
+
+- **Seam is faithful:** the incidences reconstruct the decode argmax 1.00 of the time and the recomputed
+  margin matches the model's exactly (1.31 = 1.31). (Decode == ground-truth only 0.38 — that's the model's
+  own next-token accuracy, not a reconstruction error.)
+- **Rank transfers ✓** — the decode effectively uses **~11–12 of 49 blocks** (source-PR), large rank slack,
+  matching the synthetic "rank is not the binding constraint" (`RoutingRank`).
+- **Near-Welch packing does NOT transfer (mild surprise)** — the realized routing-feature coherence is
+  `μ = 0.27` vs a Welch floor of `0.11` for 115 features in 49 block-dims: **~2.5× above the floor**, where
+  the synthetic (SGD on a narrow XOR task) packed to ~1×. The real model, not optimized for this routing-
+  feature decomposition, leaves packing slack the task-specialized synthetic didn't.
+
+**Caveats (honest, first look):** one model, one short text, N=115; the "routing feature = decode-vs-runner-up
+in block space" is one of several reasonable definitions; the DLA blocks are fieldrun's decomposition, not the
+only circuit basis. So this is a *first signal*, not a transfer verdict: it says the **rank-slack** finding is
+real-model-robust, while the **near-optimal-packing** finding is synthetic-specific (the real model is looser).
+Larger corpora, more models, and alternative routing-feature definitions are the obvious next sweep.
+
 ## 6. Open questions
 
 - Does refining on **real fieldrun DLAs** raise retrievability above the frozen model, and at

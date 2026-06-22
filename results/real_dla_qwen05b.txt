@@ -1,0 +1,19 @@
+[real-dla] /tmp/pil_real_big.jsonl: N=115 positions, nb=49 DLA blocks, K=16 candidates
+
+  sanity: incidences reconstruct the decode argmax 1.00 of the time; 
+          decode==ground-truth 0.38 (the model's own next-token accuracy)
+  margin recompute vs dump: mean 1.31 vs 1.31
+
+  RANK (RoutingRank side -- adjustments live in <= nb dims):
+    source-PR over blocks toward the decode : mean 11.5 / 49  (median 11.5)  -> effective blocks used; large slack = nb - PR
+
+  COHERENCE (§5f / RoutingWelch side):
+    N=115 routing features in nb=49 block-dims  (overpacked 2.3x)
+    realized mean |cos| mu = 0.272   vs Welch floor 0.109   (ratio 2.50x)
+
+  MARGIN:
+    mean 1.31, median 0.89, 10th-pct 0.20  (logit units)
+
+  transfer read (descriptive):
+    - rank: the decode effectively uses ~12 of 49 blocks (concentrated -> rank slack, matches synthetic).
+    - packing: realized coherence ABOVE the Welch floor -> LOOSER than synthetic (real-model diff).

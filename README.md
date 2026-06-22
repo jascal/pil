@@ -95,14 +95,17 @@ pil/
     synthetic.py     hard problems: over-complete + synonym clusters; XOR-coded compositional; diagnostics
     proposer.py      RuleBank (the generative step) + targeted / from-weights rule construction
     scoring.py       theory-guided propose-score-select (ambiguity η², variance) for candidate rules
-    fieldrun_io.py   integration contract for seeding from real fieldrun probe dumps
+    fieldrun_io.py   loaders for fieldrun probe dumps: the source contract + load_pil_dump (real-DLA seam)
     viz.py           optional matplotlib helpers (training curve, Gram heatmap)
   experiments/
     synthetic_pil.py    runnable planted-frame demo of the generate/gate/refine loop
     hard_synthetic.py   frame_reg sweep over the over-complete/synonym regime (the decode/frame trade)
     compositional_pil.py  frame vs untargeted vs targeted generation on XOR-coded synonyms (held-out)
     scored_proposer.py    propose-score-select vs SGD with frozen rules (the §5d proposer-scoring test)
-  tests/             correctness tests pinning the starter bugs + the generators + scoring
+    routing_complexity.py  rules-needed vs routing decisions at fixed capacity (§5e); interference_probe.py (§5f)
+    coherence_reg.py      generator-side soft-Welch regularizer null (§5g)
+    real_dla_analysis.py  the fieldrun --pil-dump seam: real-model rank/coherence/margin (§5h)
+  tests/             correctness tests pinning the starter bugs + the generators + scoring + the seam
   docs/notes/        design notes (learning dynamics; decode/frame split)
 ```
 
@@ -129,10 +132,10 @@ pil/
    allocation (only matters in the weak-gradient / very-low-budget regime), and richer proposers —
    SAE features (polygram / sae-forge), induction/number-mover templates — that distinguish
    confusable propositions on real data rather than synthetic XOR.
-3. **Seed from fieldrun.** Implement a `--pil-dump` emitter on the fieldrun side that writes
-   the `pil.fieldrun_io` contract (real DLA sources `d_j`, frame `U`, per-position targets),
-   then refine on real residuals. Question: does retrievability improve over the frozen model
-   at a stated fidelity cost?  Add a train/holdout split here (the synthetics are in-sample).
+3. **Seed from fieldrun (seam built, §5h).** `fieldrun --recursion-explain --pil-dump` emits real
+   per-block DLA incidences; `load_pil_dump` + `real_dla_analysis.py` run the rank/coherence/margin
+   analyses on a real LM. First Qwen-0.5B result: rank-slack transfers, near-Welch packing does not
+   (real model is ~2.5× looser). Open: larger corpora / more models / alternative routing-feature defs.
 4. **Targeted geometry.** Domain/token-class-specific frames; measure forge-tax reduction
    per class against the cross-substrate baselines (it differs bio vs econ vs LM).
 5. **Export.** Retrievable fragment → semiring-Datalog (fieldrun's LOGIC_EXPORT path);
