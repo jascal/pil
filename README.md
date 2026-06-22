@@ -37,18 +37,23 @@ This is the precise reason pil is a separate repo from fieldrun, not a fork of i
 
 ## Quickstart
 
-pil depends only on `numpy` + `torch` (viz/`tqdm` are optional extras). Any torch-capable
-environment works:
+pil is **self-contained** — it depends only on `numpy` + `torch` (viz/`tqdm` are optional
+extras) and ships its own venv + CI (`.github/workflows/ci.yml`); it does **not** borrow any
+sibling project's environment.
 
 ```bash
-# from the repo root
-python -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]"          # numpy, torch, pytest, ruff, matplotlib, tqdm
+# from the repo root — its own venv, CPU torch (no GPU needed for tests)
+python3 -m venv .venv && . .venv/bin/activate
+pip install torch --index-url https://download.pytorch.org/whl/cpu   # light, deterministic
+pip install -e ".[dev]"          # pil + numpy, pytest, ruff, matplotlib, tqdm
 
-pytest -q                        # 6 correctness tests (pin the starter bugs)
+pytest -q                        # correctness tests (editable install, no PYTHONPATH needed)
+ruff check .
 python experiments/synthetic_pil.py --steps 2000
 python experiments/synthetic_pil.py --steps 2000 --visualize --save-dir runs/
 ```
+
+(A GPU torch build also works — the experiments use CUDA when available; CI runs CPU-only.)
 
 Measured on the planted-frame synthetic (`dim=32`, `V=64`, `J=24`, 2000 steps, CPU/GPU):
 
