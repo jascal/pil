@@ -69,7 +69,7 @@ def main():
     easy = contrib[order[edges[-2]:]]
     pr_hard = participation_ratio(hard[:, :, 0], dim=1).mean().item()
     pr_easy = participation_ratio(easy[:, :, 0], dim=1).mean().item()
-    verdict = "HARD uses more blocks (difficulty-driven)" if pr_hard > pr_easy + 1 else "flat/inverse (intrinsic)"
+    verdict = "HARD uses more blocks" if pr_hard > pr_easy + 1 else "flat/inverse (intrinsic slack)"
     print(f"\n  rank vs difficulty: hard PR {pr_hard:.0f} vs easy PR {pr_easy:.0f} / {nb}  -> {verdict}")
 
 
