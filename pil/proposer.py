@@ -58,6 +58,28 @@ def build_sources(z: Tensor, A: Tensor, bank: RuleBank | None) -> Tensor:
     return torch.cat([raw, gen], dim=1)
 
 
+def rulebank_from_weights(
+    W: Tensor,
+    dim: int,
+    device: str = "cpu",
+    seed: int = 0,
+    freeze_input: bool = True,
+) -> RuleBank:
+    """Build a rule bank whose input-weights are the given (selected) ``W`` (n_rules, n_atoms).
+
+    With ``freeze_input=True`` the input-weights are frozen (``requires_grad=False``) -- the
+    weak-gradient condition under which *selecting* the right firing pattern matters, since SGD
+    can no longer repair a bad rule. Output directions ``Bdir`` stay random and trainable.
+    """
+    n_rules, n_atoms = W.shape
+    bank = RuleBank(n_atoms, dim, n_rules, device=device, seed=seed)
+    with torch.no_grad():
+        bank.W.copy_(W.to(device))
+    if freeze_input:
+        bank.W.requires_grad_(False)
+    return bank
+
+
 def targeted_rulebank(
     hard_cluster_ids: list[int],
     n_atoms: int,

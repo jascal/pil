@@ -26,7 +26,13 @@ from .learner import (
     ProjectiveIncidenceLearner,
     create_synthetic_problem,
 )
-from .proposer import RuleBank, build_sources, targeted_rulebank
+from .proposer import RuleBank, build_sources, rulebank_from_weights, targeted_rulebank
+from .scoring import (
+    ambiguity_resolution_score,
+    candidate_activations,
+    propose_and_select,
+    select_top_k,
+)
 from .synthetic import (
     create_clustered_problem,
     create_compositional_problem,
@@ -49,6 +55,11 @@ __all__ = [
     "RuleBank",
     "build_sources",
     "targeted_rulebank",
+    "rulebank_from_weights",
+    "ambiguity_resolution_score",
+    "candidate_activations",
+    "propose_and_select",
+    "select_top_k",
     "cosine_gram",
     "frame_potential",
     "gram_matrix",

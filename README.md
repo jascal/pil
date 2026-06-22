@@ -93,14 +93,16 @@ pil/
     geometry.py      incidences, Gram, margins, frame potential (Welch-floored), PR, power diagram
     learner.py       ProjectiveIncidenceLearner: propose -> gate -> refine; labelled losses
     synthetic.py     hard problems: over-complete + synonym clusters; XOR-coded compositional; diagnostics
-    proposer.py      RuleBank (the generative step) + min-margin-targeted rule seeding
+    proposer.py      RuleBank (the generative step) + targeted / from-weights rule construction
+    scoring.py       theory-guided propose-score-select (ambiguity η², variance) for candidate rules
     fieldrun_io.py   integration contract for seeding from real fieldrun probe dumps
     viz.py           optional matplotlib helpers (training curve, Gram heatmap)
   experiments/
     synthetic_pil.py    runnable planted-frame demo of the generate/gate/refine loop
     hard_synthetic.py   frame_reg sweep over the over-complete/synonym regime (the decode/frame trade)
     compositional_pil.py  frame vs untargeted vs targeted generation on XOR-coded synonyms (held-out)
-  tests/             correctness tests pinning the starter bugs + the generators
+    scored_proposer.py    propose-score-select vs SGD with frozen rules (the §5d proposer-scoring test)
+  tests/             correctness tests pinning the starter bugs + the generators + scoring
   docs/notes/        design notes (learning dynamics; decode/frame split)
 ```
 

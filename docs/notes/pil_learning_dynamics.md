@@ -188,6 +188,38 @@ not a better optimizer than SGD for placing rules. Targeting should only win whe
 assignment fails — very low budget with many hard facets and weak gradients — which this regime does
 not stress. That sharper regime is the open test.
 
+## 5d. Theory-guided propose-score-select doesn't beat SGD (the proposer-scoring negative)
+
+`experiments/scored_proposer.py`. The sharp test of the propose-score-select blueprint (score
+candidate rules by a theory-guided criterion, select top-k), in the one regime §5c said selection
+*should* matter: the selected rules' input-weights are **frozen** (weak gradient on the feature they
+read), so SGD cannot repair a badly-chosen rule. Candidates are random input-weights `w`; a rule is
+`relu(⟨w,z⟩)`. Arms (matched budget M, finetune steps), hard-cluster within-acc, held-out:
+
+| budget | random | variance | **ambiguity** | **sgd (trainable w)** |
+|---|---|---|---|---|
+| 2  | 0.492 | 0.473 | 0.517 | 0.489 |
+| 4  | 0.502 | 0.505 | 0.497 | 0.511 |
+| 8  | 0.540 | 0.529 | 0.532 | **0.722** |
+| 16 | 0.632 | 0.573 | 0.579 | **0.859** |
+
+**Two negatives:** (i) all frozen-input arms sit near chance (≤ 0.63) while SGD reaches 0.86 — *freezing
+the input-weights is catastrophic*; (ii) the theory-guided `ambiguity` η²-score does **not** beat
+`random` selection (0.579 vs 0.632 at M=16). So scoring/selecting which feature a rule reads is not the
+lever — **gradient-training the feature is**. Even a perfectly-chosen frozen feature can't be made
+useful, because the rule must co-adapt with the readout, which a frozen `w` forbids.
+
+This completes the triangulation. Across **three** independent angles — frame regularization (§5b),
+rule allocation/targeting under full SGD (§5c), and proposal scoring under frozen rules (§5d) — no
+theory-guided intervention beats plain end-to-end gradient training of the rules. The generative
+lever is gradient-trained rule features; the tropical/PIC theory's value is the **capacity limit**
+(now kernel-proved, `DecodeCapacity.thy`), *not* a better optimizer.
+
+The one untested variant is **scored-init + trainable** (select a good `w`, then let SGD tune it) — by
+the §5c logic that reduces to "SGD from a slightly better init," expected to ≈ SGD, not beat it. The
+heavier MILP / tropical-LP proposers from the blueprint were deliberately skipped: the cheap test
+already answers whether *any* selection beats SGD here (it doesn't), so a solver is not yet warranted.
+
 ## 6. Open questions
 
 - Does refining on **real fieldrun DLAs** raise retrievability above the frozen model, and at

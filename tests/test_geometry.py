@@ -104,6 +104,33 @@ def test_compositional_xor_defeats_linear_helped_by_rule():
     assert aug.shape[1] == K + bank.n_rules  # rules appended
 
 
+def test_ambiguity_score_prefers_discriminating_rule():
+    """η²-on-ambiguous score must rank a target-correlated firing above a noise firing."""
+    from pil.scoring import ambiguity_resolution_score, candidate_activations
+
+    torch.manual_seed(0)
+    n, K, V = 200, 4, 2
+    targets = torch.randint(0, V, (n,))
+    z = torch.randn(n, K)
+    # make atom 0 strongly encode the target; atoms 1..3 are noise
+    z[:, 0] = targets.float() * 2.0 + 0.1 * torch.randn(n)
+    margins = torch.zeros(n)  # all examples ambiguous
+    # candidate A reads atom 0 (discriminating); candidate B reads only noise atoms
+    W = torch.tensor([[1.0, 0, 0, 0], [0, 1.0, 1.0, 1.0]])
+    acts = candidate_activations(z, W)
+    s = ambiguity_resolution_score(acts, targets, margins, n_classes=V, frac=1.0)
+    assert s[0] > s[1], f"discriminating rule should score higher: {s.tolist()}"
+
+
+def test_frozen_rulebank_input_not_trained():
+    from pil.proposer import rulebank_from_weights
+
+    W = torch.randn(3, 6)
+    bank = rulebank_from_weights(W, dim=5, freeze_input=True)
+    assert not bank.W.requires_grad and bank.Bdir.requires_grad
+    assert torch.allclose(bank.W.data, W)
+
+
 def test_rulebank_empty_is_noop():
     from pil.proposer import RuleBank, build_sources
 

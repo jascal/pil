@@ -1,0 +1,9 @@
+[scored] dim=32 V=48 K=72 hard=13/24 frozen-input rules, eval=held-out, seeds=3
+
+  budget      random    variance   ambiguity         sgd
+       2       0.492       0.473       0.517       0.489
+       4       0.502       0.505       0.497       0.511
+       8       0.540       0.529       0.532       0.722
+      16       0.632       0.573       0.579       0.859
+
+(values = hard-cluster within-synonym accuracy, held-out; chance = 0.5)
