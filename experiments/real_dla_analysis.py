@@ -33,7 +33,7 @@ def main():
     a = p.parse_args()
 
     b = load_pil_dump(a.path)
-    contrib = b.contrib                       # (N, nb, K); cands sorted by logit (idx 0 = decode, 1 = runner-up)
+    contrib = b.contrib                       # (N, nb, K); cands logit-sorted (idx 0 = decode, 1 = runner-up)
     N, nb, K = contrib.shape
     print(f"[real-dla] {b.meta['path']}: N={N} positions, nb={nb} DLA blocks, K={K} candidates")
 
