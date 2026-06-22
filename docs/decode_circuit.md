@@ -64,6 +64,27 @@ when it dominates the tail), tested on the real per-block contributions. The ans
   (hard, low-margin) corpus needs **7**. So *easy tokens are one-block retrieval* and *hard tokens are
   several-block computation* — the decode-circuit view of the retrieve-vs-compute / forge-tax axis.
 
+## Causal: attribution mass ≠ causal importance (the necessary guardrail)
+
+Everything above is **attribution** (where the decode logit's *mass* comes from). It is **not** a causal
+claim — and a causal ablation (`fieldrun --block-ablate`: zero whole attention/MLP blocks by layer-group
+and *recompute*, so downstream re-runs over the modified residual) shows the two come apart sharply
+(Qwen, decode preserved):
+
+| ablation | 0.5B | 1.5B |
+|---|---|---|
+| late MLP (the high-mass readout) | 23% | 16% |
+| **early attn+mlp (≈0% direct mass)** | **1.1%** | **1.1%** |
+| **keep-late-only (= sufficiency)** | **1.1%** | **0%** |
+| all attn / all mlp | 0% / 0% | 0% / 0% |
+
+So the late-MLP attribution circuit is **not causally sufficient** (keep-late-only ≈ 0–1%), and the early
+layers — which carry **~0% of the direct decode mass** — are **~99% necessary**: they *build* the residual
+the late MLPs *read out*. The decode-circuit must therefore be stated as **attribution** (a per-position
+sparse late-MLP readout), explicitly **distinct from causal importance** (the whole stack is necessary).
+That distinction, cleanly quantified on real models, is itself a load-bearing point — it is the guardrail
+against the common slip of reading direct-logit-attribution as a causal circuit.
+
 ## Why it's solid (and honestly scoped)
 
 - **Faithful, not approximate.** The decompilation is exact: the per-block incidences reconstruct the
@@ -74,10 +95,12 @@ when it dominates the tail), tested on the real per-block contributions. The ans
   residual) give the same qualitative circuit, so it is a property of the transformer decode, not of one
   family's design.
 - **Honest contribution.** That *late* layers dominate the decode is expected (they sit nearest the
-  unembedding); the contribution is the **quantitative crispness** — a fixed ~12-block, MLP-dominant
-  circuit that is scale- and architecture-invariant — established via a faithful decompilation rather than
-  asserted. We do **not** claim the ~12 blocks are *causally sufficient* (that needs ablation, a clean
-  follow-up); the claim is about where the decode logit's mass *comes from*.
+  unembedding); the contribution is the **quantitative crispness** — a per-position-sparse (median 1–3
+  blocks), MLP-dominant readout drawn from a consistent pool, scale- and architecture-invariant —
+  established via a faithful decompilation rather than asserted, *and* the explicit attribution-vs-causation
+  separation above (the readout is sparse; the computation behind it is the whole stack). The claim is about
+  where the decode logit's mass *comes from* and what is causally necessary for it — two different things,
+  both measured.
 
 ## Reproduce
 

@@ -1,0 +1,16 @@
+# Causal sufficiency / necessity of the decode circuit (ablate whole blocks + RECOMPUTE)
+# regenerate: fieldrun --bundle <stem> --recursion-explain --block-ablate --n 150
+# decode (full-vocab argmax) preserved under causal block ablation:
+
+                                                      Qwen-0.5B   Qwen-1.5B
+  ablate late MLP (the high-mass readout)               23.0%       16.1%
+  ablate late attn+mlp                                   5.7%       11.5%
+  ablate mid attn+mlp                                   52.9%       58.6%
+  ablate EARLY attn+mlp (~0% direct mass)                1.1%        1.1%
+  KEEP-LATE-ONLY (ablate early+mid) = sufficiency        1.1%        0.0%
+  ablate ALL attn (keep all MLP)                         0.0%        0.0%
+  ablate ALL mlp (keep all attn)                         0.0%        0.0%
+
+# Reading: the late-MLP ATTRIBUTION circuit is NOT causally sufficient (keep-late-only ~0-1%).
+# The EARLY layers carry ~0% direct decode mass yet ablating them destroys 99% of decodes:
+# they BUILD the residual the late MLPs READ OUT. mass (attribution) != causation.
