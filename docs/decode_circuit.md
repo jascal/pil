@@ -1,15 +1,17 @@
-# The next-token decode is a small, consistent, late-layer-MLP circuit
+# The next-token decode is per-position sparse — a few late-layer MLP blocks from a consistent pool
 
 *The tight, paper-sized finding — one claim, architecture-general. Evidence in
-`results/decode_circuit.txt` (regenerable: `experiments/real_dla_blocks.py <dump>`), seam in
-`fieldrun --pil-dump`, theory in i-orca `examples/tropical/RoutingRank.thy`.*
+`results/decode_circuit.txt` + `results/decode_compactness.txt` (regenerable:
+`experiments/real_dla_blocks.py` / `decode_compactness.py`), seam in `fieldrun --pil-dump`, theory in
+i-orca `examples/tropical/RoutingRank.thy` + `HeadTail.thy`.*
 
 ## The claim
 
 In every transformer measured — **Qwen (rope) 0.5B / 1.5B / 3B** and **Pythia (GPT-NeoX) 70m / 160m /
-410m** — the next-token decode is driven by a **small, consistent, late-layer, MLP-dominant circuit**.
-Concretely, decomposing the decode logit into its `nb = 2L+1` additive DLA blocks (one attention + one
-MLP output per layer, plus the embedding):
+410m** — the next-token decode is **per-position sparse**: a **median of 1–3 late-layer MLP blocks**
+reproduces it, drawn from a **consistent late-MLP pool** whose *membership per token is position-dependent*
+(so it is sparse routing within a stable pool, not one fixed small circuit). Decomposing the decode logit
+into its `nb = 2L+1` additive DLA blocks (one attention + one MLP output per layer, plus the embedding):
 
 | family / model | layers | MLP share | late-third share | effective blocks (PR) | consistent? |
 |---|---|---|---|---|---|
@@ -26,14 +28,41 @@ Four properties, all robust across scale (0.5B–3B), architecture (rope ↔ neo
 1. **Rank-concentrated.** A near-constant **~12 effective blocks** drive the decode, *independent of
    scale* — so as `nb` grows (13 → 73), the fraction used *shrinks*. This is the realized form of the
    kernel-proved `RoutingRank` bound (rule adjustments live in a low-rank subspace).
-2. **Consistent.** The global block-importance participation ratio ≈ the per-position PR — it is the
-   *same* ~12 blocks at (almost) every position, not a different subset each time. A fixed circuit, not
-   diffuse routing.
+2. **A consistent late-MLP *pool*, but a per-position-variable *reproducing support*.** The mass-importance
+   participation ratio is similar globally and per-position (~12–15), so the decode mass lives in a
+   consistent pool of ~12–15 late-MLP blocks. But *reproducing the exact decode* (argmax) is **per-position
+   sparse with position-dependent support** (see Compactness below), so this is a stable pool that each
+   token draws a few blocks from — **not** a single fixed small circuit. (An earlier draft over-claimed a
+   fixed ~12-block circuit; the compactness test corrected it.)
 3. **Late-layer.** 59–97% of the decode mass comes from the last third of layers; the embedding
    contributes ~0–2% (the 30–37% in the tiniest Pythia models is a small-model artifact that vanishes by
    410m).
 4. **MLP-dominant.** 43–78% of the decode mass is the MLP writes, 2–3× the attention writes — the late
    MLPs do most of the vocabulary projection.
+
+## Compactness: the head/tail theorem on real circuits
+
+Where does the *mass* concentrate (above) vs how few blocks actually *reproduce the decode argmax*? The
+second is the kernel-proved head/tail theorem (`HeadTail.thy`: a compact head reproduces the decode exactly
+when it dominates the tail), tested on the real per-block contributions. The answer splits cleanly:
+
+| model | per-position min blocks (median / mean / 90th) | global fixed-circuit blocks for 90% |
+|---|---|---|
+| Qwen-0.5B | 1 / 3.3 / 8 of 49 | 42 / 49 |
+| Qwen-1.5B | 3 / 5.5 / 14 of 57 | 51 / 57 |
+| Qwen-3B | 2 / 4.0 / 8 of 73 | 52 / 73 |
+| Pythia-410m | 3 / 7.0 / 20 of 49 | 47 / 49 |
+| Qwen-0.5B (shuffled / hard) | 7 / 9.1 / 18 of 49 | 46 / 49 |
+
+- **Per-position: extremely compact.** A median of **1–3 blocks** reproduces the decode — for the median
+  token a *single* dominant late-MLP already out-argmaxes the 15 nearest competitors. This is the head/tail
+  theorem realized: per position, a tiny head dominates the tail, so a tiny head reproduces the decode.
+- **Globally: not a fixed circuit.** Because *which* block dominates is **position-dependent**, no single
+  small block set reproduces all decodes — one fixed circuit needs ~85–95% of all blocks for 90% of
+  positions. So the consistent late-MLP *pool* is real, but the per-token *support* roams within it.
+- **Difficulty sets the per-position sparsity.** Easy prose needs a median of **1** block; the shuffled
+  (hard, low-margin) corpus needs **7**. So *easy tokens are one-block retrieval* and *hard tokens are
+  several-block computation* — the decode-circuit view of the retrieve-vs-compute / forge-tax axis.
 
 ## Why it's solid (and honestly scoped)
 

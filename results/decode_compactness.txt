@@ -1,0 +1,38 @@
+# Decode compactness (head/tail theorem on real circuits)
+# per-position minimal-k = how few blocks reproduce THAT decode; global = one fixed circuit
+
+## Qwen-0.5B
+  minimal GLOBAL k (one fixed circuit for all positions):
+    90% of positions reproduced by the top-42/49 blocks (86% of blocks)
+    95% of positions reproduced by the top-45/49 blocks (92% of blocks)
+    99% of positions reproduced by the top-48/49 blocks (98% of blocks)
+  minimal PER-POSITION k: median 1, mean 3.3, 90th-pct 8 / 49
+
+## Qwen-1.5B
+  minimal GLOBAL k (one fixed circuit for all positions):
+    90% of positions reproduced by the top-51/57 blocks (89% of blocks)
+    95% of positions reproduced by the top-55/57 blocks (96% of blocks)
+    99% of positions reproduced by the top-56/57 blocks (98% of blocks)
+  minimal PER-POSITION k: median 3, mean 5.5, 90th-pct 14 / 57
+
+## Qwen-3B
+  minimal GLOBAL k (one fixed circuit for all positions):
+    90% of positions reproduced by the top-52/73 blocks (71% of blocks)
+    95% of positions reproduced by the top-64/73 blocks (88% of blocks)
+    99% of positions reproduced by the top-71/73 blocks (97% of blocks)
+  minimal PER-POSITION k: median 2, mean 4.0, 90th-pct 8 / 73
+
+## Pythia-410m
+  minimal GLOBAL k (one fixed circuit for all positions):
+    90% of positions reproduced by the top-47/49 blocks (96% of blocks)
+    95% of positions reproduced by the top-48/49 blocks (98% of blocks)
+    99% of positions reproduced by the top-49/49 blocks (100% of blocks)
+  minimal PER-POSITION k: median 3, mean 7.0, 90th-pct 20 / 49
+
+## Qwen-0.5B-shuffle(hard)
+  minimal GLOBAL k (one fixed circuit for all positions):
+    90% of positions reproduced by the top-46/49 blocks (94% of blocks)
+    95% of positions reproduced by the top-47/49 blocks (96% of blocks)
+    99% of positions reproduced by the top-49/49 blocks (100% of blocks)
+  minimal PER-POSITION k: median 7, mean 9.1, 90th-pct 18 / 49
+
