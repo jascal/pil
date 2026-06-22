@@ -1,0 +1,78 @@
+This is BibTeX, Version 0.99d (TeX Live 2023/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: pic.aux
+The style file: ACM-Reference-Format.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Database file #1: references.bib
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated glb_str_ptr (elt_size=4) to 20 items from 10.
+Reallocated global_strs (elt_size=200001) to 20 items from 10.
+Reallocated glb_str_end (elt_size=4) to 20 items from 10.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Warning--no number and no volume in adler2024superposition
+Warning--page numbers missing in both pages and numpages fields in adler2024superposition
+Warning--page numbers missing in both pages and numpages fields in alfarra2023decision
+Warning--empty publisher in biderman2023pythia
+Warning--empty address in biderman2023pythia
+Warning--page numbers missing in both pages and numpages fields in biderman2023pythia
+Warning--no number and no volume in brandenburg2024real
+Warning--page numbers missing in both pages and numpages fields in brandenburg2024real
+Warning--empty publisher in chen2021scatterbrain
+Warning--empty address in chen2021scatterbrain
+Warning--page numbers missing in both pages and numpages fields in chen2021scatterbrain
+Warning--empty address in maclagan2015tropical
+Warning--empty publisher in montufar2014regions
+Warning--empty address in montufar2014regions
+Warning--page numbers missing in both pages and numpages fields in montufar2014regions
+Warning--empty publisher in serra2018regions
+Warning--empty address in serra2018regions
+Warning--page numbers missing in both pages and numpages fields in serra2018regions
+Warning--empty publisher in vaswani2017attention
+Warning--empty address in vaswani2017attention
+Warning--page numbers missing in both pages and numpages fields in vaswani2017attention
+Warning--empty publisher in zhang2018tropical
+Warning--empty address in zhang2018tropical
+You've used 20 entries,
+            5981 wiz_defined-function locations,
+            1571 strings with 21559 characters,
+and the built_in function-call counts, 20338 in all, are:
+= -- 2441
+> -- 790
+< -- 0
++ -- 271
+- -- 281
+* -- 1478
+:= -- 2114
+add.period$ -- 100
+call.type$ -- 20
+change.case$ -- 155
+chr.to.int$ -- 18
+cite$ -- 43
+duplicate$ -- 1745
+empty$ -- 1244
+format.name$ -- 333
+if$ -- 4809
+int.to.chr$ -- 4
+int.to.str$ -- 1
+missing$ -- 56
+newline$ -- 200
+num.names$ -- 138
+pop$ -- 752
+preamble$ -- 1
+purify$ -- 311
+quote$ -- 0
+skip$ -- 626
+stack$ -- 0
+substring$ -- 1254
+swap$ -- 118
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 489
+warning$ -- 23
+while$ -- 110
+width$ -- 0
+write$ -- 413
+(There were 23 warnings)

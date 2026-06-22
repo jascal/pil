@@ -1,0 +1,146 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{vaswani2017attention}
+\citation{iorca}
+\@writefile{toc}{\contentsline {section}{Abstract}{1}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\citation{qwen2025}
+\citation{fieldrun}
+\citation{iorca}
+\citation{pil}
+\citation{elhage2021framework,nostalgebraist2020logitlens}
+\citation{bundy1985incidence,liu1996incidence}
+\citation{zhang2018tropical}
+\citation{brandenburg2024real}
+\citation{alfarra2023decision}
+\citation{montufar2014regions,serra2018regions}
+\citation{maclagan2015tropical}
+\citation{iorca}
+\citation{iorca}
+\citation{zhang2018tropical,maclagan2015tropical}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Background}{2}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Transformers and direct logit attribution}{2}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Incidence calculus}{2}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Tropical geometry and neural networks}{2}{subsection.2.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces The machine-checked backbone of PIC and TRC (all \textsc  {[proved]}, zero \texttt  {sorry} in the \texttt  {i-orca} corpus\nonbreakingspace \citep  {iorca}). Empirical claims are tagged \textsc  {[measured]}{} in situ; conjectures \textsc  {[open]}.}}{2}{table.caption.5}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:proved}{{1}{2}{The machine-checked backbone of PIC and TRC (all \proved , zero \texttt {sorry} in the \texttt {i-orca} corpus~\cite {iorca}). Empirical claims are tagged \measured {} in situ; conjectures \open }{table.caption.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Projective Incidence Calculus}{2}{section.3}\protected@file@percent }
+\newlabel{sec:pic}{{3}{2}{Projective Incidence Calculus}{section.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Two algebras.}{2}{section*.6}\protected@file@percent }
+\newlabel{thm:softmax}{{1}{2}{Softmax/decode recovery; \proved , \texttt {i-orca}: \texttt {RecoveredProbability}}{theorem.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{The tropical decision surface.}{2}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{How many confident decodes fit?}{2}{section*.8}\protected@file@percent }
+\citation{welch1974lower}
+\newlabel{thm:sep}{{2}{3}{Decode separation; \proved , \texttt {i-orca}: \texttt {DecodeCapacity}}{theorem.2}{}}
+\newlabel{cor:packing}{{1}{3}{$\gamma $-code packing bound}{corollary.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Adjustments are low-rank.}{3}{section*.9}\protected@file@percent }
+\newlabel{thm:rank}{{3}{3}{Generator rank; \proved , \texttt {i-orca}: \texttt {RoutingRank}}{theorem.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Tropical Realization Complexity}{3}{section.4}\protected@file@percent }
+\newlabel{sec:trc}{{4}{3}{Tropical Realization Complexity}{section.4}{}}
+\newlabel{def:trc}{{4}{3}{Tropical Realization Complexity}{definition.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Rank component (\textsc  {[proved]}).}{3}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Interference component (\textsc  {[measured]}/\textsc  {[open]}).}{3}{section*.12}\protected@file@percent }
+\newlabel{thm:welch}{{4}{3}{Routing Welch floor; \proved , \texttt {i-orca}: \texttt {RoutingWelch}}{theorem.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Cell capacity vs.\ Tropical Realization Complexity. The $\gamma $-code packing bound permits $\sim $$10^{59}$ confident decodes but only $\sim $48 are realized---capacity is not the binding limit. TRC is: a \textsc  {[proved]}\ rank budget ($\le \min (M,d)$) plus a \textsc  {[measured]}\ interference term that is a Welch packing of routing features into $\mathbb  {R}^{M}$ (rule-activation space), set in practice by per-example routing.}}{3}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:trc}{{1}{3}{Cell capacity vs.\ Tropical Realization Complexity. The $\gamma $-code packing bound permits $\sim $$10^{59}$ confident decodes but only $\sim $48 are realized---capacity is not the binding limit. TRC is: a \proved \ rank budget ($\le \min (M,d)$) plus a \measured \ interference term that is a Welch packing of routing features into $\R ^{M}$ (rule-activation space), set in practice by per-example routing}{figure.caption.10}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Experiments: synthetic substrate}{3}{section.5}\protected@file@percent }
+\newlabel{sec:synthetic}{{5}{3}{Experiments: synthetic substrate}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Frame optimization is decoupled from the decode}{3}{subsection.5.1}\protected@file@percent }
+\newlabel{sec:frame}{{5.1}{3}{Frame optimization is decoupled from the decode}{subsection.5.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Frame regularization is decoupled from the decode (hard over-complete regime, $d{=}24$, $V{=}192$, 3 seeds). The frame potential moves; the decode does not.}}{4}{table.caption.13}\protected@file@percent }
+\newlabel{tab:frame}{{2}{4}{Frame regularization is decoupled from the decode (hard over-complete regime, $d{=}24$, $V{=}192$, 3 seeds). The frame potential moves; the decode does not}{table.caption.13}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Generation is the lever; targeting is not. A frame-only linear read-out is pinned at chance on the XOR-coded hard clusters ($M{=}0$); generated rules lift hard-cluster within-synonym accuracy to $0.93$. Min-margin targeting (dashed) is statistically indistinguishable from random rules (solid)---SGD already allocates rules to the at-risk facets.}}{4}{figure.caption.14}\protected@file@percent }
+\newlabel{fig:lever}{{2}{4}{Generation is the lever; targeting is not. A frame-only linear read-out is pinned at chance on the XOR-coded hard clusters ($M{=}0$); generated rules lift hard-cluster within-synonym accuracy to $0.93$. Min-margin targeting (dashed) is statistically indistinguishable from random rules (solid)---SGD already allocates rules to the at-risk facets}{figure.caption.14}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Generation is the lever}{4}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:generation}{{5.2}{4}{Generation is the lever}{subsection.5.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces The decisive 2$\times $2: training, not selection, is the lever (hard-cluster within-synonym accuracy, held-out, 3 seeds, chance $0.5$). The \texttt  {code} column is the realized $\gamma $-separated code (clusters with both synonyms confidently decoded; max 24).}}{4}{table.caption.15}\protected@file@percent }
+\newlabel{tab:scored}{{3}{4}{The decisive 2$\times $2: training, not selection, is the lever (hard-cluster within-synonym accuracy, held-out, 3 seeds, chance $0.5$). The \texttt {code} column is the realized $\gamma $-separated code (clusters with both synonyms confidently decoded; max 24)}{table.caption.15}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Selection is not the lever; capacity does not bind}{4}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:scored}{{5.3}{4}{Selection is not the lever; capacity does not bind}{subsection.5.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Realization cost is $M$-dominated---a superposition quantity}{4}{subsection.5.4}\protected@file@percent }
+\newlabel{sec:routing}{{5.4}{4}{Realization cost is $M$-dominated---a superposition quantity}{subsection.5.4}{}}
+\citation{biderman2023pythia}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Realization cost is dominated by the rule budget $M$, not the number of routing decisions $n_\text  {hard}$: the curves collapse against $M$, not against $M/n_\text  {hard}$. The $M$ rules represent the $n_\text  {hard}$ routing features in \emph  {superposition}.}}{5}{figure.caption.16}\protected@file@percent }
+\newlabel{fig:mdom}{{3}{5}{Realization cost is dominated by the rule budget $M$, not the number of routing decisions $n_\text {hard}$: the curves collapse against $M$, not against $M/n_\text {hard}$. The $M$ rules represent the $n_\text {hard}$ routing features in \emph {superposition}}{figure.caption.16}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Interference is mild and lives in $\mathbb  {R}^M$ (held-out, 3 seeds, $d{=}32$). Coherence $\mu $ reaches the Welch floor only once $n_\text  {hard}>M$; the margin degrades only weakly there.}}{5}{table.caption.17}\protected@file@percent }
+\newlabel{tab:interf}{{4}{5}{Interference is mild and lives in $\R ^M$ (held-out, 3 seeds, $d{=}32$). Coherence $\mu $ reaches the Welch floor only once $n_\text {hard}>M$; the margin degrades only weakly there}{table.caption.17}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Four nulls, one lesson}{5}{subsection.5.5}\protected@file@percent }
+\newlabel{sec:nulls}{{5.5}{5}{Four nulls, one lesson}{subsection.5.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces The symmetry closes: four theory-guided interventions, all null vs.\ SGD.}}{5}{table.caption.19}\protected@file@percent }
+\newlabel{tab:nulls}{{5}{5}{The symmetry closes: four theory-guided interventions, all null vs.\ SGD}{table.caption.19}{}}
+\@writefile{toc}{\contentsline {paragraph}{Why this calibrates the real-model results.}{5}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Experiments: real models}{5}{section.6}\protected@file@percent }
+\newlabel{sec:real}{{6}{5}{Experiments: real models}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}The \texttt  {fieldrun} seam}{5}{subsection.6.1}\protected@file@percent }
+\newlabel{sec:seam}{{6.1}{5}{The \texttt {fieldrun} seam}{subsection.6.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Rank concentration across scale (Qwen2.5 base, prose). The effective number of blocks driving the decode stays $\sim $constant ($\sim $12) while the total block count $n_b=2L{+}1$ grows, so rank slack grows with scale.}}{6}{figure.caption.20}\protected@file@percent }
+\newlabel{fig:rank}{{4}{6}{Rank concentration across scale (Qwen2.5 base, prose). The effective number of blocks driving the decode stays $\sim $constant ($\sim $12) while the total block count $\nb =2L{+}1$ grows, so rank slack grows with scale}{figure.caption.20}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Real-model routing across scale (Qwen2.5 base, prose). PR$/n_b\ll 1$ is rank concentration; $\mu /$Welch $\gg 1$ is coherence slack. \emph  {(Pythia rows to follow.)}}}{6}{table.caption.21}\protected@file@percent }
+\newlabel{tab:scale}{{6}{6}{Real-model routing across scale (Qwen2.5 base, prose). PR$/\nb \ll 1$ is rank concentration; $\mu /$Welch $\gg 1$ is coherence slack. \emph {(Pythia rows to follow.)}}{table.caption.21}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Routing is rank-concentrated on a stable circuit}{6}{subsection.6.2}\protected@file@percent }
+\newlabel{sec:rankreal}{{6.2}{6}{Routing is rank-concentrated on a stable circuit}{subsection.6.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Real models route with coherence slack}{6}{subsection.6.3}\protected@file@percent }
+\newlabel{sec:cohreal}{{6.3}{6}{Real models route with coherence slack}{subsection.6.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces The effective blocks form a consistent late-MLP circuit (Qwen2.5 base, prose). Global PR $\approx $ per-position PR, and the global top-12 blocks carry most of the per-position decode mass.}}{6}{table.caption.22}\protected@file@percent }
+\newlabel{tab:circuit}{{7}{6}{The effective blocks form a consistent late-MLP circuit (Qwen2.5 base, prose). Global PR $\approx $ per-position PR, and the global top-12 blocks carry most of the per-position decode mass}{table.caption.22}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Coherence relative to the Welch floor across every real condition. A task-specialized synthetic learner packs to $\sim $1$\times $ (dashed line); real Qwen2.5 models sit 2--3.6$\times $ above it across scale, difficulty, and language.}}{6}{figure.caption.23}\protected@file@percent }
+\newlabel{fig:coh}{{5}{6}{Coherence relative to the Welch floor across every real condition. A task-specialized synthetic learner packs to $\sim $1$\times $ (dashed line); real Qwen2.5 models sit 2--3.6$\times $ above it across scale, difficulty, and language}{figure.caption.23}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Difficulty increases slack via fallback}{6}{subsection.6.4}\protected@file@percent }
+\newlabel{sec:diffreal}{{6.4}{6}{Difficulty increases slack via fallback}{subsection.6.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Multilingual robustness}{6}{subsection.6.5}\protected@file@percent }
+\citation{zhang2018tropical}
+\citation{brandenburg2024real}
+\citation{alfarra2023decision}
+\citation{montufar2014regions,serra2018regions}
+\citation{welch1974lower}
+\citation{elhage2022superposition,adler2024superposition}
+\citation{chen2021scatterbrain}
+\citation{elhage2021framework,nostalgebraist2020logitlens}
+\citation{bundy1985incidence,liu1996incidence}
+\citation{iorca}
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Difficulty dial (Qwen2.5-0.5B-Instruct). Harder inputs (lower margin) produce \emph  {more} slack: fewer effective blocks, looser packing.}}{7}{table.caption.24}\protected@file@percent }
+\newlabel{tab:diff}{{8}{7}{Difficulty dial (Qwen2.5-0.5B-Instruct). Harder inputs (lower margin) produce \emph {more} slack: fewer effective blocks, looser packing}{table.caption.24}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Multilingual routing (Qwen2.5-0.5B-Instruct, matched content). Qualitatively robust; non-English is slightly more concentrated and looser.}}{7}{table.caption.25}\protected@file@percent }
+\newlabel{tab:lang}{{9}{7}{Multilingual routing (Qwen2.5-0.5B-Instruct, matched content). Qualitatively robust; non-English is slightly more concentrated and looser}{table.caption.25}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Discussion}{7}{section.7}\protected@file@percent }
+\newlabel{sec:discussion}{{7}{7}{Discussion}{section.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Related work}{7}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Tropical geometry and neural networks}{7}{subsection.8.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Superposition in neural networks}{7}{subsection.8.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Low-rank and routing in transformers}{7}{subsection.8.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Mechanistic interpretability and incidence calculus}{7}{subsection.8.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Limitations and threats to validity}{7}{section.9}\protected@file@percent }
+\bibstyle{ACM-Reference-Format}
+\bibdata{references}
+\bibcite{adler2024superposition}{{1}{2024}{{Adler and Shavit}}{{}}}
+\bibcite{alfarra2023decision}{{2}{2023}{{Alfarra et~al\mbox  {.}}}{{}}}
+\bibcite{biderman2023pythia}{{3}{2023}{{Biderman et~al\mbox  {.}}}{{}}}
+\bibcite{brandenburg2024real}{{4}{2024}{{Brandenburg et~al\mbox  {.}}}{{}}}
+\bibcite{bundy1985incidence}{{5}{1985}{{Bundy}}{{}}}
+\bibcite{chen2021scatterbrain}{{6}{2021}{{Chen et~al\mbox  {.}}}{{}}}
+\bibcite{elhage2022superposition}{{7}{2022}{{Elhage et~al\mbox  {.}}}{{}}}
+\bibcite{elhage2021framework}{{8}{2021}{{Elhage et~al\mbox  {.}}}{{}}}
+\bibcite{liu1996incidence}{{9}{1996}{{Liu and Bundy}}{{}}}
+\bibcite{maclagan2015tropical}{{10}{2015}{{Maclagan and Sturmfels}}{{}}}
+\bibcite{montufar2014regions}{{11}{2014}{{Mont{\'u}far et~al\mbox  {.}}}{{}}}
+\bibcite{nostalgebraist2020logitlens}{{12}{2020}{{nostalgebraist}}{{}}}
+\bibcite{qwen2025}{{13}{2025}{{Qwen Team}}{{}}}
+\bibcite{fieldrun}{{14}{2026a}{{Scott}}{{}}}
+\bibcite{iorca}{{15}{2026b}{{Scott}}{{}}}
+\bibcite{pil}{{16}{2026c}{{Scott}}{{}}}
+\bibcite{serra2018regions}{{17}{2018}{{Serra et~al\mbox  {.}}}{{}}}
+\bibcite{vaswani2017attention}{{18}{2017}{{Vaswani et~al\mbox  {.}}}{{}}}
+\bibcite{welch1974lower}{{19}{1974}{{Welch}}{{}}}
+\bibcite{zhang2018tropical}{{20}{2018}{{Zhang et~al\mbox  {.}}}{{}}}
+\newlabel{tocindent-1}{0pt}
+\newlabel{tocindent0}{0pt}
+\newlabel{tocindent1}{8.37pt}
+\newlabel{tocindent2}{10.34999pt}
+\newlabel{tocindent3}{0pt}
+\@writefile{toc}{\contentsline {section}{\numberline {10}Conclusion and future work}{8}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{References}{8}{section*.27}\protected@file@percent }
+\newlabel{TotPages}{{8}{8}{}{page.8}{}}
+\gdef \@abspage@last{8}

@@ -1,0 +1,77 @@
+# The next-token decode is a small, consistent, late-layer-MLP circuit
+
+## Qwen (rope arch)
+### Qwen-0.5B
+[blocks] /tmp/d_instruct_prose.jsonl: N=383, nb=49 (L=24 layers)
+  effective blocks: per-position PR 11.4  vs  GLOBAL PR 14.8 / 49
+    -> CONSISTENT circuit (global ~ per-position)
+  global top-12 blocks capture 75% of per-position decode mass
+  top blocks (index): [32, 34, 36, 38, 39, 40, 41, 42, 44, 46, 47, 48]
+  mass by component:  emb 0%  attn 24%  mlp 76%
+  mass by depth:      early 9%  mid 13%  late 78%
+
+### Qwen-1.5B
+[blocks] /tmp/d_q15_prose.jsonl: N=300, nb=57 (L=28 layers)
+  effective blocks: per-position PR 14.0  vs  GLOBAL PR 17.9 / 57
+    -> CONSISTENT circuit (global ~ per-position)
+  global top-12 blocks capture 73% of per-position decode mass
+  top blocks (index): [40, 42, 44, 46, 48, 49, 50, 52, 53, 54, 55, 56]
+  mass by component:  emb 0%  attn 27%  mlp 73%
+  mass by depth:      early 9%  mid 10%  late 81%
+
+### Qwen-3B
+[blocks] /tmp/d_q3b_prose.jsonl: N=200, nb=73 (L=36 layers)
+  effective blocks: per-position PR 11.8  vs  GLOBAL PR 15.0 / 73
+    -> CONSISTENT circuit (global ~ per-position)
+  global top-12 blocks capture 76% of per-position decode mass
+  top blocks (index): [54, 56, 58, 60, 62, 64, 66, 68, 69, 70, 71, 72]
+  mass by component:  emb 0%  attn 22%  mlp 78%
+  mass by depth:      early 6%  mid 9%  late 85%
+
+## Pythia (GPT-NeoX arch) — cross-architecture confirmation
+### pythia-70m
+[blocks] /tmp/d_pythia70m.jsonl: N=384, nb=13 (L=6 layers)
+  effective blocks: per-position PR 2.9  vs  GLOBAL PR 2.9 / 13
+    -> CONSISTENT circuit (global ~ per-position)
+  global top-12 blocks capture 100% of per-position decode mass
+  top blocks (index): [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+  mass by component:  emb 37%  attn 20%  mlp 43%
+  mass by depth:      early 1%  mid 2%  late 97%
+
+### pythia-160m
+[blocks] /tmp/d_pythia160m.jsonl: N=380, nb=25 (L=12 layers)
+  effective blocks: per-position PR 2.6  vs  GLOBAL PR 2.6 / 25
+    -> CONSISTENT circuit (global ~ per-position)
+  global top-12 blocks capture 99% of per-position decode mass
+  top blocks (index): [0, 8, 10, 13, 14, 15, 16, 18, 20, 22, 23, 24]
+  mass by component:  emb 30%  attn 12%  mlp 57%
+  mass by depth:      early 1%  mid 2%  late 97%
+
+### pythia-410m
+[blocks] /tmp/d_pythia410m.jsonl: N=380, nb=49 (L=24 layers)
+  effective blocks: per-position PR 20.7  vs  GLOBAL PR 28.3 / 49
+    -> CONSISTENT circuit (global ~ per-position)
+  global top-12 blocks capture 52% of per-position decode mass
+  top blocks (index): [2, 33, 34, 35, 36, 38, 40, 44, 45, 46, 47, 48]
+  mass by component:  emb 2%  attn 37%  mlp 61%
+  mass by depth:      early 19%  mid 23%  late 59%
+
+## Robustness (Qwen-0.5B): difficulty + language
+### shuffle(hard)
+    -> CONSISTENT circuit (global ~ per-position)
+  global top-12 blocks capture 78% of per-position decode mass
+  mass by component:  emb 0%  attn 26%  mlp 74%
+  mass by depth:      early 8%  mid 10%  late 82%
+
+### zh
+    -> CONSISTENT circuit (global ~ per-position)
+  global top-12 blocks capture 75% of per-position decode mass
+  mass by component:  emb 0%  attn 19%  mlp 80%
+  mass by depth:      early 9%  mid 12%  late 79%
+
+### de
+    -> CONSISTENT circuit (global ~ per-position)
+  global top-12 blocks capture 78% of per-position decode mass
+  mass by component:  emb 0%  attn 16%  mlp 84%
+  mass by depth:      early 10%  mid 9%  late 81%
+

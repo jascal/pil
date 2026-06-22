@@ -1,0 +1,279 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{20}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{}, \showDOI{}, and \showURL{}.  The latter two
+%%% do not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showDOI}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showDOI #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showDOI      \undefined \def \showDOI       #1{#1}\fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       {\relax}        \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[Adler and Shavit(2024)]%
+        {adler2024superposition}
+\bibfield{author}{\bibinfo{person}{Micah Adler} {and} \bibinfo{person}{Nir
+  Shavit}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{On the Complexity of Neural Computation in
+  Superposition}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2409.15318}}
+  (\bibinfo{year}{2024}).
+\newblock
+
+
+\bibitem[Alfarra et~al\mbox{.}(2023)]%
+        {alfarra2023decision}
+\bibfield{author}{\bibinfo{person}{Motasem Alfarra}, \bibinfo{person}{Adel
+  Bibi}, \bibinfo{person}{Hasan Hammoud}, \bibinfo{person}{Mohamed Gaafar},
+  {and} \bibinfo{person}{Bernard Ghanem}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{On the Decision Boundaries of Neural Networks: A
+  Tropical Geometry Perspective}.
+\newblock \bibinfo{journal}{\emph{IEEE Transactions on Pattern Analysis and
+  Machine Intelligence}} \bibinfo{volume}{45}, \bibinfo{number}{4}
+  (\bibinfo{year}{2023}).
+\newblock
+
+
+\bibitem[Biderman et~al\mbox{.}(2023)]%
+        {biderman2023pythia}
+\bibfield{author}{\bibinfo{person}{Stella Biderman}, \bibinfo{person}{Hailey
+  Schoelkopf}, \bibinfo{person}{Quentin Anthony}, \bibinfo{person}{Herbie
+  Bradley}, \bibinfo{person}{Kyle O'Brien}, \bibinfo{person}{Eric Hallahan},
+  \bibinfo{person}{Mohammad~Aflah Khan}, \bibinfo{person}{Shivanshu Purohit},
+  \bibinfo{person}{USVSN~Sai Prashanth}, \bibinfo{person}{Edward Raff},
+  {et~al\mbox{.}}} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Pythia: A Suite for Analyzing Large Language Models
+  Across Training and Scaling}. In \bibinfo{booktitle}{\emph{Proceedings of the
+  40th International Conference on Machine Learning (ICML)}}.
+\newblock
+
+
+\bibitem[Brandenburg et~al\mbox{.}(2024)]%
+        {brandenburg2024real}
+\bibfield{author}{\bibinfo{person}{Marie-Charlotte Brandenburg},
+  \bibinfo{person}{Georg Loho}, {and} \bibinfo{person}{Guido Mont{\'u}far}.}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{The Real Tropical Geometry of Neural Networks}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2403.11871}}
+  (\bibinfo{year}{2024}).
+\newblock
+
+
+\bibitem[Bundy(1985)]%
+        {bundy1985incidence}
+\bibfield{author}{\bibinfo{person}{Alan Bundy}.}
+  \bibinfo{year}{1985}\natexlab{}.
+\newblock \showarticletitle{Incidence Calculus: A Mechanism for Probabilistic
+  Reasoning}.
+\newblock \bibinfo{journal}{\emph{Journal of Automated Reasoning}}
+  \bibinfo{volume}{1}, \bibinfo{number}{3} (\bibinfo{year}{1985}),
+  \bibinfo{pages}{263--283}.
+\newblock
+
+
+\bibitem[Chen et~al\mbox{.}(2021)]%
+        {chen2021scatterbrain}
+\bibfield{author}{\bibinfo{person}{Beidi Chen}, \bibinfo{person}{Tri Dao},
+  \bibinfo{person}{Eric Winsor}, \bibinfo{person}{Zhao Song},
+  \bibinfo{person}{Atri Rudra}, {and} \bibinfo{person}{Christopher R{\'e}}.}
+  \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{Scatterbrain: Unifying Sparse and Low-rank
+  Attention}. In \bibinfo{booktitle}{\emph{Advances in Neural Information
+  Processing Systems (NeurIPS)}}.
+\newblock
+
+
+\bibitem[Elhage et~al\mbox{.}(2022)]%
+        {elhage2022superposition}
+\bibfield{author}{\bibinfo{person}{Nelson Elhage}, \bibinfo{person}{Tristan
+  Hume}, \bibinfo{person}{Catherine Olsson}, \bibinfo{person}{Nicholas
+  Schiefer}, \bibinfo{person}{Tom Henighan}, \bibinfo{person}{Shauna Kravec},
+  \bibinfo{person}{Zac Hatfield-Dodds}, \bibinfo{person}{Robert Lasenby},
+  \bibinfo{person}{Dawn Drain}, \bibinfo{person}{Carol Chen},
+  \bibinfo{person}{Roger Grosse}, \bibinfo{person}{Sam McCandlish},
+  \bibinfo{person}{Jared Kaplan}, \bibinfo{person}{Dario Amodei},
+  \bibinfo{person}{Martin Wattenberg}, {and} \bibinfo{person}{Christopher
+  Olah}.} \bibinfo{year}{2022}\natexlab{}.
+\newblock \bibinfo{title}{Toy Models of Superposition}.
+\newblock \bibinfo{howpublished}{Transformer Circuits Thread}.
+\newblock
+
+
+\bibitem[Elhage et~al\mbox{.}(2021)]%
+        {elhage2021framework}
+\bibfield{author}{\bibinfo{person}{Nelson Elhage}, \bibinfo{person}{Neel
+  Nanda}, \bibinfo{person}{Catherine Olsson}, \bibinfo{person}{Tom Henighan},
+  {et~al\mbox{.}}} \bibinfo{year}{2021}\natexlab{}.
+\newblock \bibinfo{title}{A Mathematical Framework for Transformer Circuits}.
+\newblock \bibinfo{howpublished}{Transformer Circuits Thread}.
+\newblock
+
+
+\bibitem[Liu and Bundy(1996)]%
+        {liu1996incidence}
+\bibfield{author}{\bibinfo{person}{Weiru Liu} {and} \bibinfo{person}{Alan
+  Bundy}.} \bibinfo{year}{1996}\natexlab{}.
+\newblock \showarticletitle{A Comprehensive Comparison Between Generalized
+  Incidence Calculus and the Dempster--Shafer Theory of Evidence}.
+\newblock \bibinfo{journal}{\emph{International Journal of Human-Computer
+  Studies}} \bibinfo{volume}{45}, \bibinfo{number}{1} (\bibinfo{year}{1996}),
+  \bibinfo{pages}{1--38}.
+\newblock
+
+
+\bibitem[Maclagan and Sturmfels(2015)]%
+        {maclagan2015tropical}
+\bibfield{author}{\bibinfo{person}{Diane Maclagan} {and} \bibinfo{person}{Bernd
+  Sturmfels}.} \bibinfo{year}{2015}\natexlab{}.
+\newblock \bibinfo{booktitle}{\emph{Introduction to Tropical Geometry}}.
+  \bibinfo{series}{Graduate Studies in Mathematics},
+  Vol.~\bibinfo{volume}{161}.
+\newblock \bibinfo{publisher}{American Mathematical Society}.
+\newblock
+
+
+\bibitem[Mont{\'u}far et~al\mbox{.}(2014)]%
+        {montufar2014regions}
+\bibfield{author}{\bibinfo{person}{Guido Mont{\'u}far}, \bibinfo{person}{Razvan
+  Pascanu}, \bibinfo{person}{Kyunghyun Cho}, {and} \bibinfo{person}{Yoshua
+  Bengio}.} \bibinfo{year}{2014}\natexlab{}.
+\newblock \showarticletitle{On the Number of Linear Regions of Deep Neural
+  Networks}. In \bibinfo{booktitle}{\emph{Advances in Neural Information
+  Processing Systems (NeurIPS)}}.
+\newblock
+
+
+\bibitem[{nostalgebraist}(2020)]%
+        {nostalgebraist2020logitlens}
+\bibfield{author}{\bibinfo{person}{{nostalgebraist}}.}
+  \bibinfo{year}{2020}\natexlab{}.
+\newblock \bibinfo{title}{Interpreting {GPT}: The Logit Lens}.
+\newblock \bibinfo{howpublished}{AI Alignment Forum}.
+\newblock
+
+
+\bibitem[{Qwen Team}(2025)]%
+        {qwen2025}
+\bibfield{author}{\bibinfo{person}{{Qwen Team}}.}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \bibinfo{title}{Qwen2.5 Technical Report}.
+\newblock
+\newblock
+
+
+\bibitem[Scott(2026a)]%
+        {fieldrun}
+\bibfield{author}{\bibinfo{person}{J.~Allan Scott}.}
+  \bibinfo{year}{2026}\natexlab{a}.
+\newblock \bibinfo{title}{fieldrun: Projective Incidence Calculus probing
+  infrastructure for transformer language models}.
+\newblock \bibinfo{howpublished}{Software,
+  \url{https://github.com/jascal/fieldrun}}.
+\newblock
+\newblock
+\shownote{SOFTWARE}.
+
+
+\bibitem[Scott(2026b)]%
+        {iorca}
+\bibfield{author}{\bibinfo{person}{J.~Allan Scott}.}
+  \bibinfo{year}{2026}\natexlab{b}.
+\newblock \bibinfo{title}{i-orca: a machine-checked formalization corpus for
+  incidence and tropical decode certificates}.
+\newblock \bibinfo{howpublished}{Formal corpus,
+  \url{https://github.com/jascal/i-orca}}.
+\newblock
+\newblock
+\shownote{SOFTWARE}.
+
+
+\bibitem[Scott(2026c)]%
+        {pil}
+\bibfield{author}{\bibinfo{person}{J.~Allan Scott}.}
+  \bibinfo{year}{2026}\natexlab{c}.
+\newblock \bibinfo{title}{pil: Projective Incidence Learning --- learning
+  dynamics for Projective Incidence Calculus}.
+\newblock \bibinfo{howpublished}{Software,
+  \url{https://github.com/jascal/pil}}.
+\newblock
+\newblock
+\shownote{SOFTWARE}.
+
+
+\bibitem[Serra et~al\mbox{.}(2018)]%
+        {serra2018regions}
+\bibfield{author}{\bibinfo{person}{Thiago Serra}, \bibinfo{person}{Christian
+  Tjandraatmadja}, {and} \bibinfo{person}{Srikumar Ramalingam}.}
+  \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{Bounding and Counting Linear Regions of Deep Neural
+  Networks}. In \bibinfo{booktitle}{\emph{Proceedings of the 35th International
+  Conference on Machine Learning (ICML)}} \emph{(\bibinfo{series}{PMLR},
+  Vol.~\bibinfo{volume}{80})}.
+\newblock
+
+
+\bibitem[Vaswani et~al\mbox{.}(2017)]%
+        {vaswani2017attention}
+\bibfield{author}{\bibinfo{person}{Ashish Vaswani}, \bibinfo{person}{Noam
+  Shazeer}, \bibinfo{person}{Niki Parmar}, \bibinfo{person}{Jakob Uszkoreit},
+  \bibinfo{person}{Llion Jones}, \bibinfo{person}{Aidan~N. Gomez},
+  \bibinfo{person}{{\L}ukasz Kaiser}, {and} \bibinfo{person}{Illia
+  Polosukhin}.} \bibinfo{year}{2017}\natexlab{}.
+\newblock \showarticletitle{Attention Is All You Need}. In
+  \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}}.
+\newblock
+
+
+\bibitem[Welch(1974)]%
+        {welch1974lower}
+\bibfield{author}{\bibinfo{person}{Lloyd~R. Welch}.}
+  \bibinfo{year}{1974}\natexlab{}.
+\newblock \showarticletitle{Lower Bounds on the Maximum Cross Correlation of
+  Signals}.
+\newblock \bibinfo{journal}{\emph{IEEE Transactions on Information Theory}}
+  \bibinfo{volume}{20}, \bibinfo{number}{3} (\bibinfo{year}{1974}),
+  \bibinfo{pages}{397--399}.
+\newblock
+
+
+\bibitem[Zhang et~al\mbox{.}(2018)]%
+        {zhang2018tropical}
+\bibfield{author}{\bibinfo{person}{Liwen Zhang}, \bibinfo{person}{Gregory
+  Naitzat}, {and} \bibinfo{person}{Lek-Heng Lim}.}
+  \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{Tropical Geometry of Deep Neural Networks}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 35th International Conference on
+  Machine Learning (ICML)}} \emph{(\bibinfo{series}{PMLR},
+  Vol.~\bibinfo{volume}{80})}. \bibinfo{pages}{5824--5832}.
+\newblock
+
+
+\end{thebibliography}
