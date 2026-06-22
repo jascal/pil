@@ -1,0 +1,43 @@
+=== SCALE (Qwen base, prose) ===
+condition                 N  nb  recon    PR/nb      mu   welch  mu/welch  margin
+---------------------------------------------------------------------------------
+0.5B                    383  49   1.00   11/49    0.268   0.134      2.01    1.24
+1.5B                    300  57   1.00   14/57    0.261   0.119      2.18    1.27
+3B                      200  73   1.00   12/73    0.339   0.094      3.62    1.30
+
+rank: PR/nb « 1 = the decode is rank-concentrated (RoutingRank slack).
+packing: mu/welch ~1 = near-Welch-optimal (synthetic); »1 = looser (real-model slack).
+
+=== DIFFICULTY DIAL (0.5B-Instruct, easy->hard) ===
+condition                 N  nb  recon    PR/nb      mu   welch  mu/welch  margin
+---------------------------------------------------------------------------------
+prose_easy              383  49   1.00   11/49    0.268   0.134      2.01    1.24
+code                    226  49   1.00   12/49    0.288   0.127      2.27    2.56
+jargon                  224  49   1.00    9/49    0.305   0.127      2.41    1.74
+shuffle_HARD            350  49   1.00    9/49    0.407   0.133      3.07    0.48
+
+rank: PR/nb « 1 = the decode is rank-concentrated (RoutingRank slack).
+packing: mu/welch ~1 = near-Welch-optimal (synthetic); »1 = looser (real-model slack).
+
+=== MULTILINGUAL (0.5B-Instruct) ===
+condition                 N  nb  recon    PR/nb      mu   welch  mu/welch  margin
+---------------------------------------------------------------------------------
+en                      383  49   1.00   11/49    0.268   0.134      2.01    1.24
+zh                       96  49   1.00    8/49    0.269   0.100      2.68    1.12
+fr                      127  49   1.00    8/49    0.329   0.112      2.93    1.89
+de                      115  49   1.00    8/49    0.357   0.109      3.28    1.54
+es                      113  49   1.00    7/49    0.343   0.108      3.17    1.99
+
+rank: PR/nb « 1 = the decode is rank-concentrated (RoutingRank slack).
+packing: mu/welch ~1 = near-Welch-optimal (synthetic); »1 = looser (real-model slack).
+
+=== within-corpus difficulty split (shuffle) ===
+[difficulty] /tmp/d_instruct_shuffle.jsonl: N=350, nb=49; split by decode margin into 3 bins
+
+bin        n    margin-range     PR/nb      mu   welch  mu/welch
+----------------------------------------------------------------
+hard     117     [0.00,0.26]    8/49     0.398   0.109      3.64
+mid      116     [0.26,0.58]    8/49     0.408   0.109      3.74
+easy     117     [0.58,1.93]    9/49     0.415   0.109      3.79
+
+  rank vs difficulty: hard PR 8 vs easy PR 9 / 49  -> flat/inverse (intrinsic)
