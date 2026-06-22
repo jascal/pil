@@ -131,6 +131,23 @@ def test_frozen_rulebank_input_not_trained():
     assert torch.allclose(bank.W.data, W)
 
 
+def test_packing_bound_and_separation():
+    """Capacity diagnostics: packing bound grows with d; min separation is the true pairwise min."""
+    from pil.geometry import gamma_decodable_count, log10_packing_bound, min_frame_separation
+
+    # (1+2*1/1)^32 = 3^32 ~ 1.85e15 -> log10 ~ 15.3
+    assert abs(log10_packing_bound(1.0, 1.0, 32) - 32 * 0.4771) < 0.1
+    # bigger d, smaller gamma => bigger bound
+    assert log10_packing_bound(1.0, 0.5, 32) > log10_packing_bound(1.0, 1.0, 32)
+
+    U = torch.tensor([[0.0, 0.0], [3.0, 0.0], [0.0, 4.0]])
+    sep = min_frame_separation(U, torch.tensor([0, 1, 2]))
+    assert abs(sep - 3.0) < 1e-5  # nearest pair is rows 0,1 at distance 3
+
+    L = torch.tensor([[5.0, 0.0, 0.0], [0.0, 5.0, 0.0]])  # two confident, distinct decodes
+    assert gamma_decodable_count(L, gamma=1.0) == 2
+
+
 def test_rulebank_empty_is_noop():
     from pil.proposer import RuleBank, build_sources
 

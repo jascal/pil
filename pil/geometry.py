@@ -139,6 +139,37 @@ def participation_ratio(weights: Tensor, dim: int = -1, eps: float = 1e-12) -> T
     return s1.pow(2) / (s2 + eps)
 
 
+def log10_packing_bound(rho: float, gamma: float, d: int) -> float:
+    """log10 of the γ-packing capacity ``(1 + 2ρ/γ)^d`` from DecodeCapacity.thy (decision-side
+    Welch sibling). Returned in log10 because the raw count overflows for any realistic ``d``.
+    Compare against the realized γ-code size to see how far capacity is from binding.
+    """
+    import math
+
+    return d * math.log10(1.0 + 2.0 * rho / gamma)
+
+
+def gamma_decodable_count(L: Tensor, gamma: float) -> int:
+    """Number of distinct tokens decoded with margin ≥ γ somewhere on a batch of logits ``L``
+    (N,V) -- the realized γ-separated code (max V). Saturates well below the packing bound
+    unless capacity actually binds."""
+    top2 = L.topk(2, dim=-1).values
+    conf = (top2[:, 0] - top2[:, 1]) >= gamma
+    return L.argmax(-1)[conf].unique().numel()
+
+
+def min_frame_separation(U: Tensor, tokens: Tensor) -> float:
+    """Minimum pairwise distance among the frame rows of ``tokens`` (the realized γ-code).
+    The separation lemma guarantees this is ≥ the effective γ; reporting it shows how much
+    slack the code leaves vs the capacity ceiling."""
+    if tokens.numel() < 2:
+        return float("nan")
+    sub = U[tokens]
+    D = torch.cdist(sub, sub)
+    D.fill_diagonal_(float("inf"))
+    return D.min().item()
+
+
 def power_diagram_weights(U: Tensor, bias: Tensor | None = None) -> Tensor:
     """Additive weights of the Laguerre/power diagram (frame-side): ``||U_v||^2 - 2 b_v``.
 

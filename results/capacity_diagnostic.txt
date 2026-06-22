@@ -1,0 +1,18 @@
+[capacity] dim=32 V=48 M=16 gamma=1.0
+  rho=max||U_v||         = 1.000
+  R=max||r||             = 34.291   ->  effective gamma = gamma/R = 0.0292
+  realized gamma-code    = 48 / 48 tokens
+  packing bound (1+2rhoR/gamma)^d : log10 = 59.0  (i.e. ~1e59)
+  realized / capacity    ~ 48 / 1e59  ->  slack ~59 orders
+  min frame separation in code = 0.901   vs effective gamma 0.0292  (lemma: sep >= gamma_eff; slack x30.9)
+
+  => capacity is NOT binding here; the 24-cap is the metric's max (n_clusters), not a ceiling.
+[capacity] dim=32 V=48 M=16 gamma=1.8
+  rho=max||U_v||         = 1.000
+  R=max||r||             = 34.291   ->  effective gamma = gamma/R = 0.0525
+  realized gamma-code    = 48 / 48 tokens
+  packing bound (1+2rhoR/gamma)^d : log10 = 51.0  (i.e. ~1e51)
+  realized / capacity    ~ 48 / 1e51  ->  slack ~51 orders
+  min frame separation in code = 0.901   vs effective gamma 0.0525  (lemma: sep >= gamma_eff; slack x17.2)
+
+  => capacity is NOT binding here; the 24-cap is the metric's max (n_clusters), not a ceiling.

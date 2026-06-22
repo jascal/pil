@@ -12,10 +12,13 @@ from __future__ import annotations
 from .geometry import (
     cosine_gram,
     frame_potential,
+    gamma_decodable_count,
     gram_matrix,
     incidences,
+    log10_packing_bound,
     logits_from_incidences,
     margin_to_worst,
+    min_frame_separation,
     normalize_rows,
     participation_ratio,
     power_diagram_weights,
@@ -70,4 +73,7 @@ __all__ = [
     "participation_ratio",
     "power_diagram_weights",
     "welch_bound",
+    "log10_packing_bound",
+    "gamma_decodable_count",
+    "min_frame_separation",
 ]

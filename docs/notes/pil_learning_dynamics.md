@@ -217,6 +217,13 @@ rand-train ≈ sgd` at every budget. So:
    **per-example routing**: getting the *right* decode for *each* input, which is a *training* problem
    (the input→firing map), not a capacity or selection one.
 
+**Quantified (`experiments/capacity_diagnostic.py`, Grok diagnostics #2/#3).** The saturation is *not* a
+capacity ceiling — it is the metric's max (24 = n_clusters). For the trained model (`dim=32`, `V=48`):
+the realized γ-code is `48/48` tokens, while the packing bound `(1+2ρR/γ)^d` is `~1e59` (γ=1) / `~1e51`
+(γ=1.8) — **capacity slack by ~50–59 orders of magnitude** — and the min frame separation inside the code
+(`0.90`) exceeds the effective γ by `17–31×`. So all 48 tokens are γ-decodable with enormous slack; nothing
+is near the packing limit. The binding constraint is entirely per-example routing, not capacity.
+
 This completes the triangulation across **three** independent angles — frame regularization (§5b), rule
 allocation under SGD (§5c), proposal scoring (§5d) — none beats plain end-to-end gradient training of
 the rules. The tropical/PIC theory's value is the **capacity limit** (kernel-proved `DecodeCapacity.thy`),
