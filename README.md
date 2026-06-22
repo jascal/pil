@@ -1,0 +1,125 @@
+# pil — Projective Incidence Learning
+
+**Experimental prototyping repo for learning dynamics in Projective Incidence Calculus (PIC).**
+
+This is the dedicated research codebase for exploring *how* the PIC structure can be
+**learned and improved** in a transformer-like substrate: by massively parallel
+construction of partial-evidence vectors (`d_j`), followed by selection and gating
+through margins, the Gram kernel, and progressive refinement of the proposition frame.
+
+It is the experimental companion to the [fieldrun](https://github.com/jascal/fieldrun)
+PIC formalization (`fieldrun/PIC_PROPOSAL.md`) and the paper *"What a Transformer
+Retrieves and What It Computes"* (J. Allan Scott, 2026).
+
+> **Reproduction vs. improvement.** fieldrun *describes* a frozen model's decision logic.
+> pil's goal is the opposite arrow: **change the geometry to make more of the logic
+> retrievable** — higher margins, smaller sufficient support, a better-conditioned Gram —
+> accepting reduced fidelity to any particular host model as the price. Throughout, every
+> objective is labelled **decode-side** (margin / readout) or **frame-side** (intrinsic
+> to `{U_v}`), because the two can trade against each other.
+
+## Why this can work where frozen compression can't
+
+The fieldrun program has mapped *where* the "computed" fraction (the forge tax) is movable:
+
+- Under **frozen re-expression** — compress or factor an existing unembedding `U` — the
+  composed tail is irreducible in every algebra tried (certified shortlist 0%, SVD
+  pr-core ~67%, tropical winning-support ~65%; "no compact-faithful unembed", now
+  kernel-confirmed in i-orca `examples/tropical/HeadTail.thy`). So "reduce the forge tax"
+  by *compression* is a measured plateau, not a knob.
+- Under **retraining the subspace** — change *which directions exist* — the floor moves
+  (entangled-core: a retrained rank-8 bottleneck is lossless ~30× below the frozen floor;
+  sae-forge "train the subspace, not the encoder"). PIL **updates `U_v`**, so it lives on
+  this side of the boundary. Its improvement objective is *achievable in principle*,
+  unlike the frozen-compression attempts — at an explicit, measured cost in host fidelity.
+
+This is the precise reason pil is a separate repo from fieldrun, not a fork of its probes.
+
+## Quickstart
+
+pil depends only on `numpy` + `torch` (viz/`tqdm` are optional extras). Any torch-capable
+environment works:
+
+```bash
+# from the repo root
+python -m venv .venv && . .venv/bin/activate
+pip install -e ".[dev]"          # numpy, torch, pytest, ruff, matplotlib, tqdm
+
+pytest -q                        # 6 correctness tests (pin the starter bugs)
+python experiments/synthetic_pil.py --steps 2000
+python experiments/synthetic_pil.py --steps 2000 --visualize --save-dir runs/
+```
+
+Measured on the planted-frame synthetic (`dim=32`, `V=64`, `J=24`, 2000 steps, CPU/GPU):
+
+| metric | value | reading |
+|---|---|---|
+| `retrievable_fraction` | **0.99** | fraction of positions past the margin threshold |
+| `top1_acc` | **1.00** | argmax matches the planted target |
+| `avg_margin` | **2.45** | mean worst-competitor margin (target 1.8) |
+| `mean_support_pr` | **4.95** | effective # contributing sources (lower ⇒ more retrievable) |
+| `frame_pot / welch_floor` | **1.61** | frame coherence vs the information-theoretic floor (1.0 = optimal) |
+
+First ablation finding (descriptive, not a headline): the frame-side term decorrelates the
+Gram monotonically (`fp/welch` 1.63 → 1.54 as `frame_reg` 0 → 0.2) at **zero** decode-side
+cost on this synthetic — but the effect is small because the regime is too easy (the margin
+term alone already yields a near-incoherent frame). It should bite where designed to:
+`V ≫ dim`, high synonymy (`ρ → 1`), and fieldrun-seeded sources.
+
+## Repository structure
+
+```
+pil/
+  pil/
+    geometry.py      incidences, Gram, margins, frame potential (Welch-floored), PR, power diagram
+    learner.py       ProjectiveIncidenceLearner: propose -> gate -> refine; labelled losses
+    fieldrun_io.py   integration contract for seeding from real fieldrun probe dumps
+    viz.py           optional matplotlib helpers (training curve, Gram heatmap)
+  experiments/
+    synthetic_pil.py runnable planted-frame demo of the generate/gate/refine loop
+  tests/             correctness tests pinning the starter bugs
+  docs/notes/        design notes (learning dynamics; decode/frame split)
+```
+
+## Key concepts (naming matches `fieldrun/PIC_PROPOSAL.md` §2)
+
+| symbol | code | side | meaning |
+|---|---|---|---|
+| `d_j ∈ H` | `sources` | — | parallel partial-evidence vectors (circuits) |
+| `U_v ∈ H` | `model.U` | frame | proposition directions (unembedding rows) |
+| `c_j^v = ⟨d_j,U_v⟩` | `incidences` | decode | direct logit attribution (DLA) |
+| `L_v = Σ_j c_j^v` | `logits_from_incidences` | decode | aggregated logit |
+| `G_vw = ⟨U_v,U_w⟩` | `gram_matrix` / `cosine_gram` | frame | non-truth-functionality kernel (PIC T2) |
+| margin | `margin_to_worst` | decode | `L_t − max_{v≠t} L_v` (Laguerre facet distance) |
+| frame potential | `frame_potential` | frame | mean sq. off-diagonal cosine; floor = Welch bound |
+| PR | `participation_ratio` | — | effective support size (PIC T4 diffuseness diagnostic) |
+
+## Roadmap
+
+1. **Synthetic floor (done).** Planted-frame recovery; the generate→gate→refine loop;
+   decode-vs-frame metrics. ✔ runs, 6 tests green.
+2. **Seed from fieldrun.** Implement a `--pil-dump` emitter on the fieldrun side that writes
+   the `pil.fieldrun_io` contract (real DLA sources `d_j`, frame `U`, per-position targets),
+   then refine on real residuals. Question: does retrievability improve over the frozen model
+   at a stated fidelity cost?
+3. **Smarter proposers.** Replace the Gaussian/`"frame"` generator with structured partial
+   solutions — SAE features (polygram / sae-forge), induction/number-mover circuit templates,
+   Gram-orthogonal complements of current frames.
+4. **Targeted geometry.** Domain/token-class-specific frames; measure forge-tax reduction
+   per class against the cross-substrate baselines (it differs bio vs econ vs LM).
+5. **Export.** Retrievable fragment → semiring-Datalog (fieldrun's LOGIC_EXPORT path);
+   COMPOSED positions flagged as "no compact formula" (PIC O4).
+
+## Relationship to other jascal projects
+
+- **fieldrun** — the PIC theory + the probes that supply real `d_j`, `U`, margins, PR.
+- **polygram / sae-forge / {bio,econ,sm}-sae** — sources of structured partial solutions
+  (SAE features, MPS dictionaries) for the generative step.
+- **i-orca** — formal backbone; the `examples/tropical` head/tail decode certificate is the
+  kernel-checked statement of the boundary pil is trying to *move*, not merely re-express.
+
+## Status
+
+Greenfield prototype (v0.0.1). Synthetic loop runs and is tested; the fieldrun seam is a
+documented contract awaiting the emitter. Nothing here claims a forge-tax reduction on a real
+model yet — that is roadmap item 2, stated as an open question, not a result.

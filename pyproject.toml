@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pil"
+version = "0.0.1"
+description = "Projective Incidence Learning -- learning dynamics for Projective Incidence Calculus (PIC)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "J. Allan Scott" }]
+dependencies = [
+    "numpy>=1.24",
+    "torch>=2.1",
+]
+
+[project.optional-dependencies]
+viz = ["matplotlib>=3.7", "tqdm>=4.66"]
+dev = ["pytest>=8.0", "ruff>=0.4", "matplotlib>=3.7", "tqdm>=4.66"]
+
+[project.urls]
+Homepage = "https://github.com/jascal/pil"
+Companion = "https://github.com/jascal/fieldrun"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pil*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E741"]  # ambiguous name l/L/I -- L_v is the logit, kept for math fidelity
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
