@@ -22,3 +22,13 @@ runs/
 
 # os
 .DS_Store
+
+# LaTeX build artifacts (paper/ source — .tex/.bib/.py/figures — stays tracked)
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.out
+*.synctex.gz
