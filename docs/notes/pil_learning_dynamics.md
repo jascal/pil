@@ -264,6 +264,39 @@ count.** That reframes the theory target (see §6 / Q2′): the realization boun
 
 Caveats: 2 seeds, mild non-monotone noise in the `n_hard` direction; the `M`-dominance is the robust signal.
 
+## 5f. The interference is mild and lives in ℝ^M — coherence tracks the Welch floor only when n > M
+
+`experiments/interference_probe.py`. The open routing-side conjecture says: at fixed rule budget `M`
+and slack dimension `d`, packing more routing features `n_hard` into the rank-≤min(M,d) subspace should
+degrade the margin via Welch-floored cross-talk. We test it with the margin (not just accuracy, which
+§5e showed saturates) plus the **realized coherence** `coh_μ` = mean off-diagonal |cosine| of the
+routing features `f_c = E[h | 2c] − E[h | 2c+1]` (the per-cluster routing direction in **rule-activation
+space** `ℝ^M`), against the Welch floor `√((n−M)/(M(n−1)))`. Held-out, 3 seeds, `d=32`:
+
+| M | margin (n=1 → n=24) | coh_μ | welch_floor (n=24) | verdict |
+|---|---|---|---|---|
+| 8  | 2.10 → 1.83 (mild, only once n>8) | ~0.28, flat | 0.295 | weak degradation; `coh_μ ≈ welch_floor` for n>M |
+| 16 | 2.93 → 3.11 (flat/rising) | ~0.19, flat | 0.147 | no degradation; n≤M leaves rank room |
+
+**Three honest findings:**
+
+1. **The clean Welch-degradation curve is not present.** M=16 is flat; M=8 declines only ~13% and
+   non-monotonically. No cliff, no strong graceful-degradation signal.
+2. **But the dimension in the conjecture was wrong — it's `M`, not `min(M,d)`.** The routing features
+   `f_c` live in **rule-activation space `ℝ^M`**, so the relevant Welch packing is `n` features in `M`
+   dimensions. Interference appears precisely when **`n_hard > M`** (M=8: margin dips and `coh_μ ≈ 0.28`
+   sits at the Welch floor `0.21–0.30`); for `n ≤ M` there is rank room, `coh_μ` stays low, margin holds.
+   This is also *why* §5e was M-dominated: `M` is the feature-packing dimension.
+3. **Training packs near-optimally, so the degradation is gentle.** Realized `coh_μ` tracks (does not
+   wildly exceed) the Welch floor, and margins stay well above 0 even at `coh_μ ≈ welch_floor` — the
+   learner finds a near-Welch-optimal routing code, so exceeding `M` costs only mild margin, not failure.
+
+**Reframed conjecture (for the next round).** TRC's interference term is a Welch packing of routing
+features into **`M` (the rule count)** dimensions: feasible margin `γ(n, M) ≈ γ₀(1 − c·√((n−M)/(M(n−1))))`
+for `n > M`, and `≈ γ₀` for `n ≤ M`. The `i-orca` target is therefore a Welch bound on the coherence of
+`n` vectors in `ℝ^M` (the realized routing features) — directly an instance of the existing Welch
+machinery, now on the rule-activation side. The mildness (near-optimal packing) is the empirical caveat.
+
 ## 6. Open questions
 
 - Does refining on **real fieldrun DLAs** raise retrievability above the frozen model, and at

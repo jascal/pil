@@ -1,0 +1,27 @@
+[interference] dim=32 (rank slack); sweep n_hard features into fixed budgets M=[8, 16]; held-out, seeds=3
+
+=== M=8 rules ===
+  n_hard    margin     p10    acc    coh_mu   welch_floor
+       1      2.10   -2.01   0.73      nan       0.000
+       2      2.67   -0.94   0.82    0.148       0.000
+       4      2.78   -1.80   0.80    0.365       0.000
+       8      2.18   -1.69   0.76    0.303       0.000
+      12      2.09   -1.39   0.76    0.284       0.213
+      16      1.98   -1.73   0.76    0.284       0.258
+      20      2.05   -1.26   0.79    0.276       0.281
+      24      1.83   -1.39   0.75    0.289       0.295
+
+=== M=16 rules ===
+  n_hard    margin     p10    acc    coh_mu   welch_floor
+       1      2.93   -0.39   0.84      nan       0.000
+       2      2.73   -0.81   0.85    0.175       0.000
+       4      3.24   -0.18   0.88    0.169       0.000
+       8      2.90   -0.75   0.84    0.199       0.000
+      12      3.00   -0.42   0.87    0.193       0.000
+      16      3.12   -0.15   0.89    0.183       0.000
+      20      3.19   -0.25   0.88    0.212       0.115
+      24      3.11   -0.71   0.86    0.197       0.147
+
+interference verdict (margin n=1 -> n=max; coherence growth; vs Welch):
+  M= 8: margin 2.10->1.83 (DEGRADES);  coh_mu nan->0.289  (rising coherence => interference mechanism)
+  M=16: margin 2.93->3.11 (rises);  coh_mu nan->0.197  (rising coherence => interference mechanism)
