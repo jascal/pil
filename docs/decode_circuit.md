@@ -71,19 +71,21 @@ claim — and a causal ablation (`fieldrun --block-ablate`: zero whole attention
 and *recompute*, so downstream re-runs over the modified residual) shows the two come apart sharply
 (Qwen, decode preserved):
 
-| ablation | 0.5B | 1.5B |
-|---|---|---|
-| late MLP (the high-mass readout) | 23% | 16% |
-| **early attn+mlp (≈0% direct mass)** | **1.1%** | **1.1%** |
-| **keep-late-only (= sufficiency)** | **1.1%** | **0%** |
-| all attn / all mlp | 0% / 0% | 0% / 0% |
+| ablation | Qwen-0.5B | Qwen-1.5B | Pythia-410m (neox) |
+|---|---|---|---|
+| late MLP (the high-mass readout) | 23% | 16% | 38% |
+| **early attn+mlp (≈0% direct mass)** | **1.1%** | **1.1%** | **0%** |
+| **keep-late-only (= sufficiency)** | **1.1%** | **0%** | **2.3%** |
+| all attn / all mlp | 0% / 0% | 0% / 0% | 24% / 0% |
 
-So the late-MLP attribution circuit is **not causally sufficient** (keep-late-only ≈ 0–1%), and the early
+So the late-MLP attribution circuit is **not causally sufficient** (keep-late-only ≈ 0–2%), and the early
 layers — which carry **~0% of the direct decode mass** — are **~99% necessary**: they *build* the residual
-the late MLPs *read out*. The decode-circuit must therefore be stated as **attribution** (a per-position
-sparse late-MLP readout), explicitly **distinct from causal importance** (the whole stack is necessary).
-That distinction, cleanly quantified on real models, is itself a load-bearing point — it is the guardrail
-against the common slip of reading direct-logit-attribution as a causal circuit.
+the late MLPs *read out*. This holds on **both architectures** (rope and neox). The decode-circuit must
+therefore be stated as **attribution** (a per-position sparse late-MLP readout), explicitly **distinct from
+causal importance** (the whole stack is necessary). That distinction, cleanly quantified on real models, is
+itself a load-bearing point — the guardrail against the common slip of reading direct-logit-attribution as
+a causal circuit. (One arch difference: Pythia can shed *all attention* for 24% of tokens vs Qwen's 0% — it
+is more MLP-reliant causally, matching its higher MLP attribution mass.)
 
 ## Why it's solid (and honestly scoped)
 
