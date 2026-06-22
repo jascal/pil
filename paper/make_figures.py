@@ -81,29 +81,31 @@ def fig_rank_concentration():
 
 
 def fig_coherence_slack():
-    """Coherence relative to the Welch floor across every real condition.
+    """Coherence relative to the Welch floor: Qwen (loose) vs Pythia (near-optimal).
 
-    mu/welch from results/real_dla_sweep.txt. Synthetic SGD packs to ~1x (the
-    horizontal reference); real models sit in a 2-3.6x band.
+    Qwen mu/welch from results/real_dla_sweep.txt; Pythia from
+    results/real_dla_pythia.txt. The synthetic task-specialized learner packs to
+    ~1x (dashed reference). Qwen sits 2-3.6x above it; Pythia hugs it (1.06-1.5x),
+    so near-Welch packing is family-dependent, not a universal real-model property.
     """
-    labels = ["0.5B", "1.5B", "3B", "code", "jargon", "shuffle",
-              "zh", "fr", "de", "es"]
-    ratio = [2.01, 2.18, 3.62, 2.27, 2.41, 3.07, 2.68, 2.93, 3.28, 3.17]
-    groups = ["scale", "scale", "scale", "diff", "diff", "diff",
-              "lang", "lang", "lang", "lang"]
-    cmap = {"scale": "#1f77b4", "diff": "#d62728", "lang": "#2ca02c"}
+    labels = ["Q-0.5B", "Q-1.5B", "Q-3B", "code", "jargon", "shuffle",
+              "P-70m", "P-160m", "P-410m", "P-1b"]
+    ratio = [2.01, 2.18, 3.62, 2.27, 2.41, 3.07, 1.06, 1.39, 1.38, 1.50]
+    groups = ["qscale", "qscale", "qscale", "qdiff", "qdiff", "qdiff",
+              "pythia", "pythia", "pythia", "pythia"]
+    cmap = {"qscale": "#1f77b4", "qdiff": "#d62728", "pythia": "#7b3fa0"}
     colors = [cmap[g] for g in groups]
-    fig, ax = plt.subplots(figsize=(3.4, 2.3))
-    ax.bar(range(len(labels)), ratio, color=colors, width=0.7)
+    fig, ax = plt.subplots(figsize=(3.5, 2.4))
+    ax.bar(range(len(labels)), ratio, color=colors, width=0.72)
     ax.axhline(1.0, ls="--", c="k", lw=0.9)
-    ax.text(len(labels) - 0.5, 1.06, "synthetic SGD (Welch-optimal)",
+    ax.text(len(labels) - 0.5, 1.05, "synthetic SGD (Welch-optimal)",
             ha="right", va="bottom", fontsize=6.5)
     ax.set_xticks(range(len(labels)))
     ax.set_xticklabels(labels, rotation=45, ha="right")
     ax.set_ylabel(r"coherence $\mu\,/\,$Welch floor")
     ax.set_ylim(0, 4)
     handles = [plt.Rectangle((0, 0), 1, 1, color=cmap[k]) for k in cmap]
-    ax.legend(handles, ["scale", "difficulty", "language"],
+    ax.legend(handles, ["Qwen scale", "Qwen difficulty", "Pythia scale"],
               loc="upper left", framealpha=0.9, ncol=1)
     _save(fig, "coherence_slack")
 

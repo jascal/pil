@@ -57,24 +57,26 @@
 We introduce \emph{Projective Incidence Calculus} (PIC), a geometric formalism that
 models transformer decision logic as signed evidence accumulation in a Hilbert
 space, and use it as a principled \emph{diagnostic lens} on real models. PIC turns
-the additive read-out into measurable structure: applying it to
+the additive read-out into measurable structure. Applying it to
 direct-logit-attribution dumps from the \texttt{fieldrun} probing infrastructure on
-Qwen2.5 (0.5B--3B), across five languages and an easy$\to$hard difficulty dial, we
-find that routing is strongly \emph{rank-concentrated}---the decode rides a stable,
-identifiable, late-layer, MLP-dominated circuit of $\sim$7--14 effective blocks out
-of 49--73, with the slack \emph{growing} with scale and difficulty. The same routing
-features carry substantial \emph{coherence slack}, sitting 2--3$\times$ above the
-information-theoretic (Welch) floor where a task-specialized learner packs to
-$\sim$1$\times$. These are structural properties of routing invisible to accuracy or
-loss curves, and they behave lawfully across scale, language, and difficulty.
+\emph{two model families}---Qwen2.5 (0.5B--3B) and Pythia (70M--1B)---we find that
+routing is strongly \emph{rank-concentrated} in both: the decode rides a stable,
+late-layer, MLP-dominated circuit using far fewer effective blocks than are
+available. \emph{Coherence packing, by contrast, is family-dependent.} Qwen routing
+features sit 2--3$\times$ above the information-theoretic (Welch) floor, whereas
+Pythia packs near-optimally (1.06--1.5$\times$); at matched dimension ($\nb{=}49$),
+Pythia-410M (1.38$\times$) is markedly tighter than Qwen2.5-0.5B (2.01$\times$),
+showing that near-Welch-optimal packing is achievable in general pretraining and is
+\emph{not} limited to task-specialized regimes. These are structural properties of
+routing invisible to accuracy or loss curves.
 %
 The formalism rests on a machine-checked backbone: PIC modernizes classical
 incidence calculus (set-based incidences become inner products, structural overlap a
 Gram kernel) and connects the hard ($T{=}0$) decision surface to tropical geometry
 via Laguerre power diagrams. On this base we define \emph{Tropical Realization
 Complexity} (TRC), the cost of routing inputs into the correct cells, and prove its
-backbone with zero \texttt{sorry}: exact softmax/decode recovery, a decode-separation
-lemma with a $\gamma$-code packing bound, and a generator-rank bound.
+core results: exact softmax/decode recovery, a decode-separation lemma with a
+$\gamma$-code packing bound, and a generator-rank bound.
 %
 On a controlled synthetic substrate, four theory-guided interventions all fail to
 outperform plain gradient descent. These results are clarifying: they show that the
@@ -82,7 +84,8 @@ framework's value is diagnostic rather than algorithmic, because (i) the capacit
 bound is slack by $\sim$50--59 orders of magnitude, (ii) realization cost is
 dominated by the number of trainable generators, not the number of routing
 decisions---a \emph{superposition} quantity---and (iii) gradient descent already
-packs routing features near the Welch floor. We release the \texttt{fieldrun}
+packs routing features near the Welch floor when given a well-defined task. We
+release the \texttt{fieldrun}
 infrastructure, the \texttt{i-orca} machine-checked certificate corpus, and the
 \texttt{pil} learning code.
 \end{abstract}
@@ -139,10 +142,13 @@ sharp---and the clarifying negative results (\S\ref{sec:nulls}) are precisely wh
 make the positive real-model findings interpretable.
 
 Throughout we separate three epistemic statuses and tag every claim accordingly, so
-that the formal and empirical content never blur: \proved{} (machine-checked, zero
-\texttt{sorry}, in the companion \texttt{i-orca} corpus~\cite{iorca}), \measured{}
-(empirical, this work or \texttt{fieldrun}), and \open{} (conjecture). Our
-contributions are:
+that the formal and empirical content never blur: \proved{} (machine-checked
+end-to-end, with no admitted steps, in the companion \texttt{i-orca}
+corpus~\cite{iorca}), \measured{}
+(empirical, this work or \texttt{fieldrun}), and \open{} (conjecture). The paper's
+arc is measure-first: define the diagnostics, validate them on two real model
+families, and use a controlled synthetic substrate to show \emph{why} they are
+diagnostics rather than training levers. Concretely, our contributions are:
 
 \begin{itemize}
 \item \textbf{A formal geometric model of transformer decision logic}
@@ -160,11 +166,13 @@ theory-guided interventions---frame regularization, min-margin rule targeting,
 propose-score-select, and a generator coherence penalty---each fail to beat plain
 gradient descent, because SGD already packs routing features near the Welch floor.
 This delimits where the theory is, and is not, an algorithm.
-\item \textbf{A real-model validation} (\S\ref{sec:real}) over Qwen2.5
-(0.5B--3B)~\cite{qwen2025}, five languages, and an easy$\to$hard difficulty dial,
-showing rank-concentrated routing on a stable late-layer MLP circuit and 2--3$\times$
-coherence slack, with the structural half of the theory transferring cleanly and the
-near-optimal-packing half remaining synthetic-specific.
+\item \textbf{A two-family real-model validation} (\S\ref{sec:real}) over Qwen2.5
+(0.5B--3B)~\cite{qwen2025} and Pythia (70M--1B)~\cite{biderman2023pythia}, plus a
+difficulty dial and (in the appendix) five languages: rank concentration on a stable
+late-MLP circuit transfers to both families, while coherence packing is
+\emph{family-dependent}---Qwen sits 2--3$\times$ above the Welch floor and Pythia
+packs near it, refuting the prior reading that near-optimal packing is
+synthetic-specific.
 \item \textbf{Open-source tooling}: the \texttt{fieldrun}
 \texttt{-{}-pil-dump}~\cite{fieldrun} direct-logit-attribution seam, the
 \texttt{i-orca} certificate corpus~\cite{iorca}, and the \texttt{pil} learning
@@ -219,9 +227,9 @@ front---these results are \proved, everything in
 \S\ref{sec:synthetic}--\ref{sec:real} is \measured.
 
 \begin{table}[t]
-\caption{The machine-checked backbone of PIC and TRC (all \proved, zero
-\texttt{sorry} in the \texttt{i-orca} corpus~\cite{iorca}). Empirical claims are
-tagged \measured{} in situ; conjectures \open.}
+\caption{The machine-checked backbone of PIC and TRC (all \proved, with no admitted
+steps, in the \texttt{i-orca} corpus~\cite{iorca}). Empirical claims are tagged
+\measured{} in situ; conjectures \open.}
 \label{tab:proved}
 \small
 \begin{tabular}{@{}lp{0.60\columnwidth}@{}}
@@ -598,6 +606,8 @@ signature (rank left unused, coherence above the floor) is therefore not an
 optimization failure but a structural fact about a model that was never specialized
 to a single routing decomposition. The synthetic regime fixes the reference point so
 that the real-model departures from it are interpretable rather than arbitrary.
+\emph{In one line: wherever SGD can reach, the theory's role is to bound and measure
+the packing, not to improve it.}
 
 \begin{table}[t]
 \caption{The symmetry closes: four theory-guided interventions, all null vs.\ SGD.}
@@ -623,16 +633,18 @@ faithful decompilation of a real model and tagged \measured:
 
 \begin{enumerate}
 \item \textbf{Faithful seam.} The emitted incidences reconstruct the model's own
-decode $1.00$ of the time, on every model, corpus, and language
-(\S\ref{sec:seam}).
-\item \textbf{Rank concentration on a stable circuit.} The decode rides $\sim$7--14
-effective blocks out of 49--73---a consistent, late-layer, MLP-dominated read-out
-circuit---and the slack \emph{grows} with scale (\S\ref{sec:rankreal}).
-\item \textbf{Coherence slack.} Routing features sit 2--3$\times$ above the Welch
-floor, where a task-specialized learner packs to $\sim$1$\times$
+decode $1.00$ of the time---on every model, corpus, and language, and across two
+architectures (Qwen2.5 and GPT-NeoX/Pythia) (\S\ref{sec:seam}).
+\item \textbf{Rank concentration on a stable circuit transfers across families.} In
+both Qwen and Pythia the decode rides a small, consistent, late-layer, MLP-dominated
+read-out circuit---far fewer effective blocks than $\nb$ (\S\ref{sec:rankreal}).
+\item \textbf{Coherence packing is family-dependent.} Qwen routing features sit
+2--3$\times$ above the Welch floor; Pythia packs near it (1.06--1.5$\times$). At
+matched dimension, Pythia-410M (1.38$\times$) is far tighter than Qwen2.5-0.5B
+(2.01$\times$)---so near-optimal packing is \emph{not} synthetic-specific
 (\S\ref{sec:cohreal}).
-\item \textbf{Difficulty increases slack via fallback.} Harder inputs route through
-\emph{fewer}, looser blocks, not more---the opposite of the naive expectation
+\item \textbf{Difficulty increases slack via fallback (Qwen).} Harder inputs route
+through \emph{fewer}, looser blocks, not more---the opposite of the naive expectation
 (\S\ref{sec:diffreal}).
 \end{enumerate}
 
@@ -647,19 +659,21 @@ decode logit is their additive sum. The seam is \emph{faithful}: across every mo
 corpus, and language, the emitted incidences reconstruct the decode $\arg\max$
 $1.00$ of the time and the recomputed margin equals the model's exactly. (We analyze
 the model's \emph{own} decode---argmax vs.\ runner-up---not correctness.) Models:
-Qwen2.5 base 0.5B/1.5B/3B and 0.5B-Instruct/Coder ($\nb=49/57/73$). A replication on
-the Pythia scaling suite~\cite{biderman2023pythia} is in progress and slots into
-Tables~\ref{tab:scale}--\ref{tab:lang} as additional rows.
+Qwen2.5 base 0.5B/1.5B/3B and 0.5B-Instruct/Coder ($\nb=49/57/73$), and the Pythia
+scaling suite~\cite{biderman2023pythia} 70M/160M/410M/1B ($\nb=13/25/49/33$), a
+second pretraining corpus (the Pile) and architecture (GPT-NeoX). The seam
+reconstructs the decode $1.00$ of the time on \emph{every} one, so all comparisons
+below are between faithful decompilations.
 
 \subsection{Routing is rank-concentrated on a stable circuit}
 \label{sec:rankreal}
 The decode is driven by a small effective number of blocks---the source
 participation ratio over per-block contributions---far below $\nb$
-(Fig.~\ref{fig:rank}, Table~\ref{tab:scale}). Strikingly, the effective count is
-\emph{$\sim$constant ($\sim$12) regardless of scale}, so as $\nb$ grows the rank
-\emph{slack} grows (PR$/\nb$ $0.22\to0.16$). This is the empirical face of
-Theorem~\ref{thm:rank}: real models use only a fraction of the available routing
-dimensions, and that fraction shrinks with scale.
+(Fig.~\ref{fig:rank}, Table~\ref{tab:scale}). Strikingly, within Qwen2.5 the
+effective count is \emph{$\sim$constant ($\sim$12) regardless of scale}, so as $\nb$
+grows the rank \emph{slack} grows (PR$/\nb$ $0.22\to0.16$). This is the empirical
+face of Theorem~\ref{thm:rank}: the model uses only a fraction of the available
+routing dimensions, and within this family that fraction shrinks with scale.
 
 \begin{figure}[t]
 \centering
@@ -672,7 +686,7 @@ count $\nb=2L{+}1$ grows, so rank slack grows with scale.}
 
 \begin{table}[t]
 \caption{Real-model routing across scale (Qwen2.5 base, prose). PR$/\nb\ll1$ is rank
-concentration; $\mu/$Welch $\gg1$ is coherence slack. \emph{(Pythia rows to follow.)}}
+concentration; $\mu/$Welch $\gg1$ is coherence slack.}
 \label{tab:scale}
 \small
 \begin{tabular}{lcccccc}
@@ -711,25 +725,68 @@ model & per-pos PR & global PR & top-12 mass & late & MLP \\
 \end{tabular}
 \end{table}
 
-\subsection{Real models route with coherence slack}
+The same analysis on the Pythia suite (Table~\ref{tab:scalepythia})---a second
+pretraining corpus (the Pile) and architecture (GPT-NeoX)---confirms rank
+concentration in a different family: PR$\,\ll\nb$ throughout, again on a
+\emph{consistent} circuit (global PR $\approx$ per-position PR), late- and
+MLP-leaning. The scale \emph{trend} differs from Qwen, however. The smallest Pythia
+models concentrate hardest---$\sim$3 of 13--25 blocks, with a large embedding share
+(30--37\% of decode mass) and 97\% of mass in the late third---and the effective
+count \emph{rises} with size to $\sim$14--21. So the cross-family invariant is rank
+concentration itself, not Qwen's near-constant $\sim$12. The axis on which the
+families genuinely part ways is coherence (the $\mu/$Welch column), which we take up
+next.
+
+\begin{table}[t]
+\caption{Real-model routing across scale on Pythia (Pile, GPT-NeoX; prose). Rank
+concentration (PR$/\nb\ll1$) transfers, but coherence packing $\mu/$Welch is
+\emph{near-optimal} (1.06--1.5$\times$), unlike Qwen (Table~\ref{tab:scale}).}
+\label{tab:scalepythia}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+model & $\nb$ & recon & PR$/\nb$ & $\mu$ & $\mu/$Welch & margin \\
+\midrule
+70M  & 13 & 1.00 & 2.9/13  & 0.289 & 1.06 & 0.98 \\
+160M & 25 & 1.00 & 2.6/25  & 0.269 & 1.39 & 1.11 \\
+410M & 49 & 1.00 & 20.7/49 & 0.184 & 1.38 & 1.18 \\
+1B   & 33 & 1.00 & 13.9/33 & 0.249 & 1.50 & 1.21 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Coherence packing is family-dependent}
 \label{sec:cohreal}
-Treating each position's decode-vs-runner-up direction in block space as a routing
-feature, their mutual coherence $\mu$ sits 2--3$\times$ above the Welch floor
-$\sqrt{(N-\nb)/(\nb(N-1))}$ in every condition ($\mu\approx0.26$--$0.41$;
-Fig.~\ref{fig:coh}). This is the one synthetic finding that does \emph{not} transfer:
-a task-specialized learner packs its routing features near Welch-optimal coherence
-($\sim$1$\times$), whereas a general pretrained model on this imposed
-routing-feature basis is 2--3$\times$ looser. The structural bound
-(Theorem~\ref{thm:welch}: $n>\nb$ forces coherence $\ge$ Welch) holds---the floor is
-real---but pretrained models leave slack above it. This gap is the clearest
-quantitative signal in the real-model data.
+Treat each position's decode-vs-runner-up direction in block space as a routing
+feature, and measure their mutual coherence $\mu$ against the Welch floor
+$\sqrt{(N-\nb)/(\nb(N-1))}$ (Theorem~\ref{thm:welch}; Fig.~\ref{fig:coh}). Here the
+two families diverge, and the divergence is the single sharpest signal in the
+real-model data. \emph{Qwen leaves substantial slack}---$\mu/$Welch sits
+2--3.6$\times$ above the floor in every condition ($\mu\approx0.26$--$0.41$).
+\emph{Pythia does not}: it packs near-optimally, $\mu/$Welch $=1.06$--$1.5\times$,
+hugging the same floor a task-specialized synthetic learner reaches.
+
+The cleanest comparison controls the dimension. At $\nb{=}49$ and $N\approx380$
+(identical routing-feature geometry), Pythia-410M packs at $1.38\times$ Welch
+($\mu{=}0.18$) while Qwen2.5-0.5B sits at $2.01\times$ ($\mu{=}0.27$)---a genuine
+difference in realized coherence, not a floor artifact. So near-Welch-optimal
+packing, which we previously observed only in task-specialized SGD
+(\S\ref{sec:routing}), \emph{does} occur in a general pretrained family: it is a
+property of the training recipe (corpus, optimizer, regularization), not a universal
+consequence of pretraining. The structural bound holds for both families: the Welch
+floor is real and never violated. What differs---and what the diagnostic
+measures---is how much slack each family leaves above it, and that separates Qwen
+from Pythia cleanly (Fig.~\ref{fig:coh}). (The smallest Pythia models have small
+$\nb$ and thus a high floor with little room to be loose, so the $\nb{=}49$
+comparison is the controlled one.)
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\columnwidth]{figures/coherence_slack.pdf}
-\caption{Coherence relative to the Welch floor across every real condition. A
-task-specialized synthetic learner packs to $\sim$1$\times$ (dashed line); real
-Qwen2.5 models sit 2--3.6$\times$ above it across scale, difficulty, and language.}
+\caption{Coherence relative to the Welch floor, by family. A task-specialized
+synthetic learner packs to $\sim$1$\times$ (dashed line). Qwen2.5 (scale and
+difficulty conditions) sits 2--3.6$\times$ above it; Pythia hugs it
+(1.06--1.5$\times$). Near-optimal packing is thus family-dependent, not synthetic-specific.}
 \label{fig:coh}
 \end{figure}
 
@@ -762,32 +819,12 @@ shuffled (hard)   & 0.48 & 9/49  & 0.407 & 3.07 \\
 \end{tabular}
 \end{table}
 
-\subsection{Multilingual robustness}
-The behavior is qualitatively consistent across five languages
-(Table~\ref{tab:lang}): all reconstruct $1.00$, with $\sim$7--11 effective blocks and
-$\mu\approx0.27$--0.36. Non-English is slightly \emph{more} concentrated and looser,
-consistent with the difficulty finding (marginally lower fluency $\to$ more
-fallback); Chinese matches English coherence ($\mu{=}0.269$) despite the script.
-(Non-English $N$ is small, 96--127, so $\mu$ is noisier; the qualitative picture is
-the signal.)
-
-\begin{table}[t]
-\caption{Multilingual routing (Qwen2.5-0.5B-Instruct, matched content). Qualitatively
-robust; non-English is slightly more concentrated and looser.}
-\label{tab:lang}
-\small
-\begin{tabular}{lccc}
-\toprule
-language & PR$/\nb$ & $\mu$ & margin \\
-\midrule
-en & 11/49 & 0.268 & 1.24 \\
-zh & 8/49  & 0.269 & 1.12 \\
-fr & 8/49  & 0.329 & 1.89 \\
-de & 8/49  & 0.357 & 1.54 \\
-es & 7/49  & 0.343 & 1.99 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\paragraph{Multilingual robustness.}
+The picture is qualitatively robust across five languages (English, Chinese, French,
+German, Spanish): all reconstruct $1.00$, routing stays rank-concentrated
+($\sim$7--11 of 49 blocks), and coherence stays in the Qwen-typical loose band,
+slightly looser for the less-fluent languages---consistent with the difficulty
+finding. The per-language numbers are deferred to Appendix~\ref{app:multilingual}.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -802,7 +839,7 @@ on the diagnostic side of that line, and why that is the right place for it.
 Combining the proved structural bounds (Theorems~\ref{thm:sep}--\ref{thm:welch}) with
 the synthetic and real measurements yields a coherent picture. \emph{Cell capacity
 is not the operative limit}: it is slack by $\sim$50--59 orders of magnitude
-(\S\ref{sec:scored}), and real models confirm large rank slack that grows with scale
+(\S\ref{sec:scored}), and both real-model families confirm large rank slack
 (\S\ref{sec:real}). The operative quantity is \emph{TRC}, and it is a superposition
 quantity---how many routing features a budget of $M$ generators can pack with
 tolerable interference (\S\ref{sec:routing}). On the synthetic substrate, plain SGD
@@ -811,15 +848,19 @@ theory-guided interventions are null: there is no slack for them to recover. The
 contribution of the theory there is not a better optimizer but the \emph{ceiling and
 the coordinates}---what is reachable, and in which basis.
 
-Real pretrained models, by contrast, leave coherence slack (2--3$\times$ the floor)
-on the imposed routing-feature basis, while still being strongly rank-concentrated
-on a stable late-MLP circuit. The asymmetry between what transfers (rank
-concentration) and what does not (near-optimal packing) is itself informative: a
-general model is not optimized for any single routing decomposition, so it does not
-pay to pack tightly, whereas a task-specialized learner does. Read this way, the
-synthetic nulls and the real-model slack are two views of one fact---tight routing is
-a property of \emph{specialization}---and PIC is the instrument that makes the fact
-measurable.
+Real models then sort into two regimes the diagnostic makes visible. \emph{Rank
+concentration transfers universally}: both Qwen and Pythia route through a small,
+stable, late-MLP circuit, the empirical face of the rank bound
+(Theorem~\ref{thm:rank}). \emph{Coherence packing does not}: Qwen leaves 2--3$\times$
+slack above the Welch floor, whereas Pythia packs near it (1.06--1.5$\times$), as
+tightly as task-specialized synthetic SGD. We had initially read near-optimal packing
+as a signature of task specialization that general pretraining would not pay for; the
+Pythia result refutes that and is the more interesting finding. Whether a family packs
+its routing features tightly is a property of the \emph{training recipe}---corpus,
+optimizer, regularization---not a universal consequence of pretraining, and not
+something accuracy or loss curves reveal. PIC is the instrument that surfaces it: a
+single scalar, $\mu/$Welch, that cleanly separates two model families trained to
+comparable competence.
 
 \section{Related work}
 
@@ -840,12 +881,12 @@ result is a $\gamma$-code packing \emph{count} on confidently decodable tokens
 bound rather than a region count.
 
 \subsection{Superposition in neural networks}
-A network can represent more features than it has dimensions only by accepting
-interference, and that interference is bounded below by coherence measures such as
-the Welch bound~\cite{welch1974lower}. This is the lens of toy-model and
-complexity-theoretic work on
-superposition~\cite{elhage2022superposition,adler2024superposition}, which has
-focused on \emph{hidden representations}. We extend the same accounting to the
+Our coherence analysis provides a routing-side instance of superposition. A network
+can represent more features than it has dimensions only by accepting interference, and
+that interference is bounded below by coherence measures such as the Welch
+bound~\cite{welch1974lower}. This is the lens of toy-model and complexity-theoretic
+work on superposition~\cite{elhage2022superposition,adler2024superposition}, which
+has focused on \emph{hidden representations}. We extend the same accounting to the
 \emph{routing} side. When the number of routing features $n$ exceeds the effective
 dimension $M$ of the rule-activation space, their coherence is Welch-floored
 (Theorem~\ref{thm:welch}). We further show empirically that gradient descent attains
@@ -859,16 +900,16 @@ Efficiency-oriented work explores low-rank and sparse approximations to
 attention~\cite{chen2021scatterbrain} to reduce computational cost. Our contribution
 is complementary and orthogonal: we \emph{measure} naturally occurring rank
 concentration in the routing behavior of pretrained models as an emergent structural
-property that \emph{grows} with scale, rather than imposing low-rank structure for
-efficiency.
+property, rather than imposing low-rank structure for efficiency.
 
 \subsection{Mechanistic interpretability and incidence calculus}
 Our analysis builds on direct logit attribution and the residual-stream view of
-transformer circuits~\cite{elhage2021framework,nostalgebraist2020logitlens}; on top
-of that additive decomposition we add a geometric and logical semantics---incidence
-calculus plus tropical decode---and a capacity theory. We also modernize classical
-incidence calculus~\cite{bundy1985incidence,liu1996incidence} for the inner-product
-structure of transformer residuals, replacing world-sets with signed incidences and
+transformer circuits~\cite{elhage2021framework,nostalgebraist2020logitlens}. On top
+of that additive decomposition we introduce a geometric and logical semantics
+(incidence calculus plus tropical geometry) together with a capacity theory
+(Tropical Realization Complexity), and we modernize classical incidence
+calculus~\cite{bundy1985incidence,liu1996incidence} for the inner-product structure
+of transformer residuals---replacing world-sets with signed incidences and
 structural overlap with a Gram kernel.
 
 \section{Limitations and threats to validity}
@@ -883,8 +924,11 @@ XOR coding); its value is a controllable ground truth, not ecological realism. T
 machine-checked results (Theorems~\ref{thm:softmax}--\ref{thm:welch}) are verified in
 the \texttt{i-orca} corpus~\cite{iorca}; the packing constant in
 Corollary~\ref{cor:packing} is the standard covering-number corollary of
-Theorem~\ref{thm:sep}. Finally, results to date span the Qwen2.5 family; the Pythia
-replication (\S\ref{sec:real}) will test family-independence directly.
+Theorem~\ref{thm:sep}. Finally, we cover two families (Qwen2.5 and Pythia): they
+already show that coherence packing is family-dependent rather than universal, so
+single-family conclusions about packing should not be generalized---identifying what
+in a training recipe sets the packing tightness, across more families and corpora,
+remains open.
 
 \section{Conclusion and future work}
 
@@ -894,19 +938,50 @@ diagnostic for routing cost. We proved the structural backbone---exact decode
 recovery, a decode-separation/packing bound, generator rank, and a routing Welch
 floor---in a machine-checked corpus. A deliberate set of four null interventions then
 showed that the framework's value is diagnostic rather than algorithmic: capacity is
-hugely slack, and SGD already packs near the floor. Real-model analysis confirms
-strongly rank-concentrated routing on a stable late-MLP circuit with substantial,
-difficulty-amplified coherence slack.
+hugely slack, and SGD already packs near the floor. Across two model families,
+real-model analysis then shows that rank-concentrated routing on a stable late-MLP
+circuit is universal, whereas coherence packing is \emph{family-dependent}---loose in
+Qwen (2--3$\times$ Welch), near-optimal in Pythia (1.06--1.5$\times$).
 
 Future directions include: practical estimators for TRC on large models; whether
 narrow fine-tuning tightens packing toward the synthetic ($\sim$1$\times$) regime;
 hybrid generation that activates only when diagnostics indicate rank or interference
-pressure; and the in-progress Pythia replication to establish family-independence of
-the rank-concentration and coherence-slack laws. All code, formal certificates, and
-results are available in the \texttt{fieldrun}, \texttt{i-orca}, and \texttt{pil}
-repositories.
+pressure; and---prompted by the Qwen/Pythia split---identifying which ingredients of
+a training recipe set routing-packing tightness, across more families and corpora.
+All code, formal certificates, and results are available in the \texttt{fieldrun},
+\texttt{i-orca}, and \texttt{pil} repositories.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
+
+\appendix
+
+\section{Multilingual routing detail}
+\label{app:multilingual}
+Table~\ref{tab:lang} reports the per-language routing numbers for
+Qwen2.5-0.5B-Instruct on matched content, supporting the robustness claim in
+\S\ref{sec:diffreal}. All five languages reconstruct the decode $1.00$ of the time,
+route through $\sim$7--11 of 49 blocks, and show $\mu\approx0.27$--0.36. Non-English
+is slightly \emph{more} concentrated and looser, consistent with the difficulty
+finding (marginally lower fluency $\to$ more fallback); Chinese matches English
+coherence ($\mu{=}0.269$) despite the script. Non-English $N$ is small (96--127), so
+$\mu$ is noisier; the qualitative picture is the signal.
+
+\begin{table}[h]
+\caption{Multilingual routing (Qwen2.5-0.5B-Instruct, matched content, $\nb=49$).}
+\label{tab:lang}
+\small
+\begin{tabular}{lccc}
+\toprule
+language & PR$/\nb$ & $\mu$ & margin \\
+\midrule
+en & 11/49 & 0.268 & 1.24 \\
+zh & 8/49  & 0.269 & 1.12 \\
+fr & 8/49  & 0.329 & 1.89 \\
+de & 8/49  & 0.357 & 1.54 \\
+es & 7/49  & 0.343 & 1.99 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \end{document}

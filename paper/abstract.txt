@@ -1,0 +1,60 @@
+TITLE
+Projective Incidence Calculus for Transformer Decision Logic
+
+AUTHOR
+J. Allan Scott — Independent Researcher, Concord, New Hampshire, USA
+allan@jallan.scot
+
+KEYWORDS
+mechanistic interpretability, transformers, routing, tropical geometry,
+superposition, incidence calculus, formal verification
+
+------------------------------------------------------------------------
+ABSTRACT (full, ~300 words)
+------------------------------------------------------------------------
+We introduce Projective Incidence Calculus (PIC), a geometric formalism that
+models transformer decision logic as signed evidence accumulation in a Hilbert
+space, and use it as a principled diagnostic lens on real models. Applying
+direct-logit-attribution analysis via the fieldrun infrastructure to two model
+families — Qwen2.5 (0.5B–3B) and Pythia (70M–1B) — we find that routing is
+strongly rank-concentrated in both: the decode rides a stable, late-layer,
+MLP-dominated circuit using far fewer effective blocks than are available.
+Coherence packing, by contrast, is family-dependent. Qwen routing features sit
+2–3× above the information-theoretic (Welch) floor, whereas Pythia packs
+near-optimally (1.06–1.5×); at matched dimension (n_b = 49), Pythia-410M (1.38×)
+is markedly tighter than Qwen2.5-0.5B (2.01×), showing that near-Welch-optimal
+packing is achievable in general pretraining and is not limited to
+task-specialized regimes. These are structural properties of routing invisible
+to accuracy or loss curves.
+
+The formalism rests on a machine-checked backbone: PIC modernizes classical
+incidence calculus (set-based incidences become inner products; structural
+overlap a Gram kernel) and connects the hard (T = 0) decision surface to
+tropical geometry via Laguerre power diagrams. On this base we define Tropical
+Realization Complexity (TRC) — the cost of routing inputs to the correct cells —
+and prove its core results: exact softmax/decode recovery, a decode-separation
+lemma yielding a γ-code packing bound, and a generator-rank bound.
+
+On a controlled synthetic substrate, four theory-guided interventions (frame
+regularization, min-margin targeting, propose-score-select, and generator
+coherence penalties) all fail to outperform plain gradient descent. These
+results clarify the framework's role: it is diagnostic rather than algorithmic,
+because cell capacity is slack by ~50–59 orders of magnitude, realization cost
+is dominated by the number of trainable generators (a superposition quantity),
+and gradient descent already packs routing features near the Welch floor when
+given a well-defined task. We release the fieldrun probing infrastructure, the
+i-orca machine-checked formal corpus, and the pil learning code.
+
+------------------------------------------------------------------------
+ABSTRACT (short, ~110 words — if the form caps length)
+------------------------------------------------------------------------
+Projective Incidence Calculus (PIC) models transformer decision logic as signed
+evidence accumulation in a Hilbert space, with the hard decision surface as a
+Laguerre power diagram, and serves as a diagnostic lens on real models. Via
+direct-logit-attribution dumps (fieldrun) on Qwen2.5 (0.5B–3B) and Pythia
+(70M–1B), routing is strongly rank-concentrated in both — a stable late-MLP
+circuit — but coherence packing is family-dependent: Qwen sits 2–3× above the
+Welch floor while Pythia packs near-optimally (1.06–1.5×). On a synthetic
+substrate, four theory-guided training interventions fail to beat SGD, so the
+framework's value is diagnostic, not algorithmic. We release the fieldrun,
+i-orca, and pil code.
