@@ -21,6 +21,9 @@ into its `nb = 2L+1` additive DLA blocks (one attention + one MLP output per lay
 | Pythia-70m | 6 | 43% | 97% | 3 / 13 | ✓ |
 | Pythia-160m | 12 | 57% | 97% | — | ✓ |
 | Pythia-410m | 24 | 61% | 59% | — | ✓ |
+| Qwen3-30B-A3B (**MoE**) | 48 | 79%¹ | 90% | 6 / 97 | ✓ |
+
+¹ For the MoE model the "MLP share" is the **routed-expert** share — each layer's expert mixture is one block.
 
 Four properties, all robust across scale (0.5B–3B), architecture (rope ↔ neox), input difficulty
 (easy prose → shuffled), and language (en / zh / de):
@@ -93,9 +96,12 @@ is more MLP-reliant causally, matching its higher MLP attribution mass.)
   model's decode argmax **1.00** of the time, and the recomputed margin equals the model's exactly, on
   every model/corpus/language (and on a second architecture — the neox decomposition is recon = 1.00 on
   pythia-70m). The seam (`fieldrun --pil-dump`) is the validated runtime, not a reimplementation.
-- **Cross-architecture.** rope (RMSNorm, gated-SiLU MLP, GQA) and neox (LayerNorm, erf-GELU MLP, parallel
-  residual) give the same qualitative circuit, so it is a property of the transformer decode, not of one
-  family's design.
+- **Cross-architecture, including MoE.** rope (RMSNorm, gated-SiLU MLP, GQA), neox (LayerNorm, erf-GELU MLP,
+  parallel residual), and **Qwen3-MoE** (sparse routed experts) all give the same qualitative circuit — so it
+  is a property of the transformer decode, not of one family's design. The MoE case is the strongest
+  generalisation: "MLP-dominant" becomes "**routed-expert**-dominant" (79% of decode mass), the decode is an
+  even more concentrated **late-expert** readout (~6 of 97 blocks). (MoE validated at small N=12 — the 30B is
+  CPU/mmap-slow — sufficient for the mass attribution; the per-block recon is still exactly 1.00.)
 - **Honest contribution.** That *late* layers dominate the decode is expected (they sit nearest the
   unembedding); the contribution is the **quantitative crispness** — a per-position-sparse (median 1–3
   blocks), MLP-dominant readout drawn from a consistent pool, scale- and architecture-invariant —

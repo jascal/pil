@@ -75,3 +75,12 @@
   mass by component:  emb 0%  attn 16%  mlp 84%
   mass by depth:      early 10%  mid 9%  late 81%
 
+
+## Qwen3-30B-A3B (MoE, GPT-rope arch, n=12 — breadth test)
+[blocks] /tmp/d_moe.jsonl: N=12, nb=97 (L=48 layers)
+  effective blocks: per-position PR 6.4  vs  GLOBAL PR 6.7 / 97
+    -> CONSISTENT circuit (global ~ per-position)
+  global top-12 blocks capture 80% of per-position decode mass
+  top blocks (index): [78, 80, 82, 84, 86, 88, 90, 92, 93, 94, 95, 96]
+  mass by component:  emb 0%  attn 21%  mlp 79%
+  mass by depth:      early 4%  mid 6%  late 90%
