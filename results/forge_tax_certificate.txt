@@ -1,0 +1,62 @@
+# Forge-tax certificate (LP, free-frame single-source) — Qwen-0.5B, 40 held-out positions
+#
+# FINDING (negative, and informative): the FREE-FRAME single-source LP is VACUOUS — 0/40 positions are
+# 1-irreducible, down to margin 0.09. Every position is reducible via its DOMINANT block: ‖d̃_dom‖≈‖r_x‖,
+# so "that block alone decodes x0" is ≈ faithfulness at x0 → always feasible. The LP is correct (it
+# returns infeasible for the small blocks — only ~27/49 feasible per position), so this is the free frame
+# being too permissive, not a bug.
+#
+# This RE-CONFIRMS (a) Grok's result that decode-composedness is frame-relative, and (b) the decode-circuit
+# finding that the decode is a frame-reducible late-MLP readout. Upshot: the forge tax is NOT certifiable as
+# "decode single-source irreducibility under a free frame." It lives in BUILDING the residual (the causal
+# stack — mass≠causation, measured by --block-ablate), not in the decode readout's frame-representability.
+# A non-trivial REPRESENTATIONAL certificate would need the shared-write-direction structure (fix U, free A
+# shared across positions = an LP in A) at NEURON granularity (rank-1 sources a_k=W_out), which is a much
+# finer/larger dump — future work.
+#
+loaded /tmp/tau/qwen-0.5B.src40.jsonl: N=40 positions · nb=49 blocks · dim=896
+
+=== sweep: certifying 40 positions (1-irreducible = no frame makes it single-source) ===
+  pos   0  tok    315  margin  3.951  -> reducible(≥1)
+  pos   1  tok    279  margin  3.194  -> reducible(≥1)
+  pos   2  tok    374  margin  0.937  -> reducible(≥1)
+  pos   3  tok    264  margin  0.491  -> reducible(≥1)
+  pos   4  tok   3840  margin  1.749  -> reducible(≥1)
+  pos   5  tok    315  margin  3.963  -> reducible(≥1)
+  pos   6  tok    279  margin  0.972  -> reducible(≥1)
+  pos   7  tok   8038  margin  0.354  -> reducible(≥1)
+  pos   8  tok    702  margin  0.819  -> reducible(≥1)
+  pos   9  tok    279  margin  1.985  -> reducible(≥1)
+  pos  10  tok   5810  margin  1.526  -> reducible(≥1)
+  pos  11  tok   1879  margin  2.611  -> reducible(≥1)
+  pos  12  tok    702  margin  1.682  -> reducible(≥1)
+  pos  13  tok   5497  margin  1.555  -> reducible(≥1)
+  pos  14  tok    916  margin  0.339  -> reducible(≥1)
+  pos  15  tok    882  margin  2.905  -> reducible(≥1)
+  pos  16  tok   3308  margin  0.210  -> reducible(≥1)
+  pos  17  tok     13  margin  1.412  -> reducible(≥1)
+  pos  18  tok   1084  margin  0.312  -> reducible(≥1)
+  pos  19  tok   8038  margin  0.499  -> reducible(≥1)
+  pos  20  tok  55176  margin  2.498  -> reducible(≥1)
+  pos  21  tok     11  margin  0.113  -> reducible(≥1)
+  pos  22  tok    862  margin  1.053  -> reducible(≥1)
+  pos  23  tok    323  margin  0.424  -> reducible(≥1)
+  pos  24  tok    279  margin  1.296  -> reducible(≥1)
+  pos  25  tok   5810  margin  1.051  -> reducible(≥1)
+  pos  26  tok    323  margin  0.232  -> reducible(≥1)
+  pos  27  tok  32875  margin  0.775  -> reducible(≥1)
+  pos  28  tok  32875  margin  0.122  -> reducible(≥1)
+  pos  29  tok     11  margin  0.723  -> reducible(≥1)
+  pos  30  tok    323  margin  1.088  -> reducible(≥1)
+  pos  31  tok    279  margin  0.090  -> reducible(≥1)
+  pos  32  tok    279  margin  0.358  -> reducible(≥1)
+  pos  33  tok  23722  margin  1.183  -> reducible(≥1)
+  pos  34  tok     11  margin  1.064  -> reducible(≥1)
+  pos  35  tok   7881  margin  1.536  -> reducible(≥1)
+  pos  36  tok    862  margin  0.189  -> reducible(≥1)
+  pos  37  tok   1156  margin  1.346  -> reducible(≥1)
+  pos  38  tok  86183  margin  0.366  -> reducible(≥1)
+  pos  39  tok    323  margin  0.258  -> reducible(≥1)
+
+1-irreducible (certified computed): 0/40 = 0.00%  positions []
+(representation-invariant forge-tax measure: tokens no faithful frame can make single-source)

@@ -166,3 +166,57 @@ def load_probe_sources(
             meta = {"raw": str(data["meta"])}
 
     return ProbeBundle(sources=sources, targets=targets, U=U, bias=bias, meta=meta)
+
+
+@dataclass
+class SourceBundle:
+    """A loaded ``fieldrun --source-dump``: per decode position the RAW per-block contribution vectors
+    ``d̃_b ∈ ℝ^d`` (final-norm folded, in unembed space), so ``r_x = Σ_b D[x,b]`` and ``⟨d̃_b, U_v⟩`` is
+    block ``b``'s exact logit contribution to token ``v``. This is what the forge-tax certificate needs:
+    it holds the ``d̃_b`` fixed and frees the decoder frame ``U'`` (the raw vectors, not their projection
+    onto the model's own ``U`` that ``--pil-dump`` gives). numpy-based (the LP harness, not torch)."""
+
+    D: np.ndarray        # (N, nb, dim)  per-block contribution vectors
+    r: np.ndarray        # (N, dim)      residual r_x = Σ_b D[x,b]
+    cands: np.ndarray    # (N, K)        candidate token ids; cands[:,0] = the DECODED token (argmax)
+    target: np.ndarray   # (N,)          ground-truth next token id
+    margin: np.ndarray   # (N,)          model decode margin (top1 - top2)
+    blocks: list[str]    # (nb,)         block labels (embed, L0.attn, L0.mlp, ...)
+
+    @property
+    def N(self) -> int:
+        return self.D.shape[0]
+
+    @property
+    def nb(self) -> int:
+        return self.D.shape[1]
+
+    @property
+    def dim(self) -> int:
+        return self.D.shape[2]
+
+
+def load_source_dump(path: str | Path) -> SourceBundle:
+    """Load a ``fieldrun --source-dump`` JSON-lines file into a :class:`SourceBundle`.
+
+    Each line is ``{"pos","cur","target","tgt_idx","pred","margin","dim","cands","blocks","d"}`` with
+    ``d`` an ``nb x dim`` matrix of the per-block contribution vectors. Positions with a differing block
+    count or candidate count are dropped (kept rectangular)."""
+    path = Path(path)
+    recs = []
+    with open(path) as fh:
+        for line in fh:
+            line = line.strip()
+            if line:
+                recs.append(json.loads(line))
+    if not recs:
+        raise ValueError(f"{path}: no records")
+    nb = len(recs[0]["d"])
+    k = len(recs[0]["cands"])
+    recs = [r for r in recs if len(r["d"]) == nb and len(r["cands"]) == k]
+    D = np.array([r["d"] for r in recs], dtype=np.float32)            # (N, nb, dim)
+    cands = np.array([r["cands"] for r in recs], dtype=np.int64)       # (N, K)
+    target = np.array([r["target"] for r in recs], dtype=np.int64)
+    margin = np.array([r["margin"] for r in recs], dtype=np.float32)
+    blocks = list(recs[0]["blocks"])
+    return SourceBundle(D=D, r=D.sum(axis=1), cands=cands, target=target, margin=margin, blocks=blocks)
