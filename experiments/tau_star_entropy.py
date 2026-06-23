@@ -31,17 +31,32 @@ from pil.fieldrun_io import load_pil_dump
 from pil.geometry import participation_ratio
 
 # params (M), hidden, layers -- the regression covariates. nb is read from the dump itself.
+# Label your dump `key=path.jsonl`; `key` must contain one of these (substring match, model_key()).
 MODELS = {
+    # Qwen2.5 (rope) -- the wide scale axis to 72B
     "qwen-0.5B": (494, 896, 24),
     "qwen-1.5B": (1540, 1536, 28),
     "qwen-3B": (3090, 2048, 36),
     "qwen-7B": (7620, 3584, 28),
+    "qwen-14B": (14770, 5120, 48),
+    "qwen-32B": (32760, 5120, 64),
+    "qwen-72B": (72710, 8192, 80),
+    # Llama-3.x (rope) -- a second architecture to 70B (decouples depth/width from Qwen)
+    "llama-1B": (1240, 2048, 16),
+    "llama-3B": (3210, 3072, 28),
+    "llama-8B": (8030, 4096, 32),
+    "llama-70B": (70550, 8192, 80),
+    # Pythia / GPT-NeoX (neox) -- the clean controlled ladder (same data/tokenizer, only scale)
+    "pythia-14m": (14, 128, 6),
+    "pythia-31m": (31, 256, 6),
     "pythia-70m": (70, 512, 6),
     "pythia-160m": (160, 768, 12),
     "pythia-410m": (410, 1024, 24),
     "pythia-1b": (1010, 2048, 16),
     "pythia-1.4b": (1410, 2048, 24),
     "pythia-2.8b": (2780, 2560, 32),
+    "pythia-6.9b": (6900, 4096, 32),
+    "pythia-12b": (11600, 5120, 36),
 }
 
 
