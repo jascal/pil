@@ -1,0 +1,50 @@
+# τ* / entropy sweep — 14 models, 14m → 72B (run on the 96-core box, n≈185 positions, f16, recon 1.00 all)
+# experiments/tau_star_entropy.py. The decisive test for problem #3 (τ* functional form).
+
+PER-MODEL  (r_eff = effective decode blocks, common-mode-centred; r_raw = raw PR; expH = exp(H))
+model         N    nb  recon  params  hid    L     H̄    e^H̄   r_eff  r_raw  r_eff/e^H̄  mblk_med
+pythia-14m   186   13  1.00      14   128    6   4.76  116.5    8.1    7.6     0.07      3.0
+pythia-70m   186   13  1.00      70   512    6   4.16   64.2    6.9    2.9     0.11      2.0
+pythia-160m  186   25  1.00     160   768   12   3.73   41.7   11.1    2.6     0.27      2.0
+pythia-410m  186   49  1.00     410  1024   24   3.07   21.6   23.2   20.8     1.08      2.0
+qwen-0.5B    183   49  1.00     494   896   24   2.81   16.7   13.2   11.0     0.79      1.0
+pythia-1.4b  186   49  1.00    1410  2048   24   2.89   18.0   21.0   23.2     1.16      1.0
+qwen-1.5B    183   57  1.00    1540  1536   28   2.57   13.0   15.3   13.5     1.17      1.0
+pythia-2.8b  186   65  1.00    2780  2560   32   2.74   15.5   25.6   26.7     1.65      2.0
+qwen-3B      183   73  1.00    3090  2048   36   2.52   12.5   13.9   11.5     1.11      1.0
+pythia-6.9b  186   65  1.00    6900  4096   32   2.68   14.6   26.1   30.6     1.79      2.0
+qwen-7B      183   57  1.00    7620  3584   28   2.40   11.1   10.7    7.7     0.97      1.0
+pythia-12b   186   73  1.00   11600  5120   36   2.60   13.5   30.0   36.9     2.23      2.0
+qwen-14B     183   97  1.00   14770  5120   48   2.36   10.6   15.7   12.4     1.48      1.0
+qwen-72B     183  161  1.00   72710  8192   80   2.27    9.7   16.8   12.0     1.74      1.0
+
+CROSS-MODEL  corr(r_eff, X)   [14 models]      Pearson   Spearman
+  exp(H̄)                                        -0.535    -0.301
+  mean e^H                                       -0.547    -0.301
+  log10 params                                   0.517     0.516
+  hidden                                         0.412     0.626
+  nb                                             0.348     0.582
+  layers                                         0.348     0.582
+
+## VERDICT (problem #3 resolved, descriptively — to 72B)
+
+1. τ* ≈ min(exp H, d) REFUTED, robustly to 72B. r_eff ANTI-correlates with exp(H) (Pearson −0.54) and
+   POSITIVELY with capacity (hidden Spearman +0.63, nb/layers +0.58, params +0.52). Bigger, lower-entropy
+   models use MORE-or-flat effective blocks, not fewer. The entropy law is wrong; not entropy-bound.
+
+2. NO CLEAN FUNCTIONAL FORM — it is ARCHITECTURE-DEPENDENT.
+   - Pythia (controlled): r_eff ≈ 0.4–0.5·nb, GROWS with depth/blocks (8→30 as nb 13→73). r_raw grows too
+     (2.6→37).
+   - Qwen: r_eff ≈ FLAT ~11–17, block-fraction SHRINKS 0.27→0.10 across 0.5B→72B (nb 49→161 but r_eff ~16).
+     r_raw flat ~8–14.
+   So the "≈12 scale-invariant effective blocks" reading was specifically a QWEN raw-PR artifact (Qwen
+   r_raw flat 7.7–13.8 to 72B); Pythia's grows to 37. The two families genuinely differ in how decode
+   block-usage scales — there is no universal r_eff = f(nb) or f(params, H).
+
+3. WITHIN-MODEL: a modest POSITIVE entropy coupling survives (higher-entropy tokens use somewhat more
+   blocks; Spearman ~0.2–0.47 in capable models, monotone entropy quartiles), ~0/negative only in the two
+   tiniest (14m, 70m). The legitimate second-order grain of the τ* intuition — but a within-model effect,
+   not the cross-model driver.
+
+4. recon = 1.00 on all 14 (the residual decomposition is exact to 72B — the --pil-dump seam validated to
+   72B). r_eff/e^H̄ climbs 0.07→1.74 across scale (r_eff up, e^H̄ down) — the clean refutation of "≈exp(H)".
