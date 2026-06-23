@@ -129,7 +129,8 @@ def main():
         if irr:
             irr_positions.append(x0)
     frac = len(irr_positions) / n if n else 0.0
-    print(f"\n1-irreducible (certified computed): {len(irr_positions)}/{n} = {frac:.2%}  positions {irr_positions}")
+    print(f"\n1-irreducible (certified computed): {len(irr_positions)}/{n} = {frac:.2%}")
+    print(f"  positions: {irr_positions}")
     print("(representation-invariant forge-tax measure: tokens no faithful frame can make single-source)")
 
 
