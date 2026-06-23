@@ -1,0 +1,41 @@
+# Causal convergence depth k*/L across the scale ladder (fieldrun --converge-depth, n=50 positions)
+#
+# k* = the smallest bottom-layer prefix 0..k* whose recompute (ablate the suffix k*..L attn+mlp) already
+# reproduces the model's decode — the CAUSAL prediction depth. k*/L ≈ 1 ⟹ the decode needs ~the whole stack
+# (computed deep); small k*/L ⟹ locked by a shallow prefix (resolved early, retrievable-ish). This is the
+# graded causal sibling of the (binary) --block-ablate mass≠causation result, and the formalised forge-tax
+# measure.
+
+model         L    mean k*/L   median   shallow(≤0.5)   deep(>0.9)
+-----------   --   ---------   ------   -------------   ----------
+pythia-70m     6     0.967     1.000        0.0%          86.0%
+pythia-160m   12     0.962     1.000        0.0%          88.0%
+pythia-410m   24     0.853     0.958       10.0%          60.0%
+pythia-1b     16     0.815     0.938       10.0%          50.0%
+pythia-1.4b   24     0.804     0.958       14.0%          56.0%
+qwen-0.5B     24     0.908     0.958        2.0%          66.0%
+qwen-1.5B     28     0.874     0.929        6.0%          56.0%
+qwen-3B       36     0.927     0.972        0.0%          60.0%
+
+## Read (descriptive, no overclaim)
+
+1. DEEP COMPUTATION IS THE NORM. mean k*/L ∈ [0.80, 0.97] everywhere: most tokens' decodes are not locked
+   until ~the top of the stack. This is the graded confirmation of mass≠causation / the decode circuit —
+   the whole stack is causally load-bearing for the typical token; the late-MLP attribution is a readout
+   over a residual that the deep stack had to build.
+
+2. A REAL BUT MINORITY EARLY-RESOLVED TAIL. shallow(≤0.5L) is 0–14%: a minority of tokens are causally
+   locked by the bottom half (the candidate "retrievable/easy" tokens — likely high-prior / induction-copy;
+   per-token typing is a follow-up using the --converge-out dump + vocab).
+
+3. WITHIN PYTHIA (controlled arch), the depth FRACTION falls with scale: 410m 0.85 → 1b 0.82 → 1.4b 0.80,
+   shallow-fraction 10% → 14%. Deeper/bigger Pythia locks the decode at a *smaller fraction* of its depth
+   (more capacity spent on late refinement/redundancy). The 70m/160m points (0.96–0.97) are partly a
+   GRANULARITY artifact — at L=6/12 the measure is coarsely quantised and removing the single readout layer
+   flips most tokens, so compare only L≥16.
+
+4. NOT A CLEAN UNIVERSAL LAW. Qwen is non-monotone (0.5B 0.91, 1.5B 0.87, 3B 0.93) — Qwen-3B (36 layers)
+   bucks the within-Pythia trend, locking late again. So "depth-fraction shrinks with scale" is an
+   architecture-dependent tendency, not a law. Raw data above; verdict stays descriptive.
+
+(fieldrun --converge-depth, PR #106; corpus = the fixed science/news/prose passage; n=50 decode positions.)
