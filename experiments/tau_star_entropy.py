@@ -141,7 +141,7 @@ def analyse(label: str, path: str) -> dict | None:
 def quartile_bins(expH: torch.Tensor, reff: torch.Tensor) -> list[float]:
     q = torch.quantile(expH, torch.tensor([0.0, 0.25, 0.5, 0.75, 1.0], dtype=torch.float64))
     out = []
-    for lo, hi in zip(q[:-1], q[1:]):
+    for lo, hi in zip(q[:-1], q[1:], strict=False):
         m = (expH >= lo) & (expH <= hi)
         out.append(float(reff[m].mean()) if m.any() else float("nan"))
     return out
