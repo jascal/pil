@@ -1,0 +1,91 @@
+Margin-widening loop -- PoC results (synthetic, 8x over-complete clustered substrate)
+Reproduce:
+  python experiments/margin_widening_loop.py --mode regimes --seeds 3 --steps 800
+  python experiments/margin_widening_loop.py --mode weights --seeds 2 --steps 600 --widen-grid 0.15 0.30 0.50
+  python experiments/margin_widening_loop.py --mode sizes   --seeds 2 --steps 500
+
+============================== MODE=regimes ==============================
+[mwl] dim=24 V=192 (8x) J=24 steps=800 seeds=3 mode=regimes  packing ceiling log10 N_gamma(rho=0.3,gamma=0.2)=14.4 (V log10 2.3)
+
+--- objective=raw (hinge: absolute margin) ---
+  target     top1      nll      t90    nm_p0   nm_p10   nm_p50     code      sep
+    1.00    0.996    1.895  166.667   -0.037    0.139    0.221  172.667    0.787
+    2.00    0.993    1.949  175.000   -0.058    0.126    0.265  173.000    0.782
+    3.00    0.991    1.959  175.000   -0.085    0.115    0.261  173.667    0.785
+    4.00    0.992    1.960  175.000   -0.080    0.117    0.263  173.000    0.782
+
+--- objective=widen (hinge: normalized UP (naive /||r||)) ---
+  target     top1      nll      t90    nm_p0   nm_p10   nm_p50     code      sep
+    0.15    0.949    1.879  175.000   -0.171    0.051    0.184  151.667    0.648
+    0.30    0.952    1.884  175.000   -0.168    0.053    0.206  153.333    0.672
+    0.50    0.950    1.887  175.000   -0.179    0.048    0.206  153.667    0.675
+    0.80    0.950    1.887  183.333   -0.181    0.049    0.207  153.667    0.675
+
+--- objective=widen_t (hinge: normalized UP (target gamma*||r||, detached)) ---
+  target     top1      nll      t90    nm_p0   nm_p10   nm_p50     code      sep
+    0.15    0.995    1.882  158.333   -0.041    0.125    0.195  171.333    0.738
+    0.30    0.995    1.932  175.000   -0.047    0.135    0.262  173.000    0.803
+    0.50    0.992    1.959  175.000   -0.075    0.117    0.264  173.667    0.779
+    0.80    0.992    1.960  175.000   -0.080    0.117    0.263  173.000    0.782
+
+--- objective=narrow (hinge: normalized margin DOWN) ---
+  target     top1      nll      t90    nm_p0   nm_p10   nm_p50     code      sep
+    0.20    0.910    1.880  175.000   -0.204    0.010    0.167  139.000    0.618
+    0.10    0.903    1.884  175.000   -0.215    0.002    0.137  139.000    0.571
+    0.05    0.888    1.886  166.667   -0.223   -0.009    0.128  134.333    0.559
+    0.02    0.873    1.888  166.667   -0.226   -0.018    0.122  126.667    0.553
+
+[mwl] at top1 >= 0.946 (95% of best raw top1) -- best binding nm_p10 per regime:
+  raw     : nm_p10=0.139 top1=0.996 t90=167 code=173
+  widen   : nm_p10=0.053 top1=0.952 t90=175 code=153  bits vs raw=-1.38 (c-free)
+  widen_t : nm_p10=0.135 top1=0.995 t90=175 code=173  bits vs raw=-0.04 (c-free)
+  narrow  : (no config cleared the top1 floor)
+  ceiling: packing log10 N_gamma=14.4 >> V=192 (log10 2.3) -> capacity does NOT bind at this scale; 'code' tracks realized margin, not a capacity price
+
+[mwl] speed of descent (seed 0; top1 | nm_p50 vs step; reps: raw=1.0 widen_t=0.15 narrow=0.2):
+    step             raw         widen_t          narrow
+       0   0.00|-0.50   0.00|-0.50   0.00|-0.50
+     100   0.72|+0.08   0.72|+0.09   0.58|+0.03
+     200   0.94|+0.19   0.94|+0.17   0.84|+0.13
+     300   0.99|+0.21   0.99|+0.18   0.88|+0.15
+     400   1.00|+0.22   1.00|+0.19   0.89|+0.16
+     500   1.00|+0.22   1.00|+0.19   0.90|+0.16
+     600   1.00|+0.22   1.00|+0.19   0.91|+0.16
+     700   1.00|+0.22   1.00|+0.19   0.90|+0.17
+     799   1.00|+0.22   1.00|+0.19   0.90|+0.16
+
+============================== MODE=weights (lambda x target phase diagram) ==============================
+[mwl] dim=24 V=192 (8x) J=24 steps=600 seeds=2 mode=weights  packing ceiling log10 N_gamma(rho=0.3,gamma=0.2)=14.4 (V log10 2.3)
+
+[mwl] WEIGHT SWEEP (objective=widen_t): margin_weight x target -> fit (nll) | learning rate (t90) | top1 | binding nm_p10   (seeds=2)
+  m_weight  target      nll      t90     top1   nm_p10   nm_p50     code
+      0.00    0.15    1.900  187.500    0.916    0.011    0.176  139.500
+      0.10    0.15    1.898  175.000    0.954    0.055    0.185  158.500
+      0.10    0.30    1.904  187.500    0.956    0.053    0.211  157.500
+      0.10    0.50    1.908  187.500    0.952    0.048    0.208  157.000
+      0.25    0.15    1.898  175.000    0.981    0.088    0.190  167.000
+      0.25    0.30    1.918  187.500    0.983    0.090    0.238  167.500
+      0.25    0.50    1.932  187.500    0.977    0.083    0.234  167.500
+      0.50    0.15    1.897  150.000    0.997    0.122    0.195  172.500
+      0.50    0.30    1.950  175.000    0.994    0.129    0.264  175.000
+      0.50    0.50    1.978  175.000    0.986    0.113    0.262  174.500
+      1.00    0.15    1.896  150.000    1.000    0.143    0.197  176.500
+      1.00    0.30    2.010  162.500    0.997    0.169    0.284  176.500
+      1.00    0.50    2.055  175.000    0.992    0.140    0.286  176.500
+      2.00    0.15    1.908  150.000    1.000    0.152    0.198  176.500
+      2.00    0.30    2.103  175.000    0.998    0.200    0.294  176.500
+      2.00    0.50    2.142  175.000    0.993    0.153    0.302  176.500
+  note: margin_weight=0 is pure-NLL (nll floor=1.900); raise lambda until nm_p10 lifts while nll stays near floor = the 'small but meaningful margin' knee.
+
+============================== MODE=sizes (dim x over-completeness; capacity price) ==============================
+[mwl] dim=24 V=192 (8x) J=24 steps=500 seeds=2 mode=sizes  packing ceiling log10 N_gamma(rho=0.3,gamma=0.2)=14.4 (V log10 2.3)
+
+[mwl] SIZE SWEEP: raw(t=2.0) vs widen_t(knee gamma=0.15), margin_weight=0.5, seeds=2, steps=500
+   size      V  ceil_log10  Vlog10 | raw:top1 nm10 code | wt:top1 nm10 code | dtop1  dbits  code/V
+   16x8    128        9.6     2.1 |  0.921 0.02  112 |  0.947 0.04  114 |+0.026 +1.10   0.89
+   24x4     96       14.4     2.0 |  0.979 0.10   92 |  0.988 0.11   92 |+0.010 +0.12   0.96
+   24x8    192       14.4     2.3 |  0.990 0.11  174 |  0.992 0.13  174 |+0.002 +0.15   0.91
+  24x16    384       14.4     2.6 |  0.997 0.17  279 |  0.999 0.15  280 |+0.002 -0.25   0.73
+  24x32    768       14.4     2.9 |  0.998 0.22  372 |  1.000 0.16  373 |+0.002 -0.52   0.49
+   48x8    384       28.9     2.6 |  1.000 0.32  281 |  1.000 0.20  281 |+0.000 -0.68   0.73
+  read: capacity binds where code/V -> 1 AND dtop1 turns negative (widening can no longer separate all V tokens); the packing ceiling (ceil_log10 >> Vlog10) says how far that is.
