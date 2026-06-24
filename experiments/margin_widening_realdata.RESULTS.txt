@@ -1,0 +1,57 @@
+Decisive v1.5 sweep — margin-widening on REAL fieldrun --source-dump residuals (size x arch x domain x lang)
+Reproduce: fieldrun convert --model <hf> --arch <neox|rope> --dtype f16 -o bundles/<m>;
+           fieldrun --bundle bundles/<m> --recursion-explain --source-dump <m>.jsonl --n 220;
+           python experiments/margin_widening_realdata.py <m>.jsonl <label> [--gate-only|--knee|--match-target]
+
+=== GATE (||r|| cv) + HEADROOM (b* = -log2(margin/||r||); c-absorbed, only CROSS-CELL deltas meaningful) ===
+model/axis                 dim    N      rcv  bstar_p50  bstar_p90 gate
+qwen2.5-0.5b/rope          896   68   0.0433       8.44      10.23   gate=CLOSED
+qwen2.5-7b/rope           3584   60   0.1123       8.39      10.52   gate=CLOSED
+llama-3.2-1b/rope         2048   68   0.0083       7.05       9.22   gate=CLOSED
+pythia-70m/neox            512   70   0.0043       9.21      13.03   gate=CLOSED
+pythia-160m/neox           768   70   0.0026       8.53      12.38   gate=CLOSED
+pythia-410m/neox          1024   70   0.0214       6.88       9.03   gate=CLOSED
+pythia-1b/neox            2048   70   0.0358       6.83       9.37   gate=CLOSED
+qwen0.5b-EN-prose          896   68   0.0433       8.44      10.23   gate=CLOSED
+qwen0.5b-code-struct       896  111   0.0951       5.57       7.72   gate=CLOSED
+qwen0.5b-ES-multiling      896   83   0.1051       8.29      10.60   gate=CLOSED
+
+ALL gates CLOSED (cv 0.003-0.11 << 0.35): final-norm pins ||r|| ~ const => gamma_tilde ~ margin =>
+  the normalized-margin term (widen_t) is REFUTED on real models. Confirmed by matched-target below.
+
+=== HEADROOM scaling (cross-cell bstar_p90 deltas — the size x arch x domain x lang map) ===
+  SIZE x ARCH (no universal law — mirrors spec §8 tau*):
+    Pythia (neox):  70m 13.0 -> 160m 12.4 -> 410m 9.0 -> 1b 9.4   (quantizability IMPROVES with scale)
+    Qwen   (rope):  0.5b 10.2 -> 7b 10.5                          (FLAT with scale)
+    -> Pythia grows, Qwen flat: the same architecture-dependence as tau*.
+  DOMAIN:   code/structured 7.7  <  EN prose 10.2   (predictable text = MORE certifiable)
+  LANGUAGE: ES 10.6  ~slightly>  EN 10.2            (Spanish marginally less certifiable for Qwen)
+
+=== MATCHED-TARGET (artifact control: raw_target = gamma*median||r||) ===
+  llama-3.2-1b: raw nm_p10=0.168  widen_t nm_p10=0.159  -> Δbits = -0.08  (widen_t == raw, as the closed gate predicts)
+  (the earlier "+1.84" on qwen was purely the unmatched-target scale artifact)
+
+=== RAW KNEE on real residuals (lambda sweep, raw hinge, target=0.1*median||r||; N~70 -> train-side) ===
+  reproduces the free-lunch knee across architectures (binding nm_p10 lifts, top1 high, lambda-robust 0.25..2):
+    qwen-0.5b : lam0 nm_p10 -0.265 top1 0.57  ->  lam>=0.25 nm_p10 ~0.12 top1 1.00 (margin term also rescues fit)
+    llama-1b  : lam0 0.121 top1 1.00          ->  lam0.5  0.148
+    pythia-410m: lam0 0.113 top1 1.00         ->  lam>=0.25 0.13-0.145
+
+=== INTERPRETABILITY: retrieve / select / compose under margin-widening (block-PR over nb=49) ===
+                 select(nm_p50)   blockPR_p50   retrieve_frac
+  qwen-0.5b  none   0.047            8.78           0.69
+  qwen-0.5b  knee   0.147            8.88           0.96
+  pythia-410m none  0.166           18.01           0.15
+  pythia-410m knee  0.185           18.14           0.10
+  qwen-code  none   0.116            9.22           0.72
+  qwen-code  knee   0.212            8.75           0.91
+  -> widening sharpens SELECT (margin) but leaves RETRIEVE/COMPOSE (block-PR) ~unchanged: it is a
+     decode-side knob, decoupled from source attribution. Retrieve/compose is ARCH-dependent and
+     frame-invariant (Pythia composes diffusely PR~18; Qwen/Llama retrieve PR~9) -> only whole-model
+     training (which moves the d̃_b) could shift it; frame-only margin-widening cannot.
+
+=== WHOLE-MODEL (principled; no experiment needed) ===
+  Every arch here has a final norm immediately before the unembed, which pins the readout ||r|| ~ const
+  REGARDLESS of which weights are trained (frame-only or whole-model). So the normalized-margin distinction
+  stays moot in both regimes; the only way to open the gate is to modify/remove the final norm. Whole-model
+  has more DOF to widen the (raw) margin and to reshape retrieve/compose, at the cost of host fidelity.

@@ -6,22 +6,25 @@ paying a *provable* capacity price.** Closes the measure→loss→learn loop wit
 where the margin certificate binds, PIL learns frames that widen it, fieldrun re-certifies more dropped
 bits.
 
-*Status: proposal + a runnable, measured PoC (`experiments/margin_widening_loop.py`,
-`…RESULTS.txt`). Certificate: i-orca `PIC_Quant` (`frame_quant_logit_bound`, `quant_decode_preserved`)
-and the capacity ceiling `DecodeCapacity.thy` (`geometry.log10_packing_bound`). Downstream consumer:
-fieldrun [`CERTIFIED_QUANT_PROPOSAL.md`](../fieldrun/CERTIFIED_QUANT_PROPOSAL.md) §10 / v1.5, which showed
-the read-out (embed) is certifiable f16→int8 and the bits are margin-gated. Nothing in PIL's shipped
-behaviour changes; this adds an optional objective + an experiment.*
+*Status: proposal + synthetic PoC (`experiments/margin_widening_loop.py`) + the **decisive real-model
+sweep** (`experiments/margin_widening_realdata.py`, both with `…RESULTS.txt`). **The §8 sweep is done and
+it revised the conclusion:** the normalized term is refuted (real `‖r‖` is norm-pinned), the raw-margin
+knee survives and ships, and the deliverable is the certified-bit headroom map. Certificate: i-orca
+`PIC_Quant` (`frame_quant_logit_bound`, `quant_decode_preserved`) + capacity ceiling `DecodeCapacity.thy`
+(`geometry.log10_packing_bound`). Downstream: fieldrun
+[`CERTIFIED_QUANT_PROPOSAL.md`](../fieldrun/CERTIFIED_QUANT_PROPOSAL.md) §10 / v1.5. Read §8/§9 first — they
+supersede the original normalized-margin framing below. Nothing in PIL's shipped behaviour changes.*
 
 ---
 
 ## Current status & go/no-go
 
-> **Recommended immediate action.** Ship the **λ×γ knee** — a `widen_t` margin auxiliary at **γ≈0.15,
-> λ≈0.5–1.0** — as an opt-in regularizer. It is a *measured* free lunch: ~13× larger binding certified
-> margin than no-margin training, faster convergence, and no fit cost (§3 table below). **Gate** any
-> *replacement* of PIL's raw hinge by the normalized term behind the real-data **size × architecture
-> `--source-dump` sweep** (§6) — §4a shows the normalized-vs-raw win is regime-specific.
+> **Recommended immediate action (updated after the §8 real-model sweep).** Ship the **raw-margin knee**
+> — a margin auxiliary at a small target, λ≈0.5–1.0 — as an opt-in regularizer (it reproduces as a free
+> lunch on real residuals across architectures, §8). **Do NOT build the normalized (`widen_t`) term:** the
+> decisive sweep (§8) **refuted** its premise — the model's final norm pins the read-out `‖r‖ ≈ const` on
+> every real architecture, so `γ̃ ∝ margin` and `widen_t ≡ raw`. The remaining deliverable is the **certified-
+> bit headroom map** (size × arch × domain × language, §8) — which, like τ*, shows *no universal law*.
 
 **What this is, today:** a proposal *and* a PoC that **measured the margin regimes on synthetic data
 before recommending any PIL training change** — the same measure-before-build discipline as fieldrun's
@@ -38,13 +41,15 @@ margin-vs-fit hyperparameter with a usable sweet spot?
 | does the widen win hold across sizes? | **no — it is scale-dependent and flips sign**: +1.10 bits at dim=16, ≈0 mid, −0.5…−0.7 bits at high over-completeness/large dim (no universal law) |
 | does capacity bind? | **yes, as over-completeness grows**: γ-code coverage `code/V` falls 0.96→0.49 by 32× — the frame can't separate all V tokens, and that is where the widen advantage goes negative |
 
-**Go/no-go.** The actionable finding is the **λ×γ knee** (§3) — a small-but-meaningful margin is a
-free-lunch auxiliary regularizer usable today. The *normalized-vs-raw* win (§2) is **regime-dependent**:
-§4a shows it is +1 bit at small dim, neutral mid, negative when the frame is crowded — and the prior (the
-spec's τ* result) is that it is **architecture-dependent**, with no universal law. So the decisive test is
-a **size × architecture sweep on real fieldrun `--source-dump` data** (§6), not a single run. Build order:
-sweep real models → land `widen_t` only for the (size, arch) cells where it beats raw on certified bits at
-equal held-out fidelity; everywhere else ship just the tuned λ×γ knob.
+**Go/no-go — RESOLVED by §8.** The decisive size × architecture sweep on real `--source-dump` data is
+**done** (§8), and it splits the proposal cleanly:
+- **Ship:** the **raw-margin knee** — a free lunch that reproduces on real residuals across architectures.
+- **Drop:** the **normalized (`widen_t`) term** — *refuted*. On all 9 real cells the final norm pins
+  `‖r‖` (cv 0.003–0.11 ≪ 0.35), so normalization is a no-op (matched-target Δbits = −0.08).
+- **Keep as the deliverable:** the **certified-bit headroom map** (§8) — size/arch/domain/language-
+  dependent, no universal law (Pythia's quantizability improves with scale, Qwen's is flat — the τ* shape).
+- **Interpretability:** margin-widening is a **select-side** knob; it does *not* shift retrieve/compose
+  (that lives in the sources, reachable only by whole-model training). See §8.
 
 ---
 
@@ -242,17 +247,74 @@ margin behaviour will **differ by family**, not scale uniformly. Output: a per-(
   capacity price); `c` is a calibration constant (only `Δbits`/Pareto are `c`-free); PIL accepts reduced
   host fidelity by design (`README`), so "fit cost" is measured in `nll`, not host-match.
 
-## 8. Phasing
+## 8. v1.5 decisive sweep — real-model results (`experiments/margin_widening_realdata.py` + `…RESULTS.txt`)
 
-- **v1 (this PR):** the theory (certificate→`γ̃` target, the gradient pitfall, the capacity price) + the
-  measured PoC (regimes, the λ×γ phase diagram, dynamics, **the size sweep showing scale-dependence**).
-  **No change to PIL's shipped loss.**
-- **v1.5 (next):** run §6 as a **size × architecture sweep** on real `fieldrun --source-dump` — the
-  decisive test, since §4a/τ* say the verdict is regime-specific. Per cell: `Δbits` certified at equal
-  held-out flip rate. **Ablate the interaction** with PIL's existing terms (`frame_reg` Gram conditioning,
-  support-size/PR, host-fidelity) and the prune-stats objective — does the knee compose, or compete?
-- **v2:** land `widen_t` and/or the small-γ knee as an opt-in `PILConfig` objective, **gated on the
-  (size, arch) cells where v1.5 showed a win**; joint with the capacity ceiling (allocate dimension where
-  `γ̃` widening would otherwise overflow the packing bound — the `code/V`→1 regime of §4a).
-- **v3:** the indefinite/Krein frame variant — `γ̃` becomes signature-dependent (`[r,U_t−U_w]/‖r‖_majorant`);
-  unify with the prune+quant single certificate (i-orca `PIC_Prune`/`PIC_Quant`).
+The §6 size × architecture sweep is **done**, on real `fieldrun --source-dump` residuals (the decode logit
+is `⟨r_x,U_v⟩`, so the per-block `d̃_b` collapse to `r_x` and this is a frame readout on the *real*
+residuals). Two architecture families (rope: Qwen, Llama; neox: Pythia), the Pythia size ladder
+(70m→1b), Qwen 0.5B/7B, plus domain (code) and language (Spanish) axes. Four verdicts:
+
+**1. The gate is CLOSED everywhere → the normalized term is REFUTED.** `‖r‖` cv ∈ [0.003, 0.11] on all 9
+cells (≪ the 0.35 needed to matter). The source-dump residuals are **final-norm-folded**, and every
+architecture's final RMSNorm/LayerNorm pins `‖r‖ ≈ const` — so `γ̃ = margin/‖r‖ ∝ margin` and `widen_t`
+collapses to `raw`. The matched-target control confirms it: Llama Δbits = **−0.08** (the unmatched "+1.84"
+was purely a target-scale artifact). **The synthetic ‖r‖-heterogeneity the proposal banked on does not
+exist on real models.**
+
+**2. The raw knee SURVIVES — reproduces across architectures.** A small-target raw-margin auxiliary lifts
+the binding certified margin and helps (never hurts) fit, λ-robust (0.25→2), on Qwen, Llama, and Pythia
+residuals alike. *Effect size (binding `nm_p10`, λ=0→knee):* Llama 0.121→0.148 (**+0.29 bits**), Pythia-410m
+0.113→0.145 (**+0.37 bits**), Qwen −0.265→0.12 (the margin term also *rescues* fit, top1 0.57→1.0). So
+≈0.3 certified bits where fit is already clean, more where it rescues it. (`N≈70` → train-side; the
+larger-corpus held-out test is the only loose end.)
+
+**3. Headroom map (the deliverable) — no universal law, the τ* shape.** Certified-bit proxy `bstar_p90`
+(c-absorbed; cross-cell deltas only):
+
+| axis | cells | finding |
+|---|---|---|
+| size × arch | Pythia 70m→1b: **13.0→9.4**; Qwen 0.5B→7B: **10.2→10.5** | quantizability improves with scale for Pythia, **flat** for Qwen — exactly the spec §8 τ* Pythia-grows/Qwen-flat split |
+| domain | code 7.7 vs prose 10.2 | structured/predictable text is **more** certifiable |
+| language | ES 10.6 vs EN 10.2 | Spanish marginally **less** certifiable for Qwen |
+
+**4. Interpretability — margin-widening is select-side only.** Widening sharpens **select** (decode margin,
+e.g. Qwen 0.05→0.15) but leaves **retrieve/compose** (the target's block-PR) ≈ unchanged (Qwen 8.8→8.9,
+Pythia 18.0→18.1): the frame can't redistribute a fixed `d̃_b`. Retrieve/compose is **architecture-dependent
+and frame-invariant** (Pythia composes diffusely PR≈18; Qwen/Llama retrieve PR≈9). So frame-only widening
+sharpens *decisions, not attributions*; shifting compose→retrieve needs **whole-model** training.
+
+**Whole-model (principled, no run needed):** every arch has a final norm immediately before the unembed,
+which pins the read-out `‖r‖` *regardless of which weights train* — so the normalized distinction stays
+moot frame-only OR whole-model; only modifying/removing the final norm could open the gate. Whole-model's
+extra value is reshaping retrieve/compose (the `d̃_b`), at host-fidelity cost.
+
+### Synthetic → real: what changed
+
+| claim | synthetic PoC (§3–4a) | real-model sweep (§8) |
+|---|---|---|
+| `widen_t` vs `raw` | ≈equal on homogeneous ‖r‖; ±1 bit only under engineered heterogeneity | **≡ raw** (‖r‖ norm-pinned, cv≤0.11; matched Δbits −0.08) → **refuted** |
+| raw margin knee | free lunch (↑cert margin, ↑top1, faster, ~0 fit cost) | **reproduces** across arch (~+0.3 bits) → **ship** |
+| scaling | widen advantage flips sign with dim/over-completeness | **headroom** scales (Pythia↑, Qwen flat) — τ* shape, no universal law |
+| capacity price | real but dormant (ceiling ≫ V) | not exercised (real `code/V` not near 1) |
+
+### Open questions (honest — hypotheses, not claims)
+
+- **Why does Pythia's headroom improve with scale but Qwen's is flat?** Candidate causes, not yet
+  separated: architecture (NeoX parallel attn+MLP, untied embed, no QK-norm vs Qwen's RoPE+tied embed) vs
+  **training-data/regime** (Pythia: one deduped corpus across the ladder; Qwen: heavily-tuned instruct at
+  every size). The τ* work hit the same confound — needs a same-data size ladder to decide.
+- **Why does Pythia compose (block-PR≈18) while Qwen/Llama retrieve (≈9)?** Likely the parallel
+  attn+MLP residual structure spreads contribution across more blocks; untestable from logits alone —
+  would need per-block ablations (fieldrun `--block-ablate`) to confirm causally.
+
+## 9. Phasing (updated)
+
+- **v1 (PR #1):** theory + synthetic PoC (regimes, λ×γ phase diagram, dynamics, size sweep). Shipped.
+- **v1.5 (this PR):** the **decisive real-model sweep** (§8). Verdict: **normalized term refuted**, **raw
+  knee survives**, **headroom map** built, **interpretability = select-side**. **No change to PIL's loss.**
+- **v2:** land the **raw-margin knee** (small target, λ≈0.5–1.0) as an opt-in `PILConfig` auxiliary — the
+  one surviving recommendation. Ablate vs `frame_reg`/support-size/host-fidelity and the prune-stats term.
+  *(The `widen_t`/normalized objective is dropped — §8.)* Loose end: a longer-corpus held-out knee test.
+- **v3:** the only routes left for a *bigger* win — **whole-model** training (move `d̃_b`: reshape
+  retrieve/compose) and/or **relaxing the final norm** (the only way to make `‖r‖` heterogeneous and revive
+  a normalized margin); the indefinite/Krein frame (`γ̃` signature-dependent); unify with prune+quant.
