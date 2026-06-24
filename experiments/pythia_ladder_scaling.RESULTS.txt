@@ -24,3 +24,20 @@ over-read of a narrow size range (70m..1b = the rising+knee region) on short tex
 confound is resolved as NEITHER: it is a SATURATING CAPACITY effect (data fixed -> same saturation),
 and Qwen's apparent 'flatness' is consistent because both Qwen points (0.5B,7B) sit in the >=400M
 plateau. No universal scaling law (consistent with tau*). Gate stays CLOSED at every size (cv<=0.035).
+
+=== saturation shape (ASCII) ===
+bstar_p90 (certified-bit headroom proxy) vs Pythia size — same Pile data, fixed eval text
+ 13.0 |                                   
+ 12.6 |       *                           
+ 12.1 |                                   
+ 11.7 |            *                      
+ 11.2 |                                   
+ 10.8 |                                   
+ 10.3 |                                   
+  9.8 |  *                        *       
+  9.4 |                      *         *  
+  8.9 |                 *                 
+  8.5 |                                   
+      +-----------------------------------
+        14m  70m 160m 410m  1b  1.4b 2.8b 
+       (14m..2.8b; below ~400M high+noisy, >=400M plateau ~9.0-9.8)

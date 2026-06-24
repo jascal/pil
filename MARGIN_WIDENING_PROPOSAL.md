@@ -300,10 +300,13 @@ extra value is reshaping retrieve/compose (the `d̃_b`), at host-fidelity cost.
 
 ### 8a. Same-data Pythia ladder — the arch-vs-data confound, RESOLVED (`experiments/pythia_ladder_scaling.py`)
 
+*What changed: §8's headroom claim is corrected here — the size trend is **saturating, not scaling**, and
+the earlier Pythia-vs-Qwen split was a size-range artifact.*
+
 The PR-#2 open question — *is Pythia's headroom trend a size effect or a data-ladder artifact?* — is now
 settled. The Pythia suite trains every size on the **same Pile data in the same order**, so the full ladder
 (14m→2.8b) on **one fixed eval text** (N=131) holds training data constant by construction. Result
-(`…RESULTS.txt`):
+(`…RESULTS.txt` has the ASCII shape):
 
 ```
 size    14m   70m   160m  410m   1b   1.4b  2.8b
@@ -312,7 +315,9 @@ bstar_p90 9.9  12.5  11.7   9.0   9.4   9.8   9.2     fit −0.86 bits/decade, R
 ```
 
 **Verdict: NEITHER arch nor data — it's a *saturating capacity* effect.** With data fixed there is **no
-clean scaling law** (R²=0.27); headroom is high/noisy below ~400M and **plateaus past ~400M**. So:
+clean scaling law** (R²=0.27); headroom is high/noisy below ~400M and **plateaus past ~400M**. A flat
+"constant past 400M" model (mean 9.34, residual spread 0.76) describes the tail far better than the
+log-linear fit — i.e. saturation, not a power law. So:
 - The PR-#2 reading "Pythia improves with scale 13→9.4" was an **over-read of a narrow size range** (70m→1b
   = the rising+knee region) on short text. *(Corrected here.)*
 - **Qwen's "flatness" is just the plateau** — both Qwen points (0.5B, 7B) sit in the ≥400M saturated
@@ -326,7 +331,12 @@ clean scaling law** (R²=0.27); headroom is high/noisy below ~400M and **plateau
   attn+MLP residual structure spreads contribution across more blocks; untestable from logits alone —
   would need per-block ablations (fieldrun `--block-ablate`) to confirm causally.
 - **What sets the ~400M saturation knee, and does it move with eval distribution?** Measured on one fixed
-  text; a second eval distribution would test whether the plateau location is text-invariant.
+  text; a second eval distribution would test whether the plateau location is text-invariant. *Speculation
+  (not a claim):* `bstar = −log₂(margin/‖r‖)`; with `‖r‖` norm-pinned, the plateau is really a *margin*
+  plateau — past ~400M the model's next-token confidence on ordinary text stops sharpening (it already
+  "knows" the easy continuations), so the certified read-out margin saturates. The high/noisy <400M end is
+  plausibly genuine instability of small-model frame geometry (few-shot-confident on a handful of tokens,
+  diffuse elsewhere), not just statistical — but N=131 can't separate the two; needs more positions / seeds.
 
 ## 9. Phasing (updated)
 
