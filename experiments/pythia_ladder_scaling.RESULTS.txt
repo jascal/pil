@@ -1,0 +1,43 @@
+Same-data Pythia ladder — settling the arch-vs-data confound (PR #2 open question)
+All 7 Pythia sizes share the SAME Pile training data + order; dumped on ONE fixed eval text (N=131).
+Reproduce: convert each EleutherAI/pythia-<size> (--arch neox); source-dump all on the same --text;
+           python experiments/pythia_ladder_scaling.py <dir-of-ladder-dumps>
+
+Pythia same-data ladder (fixed eval text; training data constant across sizes)
+    size    params    N     rcv  bstar_p50  bstar_p90
+     14m       14M  131   0.035       7.13       9.95
+     70m       70M  131   0.004       9.21      12.50
+    160m      160M  131   0.002       8.34      11.68
+    410m      410M  131   0.019       6.91       9.02
+      1b     1000M  131   0.030       6.84       9.36
+    1.4b     1400M  131   0.023       7.22       9.78
+    2.8b     2800M  131   0.030       7.01       9.21
+  fit bstar_p50 ~ -0.48*log10(params) + 11.6   R²=0.19   (WEAK fit (R²<0.5) — NO clean scaling law; trend saturates (data fixed))
+  fit bstar_p90 ~ -0.86*log10(params) + 17.5   R²=0.27   (WEAK fit (R²<0.5) — NO clean scaling law; trend saturates (data fixed))
+  plateau: bstar_p90 mean head(<400M)=11.38 vs tail(>=400M)=9.34 (tail spread 0.76) — saturates past ~400M
+  gate: ||r|| cv in [0.002, 0.035] (all CLOSED) — norm-pinned at every size
+
+VERDICT: with training data held constant, certified-bit headroom does NOT follow a clean scaling
+law (R²=0.27). It is high/noisy for tiny models (<400M: mean bstar_p90 11.4) and SATURATES past
+~400M (410m..2.8b: mean 9.34, spread 0.76). => the PR #2 'Pythia improves with scale 13->9.4' was an
+over-read of a narrow size range (70m..1b = the rising+knee region) on short text. The arch-vs-data
+confound is resolved as NEITHER: it is a SATURATING CAPACITY effect (data fixed -> same saturation),
+and Qwen's apparent 'flatness' is consistent because both Qwen points (0.5B,7B) sit in the >=400M
+plateau. No universal scaling law (consistent with tau*). Gate stays CLOSED at every size (cv<=0.035).
+
+=== saturation shape (ASCII) ===
+bstar_p90 (certified-bit headroom proxy) vs Pythia size — same Pile data, fixed eval text
+ 13.0 |                                   
+ 12.6 |       *                           
+ 12.1 |                                   
+ 11.7 |            *                      
+ 11.2 |                                   
+ 10.8 |                                   
+ 10.3 |                                   
+  9.8 |  *                        *       
+  9.4 |                      *         *  
+  8.9 |                 *                 
+  8.5 |                                   
+      +-----------------------------------
+        14m  70m 160m 410m  1b  1.4b 2.8b 
+       (14m..2.8b; below ~400M high+noisy, >=400M plateau ~9.0-9.8)

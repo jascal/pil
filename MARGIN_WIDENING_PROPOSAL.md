@@ -46,8 +46,9 @@ margin-vs-fit hyperparameter with a usable sweet spot?
 - **Ship:** the **raw-margin knee** — a free lunch that reproduces on real residuals across architectures.
 - **Drop:** the **normalized (`widen_t`) term** — *refuted*. On all 9 real cells the final norm pins
   `‖r‖` (cv 0.003–0.11 ≪ 0.35), so normalization is a no-op (matched-target Δbits = −0.08).
-- **Keep as the deliverable:** the **certified-bit headroom map** (§8) — size/arch/domain/language-
-  dependent, no universal law (Pythia's quantizability improves with scale, Qwen's is flat — the τ* shape).
+- **Keep as the deliverable:** the **certified-bit headroom map** (§8) — domain/language-dependent and
+  **size-saturating** (the same-data Pythia ladder §8a shows headroom plateaus past ~400M, R²=0.27 — no
+  scaling law; Qwen's apparent flatness is just that plateau).
 - **Interpretability:** margin-widening is a **select-side** knob; it does *not* shift retrieve/compose
   (that lives in the sources, reachable only by whole-model training). See §8.
 
@@ -268,12 +269,12 @@ residuals alike. *Effect size (binding `nm_p10`, λ=0→knee):* Llama 0.121→0.
 ≈0.3 certified bits where fit is already clean, more where it rescues it. (`N≈70` → train-side; the
 larger-corpus held-out test is the only loose end.)
 
-**3. Headroom map (the deliverable) — no universal law, the τ* shape.** Certified-bit proxy `bstar_p90`
+**3. Headroom map (the deliverable) — no universal law; it SATURATES.** Certified-bit proxy `bstar_p90`
 (c-absorbed; cross-cell deltas only):
 
 | axis | cells | finding |
 |---|---|---|
-| size × arch | Pythia 70m→1b: **13.0→9.4**; Qwen 0.5B→7B: **10.2→10.5** | quantizability improves with scale for Pythia, **flat** for Qwen — exactly the spec §8 τ* Pythia-grows/Qwen-flat split |
+| size × arch | full same-data Pythia ladder 14m→2.8b: **9.9, 12.5, 11.7, 9.0, 9.4, 9.8, 9.2**; Qwen 0.5B→7B: 10.2→10.5 | **NOT a scaling law** (fit R²=0.27): high/noisy <400M, **plateaus** past ~400M (≥400M mean 9.3, spread 0.76). Qwen's "flatness" is consistent — both points sit in the ≥400M plateau. See §8a. |
 | domain | code 7.7 vs prose 10.2 | structured/predictable text is **more** certifiable |
 | language | ES 10.6 vs EN 10.2 | Spanish marginally **less** certifiable for Qwen |
 
@@ -294,18 +295,48 @@ extra value is reshaping retrieve/compose (the `d̃_b`), at host-fidelity cost.
 |---|---|---|
 | `widen_t` vs `raw` | ≈equal on homogeneous ‖r‖; ±1 bit only under engineered heterogeneity | **≡ raw** (‖r‖ norm-pinned, cv≤0.11; matched Δbits −0.08) → **refuted** |
 | raw margin knee | free lunch (↑cert margin, ↑top1, faster, ~0 fit cost) | **reproduces** across arch (~+0.3 bits) → **ship** |
-| scaling | widen advantage flips sign with dim/over-completeness | **headroom** scales (Pythia↑, Qwen flat) — τ* shape, no universal law |
+| scaling | widen advantage flips sign with dim/over-completeness | **headroom saturates** past ~400M (same-data Pythia ladder, R²=0.27) — no scaling law; Qwen-flat is just the plateau (§8a) |
 | capacity price | real but dormant (ceiling ≫ V) | not exercised (real `code/V` not near 1) |
+
+### 8a. Same-data Pythia ladder — the arch-vs-data confound, RESOLVED (`experiments/pythia_ladder_scaling.py`)
+
+*What changed: §8's headroom claim is corrected here — the size trend is **saturating, not scaling**, and
+the earlier Pythia-vs-Qwen split was a size-range artifact.*
+
+The PR-#2 open question — *is Pythia's headroom trend a size effect or a data-ladder artifact?* — is now
+settled. The Pythia suite trains every size on the **same Pile data in the same order**, so the full ladder
+(14m→2.8b) on **one fixed eval text** (N=131) holds training data constant by construction. Result
+(`…RESULTS.txt` has the ASCII shape):
+
+```
+size    14m   70m   160m  410m   1b   1.4b  2.8b
+bstar_p90 9.9  12.5  11.7   9.0   9.4   9.8   9.2     fit −0.86 bits/decade, R²=0.27 (WEAK)
+                          └────── plateau: ≥400M mean 9.34, spread 0.76 ──────┘
+```
+
+**Verdict: NEITHER arch nor data — it's a *saturating capacity* effect.** With data fixed there is **no
+clean scaling law** (R²=0.27); headroom is high/noisy below ~400M and **plateaus past ~400M**. A flat
+"constant past 400M" model (mean 9.34, residual spread 0.76) describes the tail far better than the
+log-linear fit — i.e. saturation, not a power law. So:
+- The PR-#2 reading "Pythia improves with scale 13→9.4" was an **over-read of a narrow size range** (70m→1b
+  = the rising+knee region) on short text. *(Corrected here.)*
+- **Qwen's "flatness" is just the plateau** — both Qwen points (0.5B, 7B) sit in the ≥400M saturated
+  regime, exactly like Pythia ≥410m. No architecture difference is needed to explain it.
+- Data is **not** the driver (same Pile across the ladder → same saturation). Consistent with τ*: no
+  universal law. The gate stays CLOSED at every size (cv ≤ 0.035) — the §8 refutation holds across the ladder.
 
 ### Open questions (honest — hypotheses, not claims)
 
-- **Why does Pythia's headroom improve with scale but Qwen's is flat?** Candidate causes, not yet
-  separated: architecture (NeoX parallel attn+MLP, untied embed, no QK-norm vs Qwen's RoPE+tied embed) vs
-  **training-data/regime** (Pythia: one deduped corpus across the ladder; Qwen: heavily-tuned instruct at
-  every size). The τ* work hit the same confound — needs a same-data size ladder to decide.
 - **Why does Pythia compose (block-PR≈18) while Qwen/Llama retrieve (≈9)?** Likely the parallel
   attn+MLP residual structure spreads contribution across more blocks; untestable from logits alone —
   would need per-block ablations (fieldrun `--block-ablate`) to confirm causally.
+- **What sets the ~400M saturation knee, and does it move with eval distribution?** Measured on one fixed
+  text; a second eval distribution would test whether the plateau location is text-invariant. *Speculation
+  (not a claim):* `bstar = −log₂(margin/‖r‖)`; with `‖r‖` norm-pinned, the plateau is really a *margin*
+  plateau — past ~400M the model's next-token confidence on ordinary text stops sharpening (it already
+  "knows" the easy continuations), so the certified read-out margin saturates. The high/noisy <400M end is
+  plausibly genuine instability of small-model frame geometry (few-shot-confident on a handful of tokens,
+  diffuse elsewhere), not just statistical — but N=131 can't separate the two; needs more positions / seeds.
 
 ## 9. Phasing (updated)
 
