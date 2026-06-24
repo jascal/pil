@@ -263,7 +263,10 @@ exist on real models.**
 
 **2. The raw knee SURVIVES — reproduces across architectures.** A small-target raw-margin auxiliary lifts
 the binding certified margin and helps (never hurts) fit, λ-robust (0.25→2), on Qwen, Llama, and Pythia
-residuals alike. (`N≈70` → train-side; the larger-corpus held-out test is the only loose end.)
+residuals alike. *Effect size (binding `nm_p10`, λ=0→knee):* Llama 0.121→0.148 (**+0.29 bits**), Pythia-410m
+0.113→0.145 (**+0.37 bits**), Qwen −0.265→0.12 (the margin term also *rescues* fit, top1 0.57→1.0). So
+≈0.3 certified bits where fit is already clean, more where it rescues it. (`N≈70` → train-side; the
+larger-corpus held-out test is the only loose end.)
 
 **3. Headroom map (the deliverable) — no universal law, the τ* shape.** Certified-bit proxy `bstar_p90`
 (c-absorbed; cross-cell deltas only):
@@ -284,6 +287,25 @@ sharpens *decisions, not attributions*; shifting compose→retrieve needs **whol
 which pins the read-out `‖r‖` *regardless of which weights train* — so the normalized distinction stays
 moot frame-only OR whole-model; only modifying/removing the final norm could open the gate. Whole-model's
 extra value is reshaping retrieve/compose (the `d̃_b`), at host-fidelity cost.
+
+### Synthetic → real: what changed
+
+| claim | synthetic PoC (§3–4a) | real-model sweep (§8) |
+|---|---|---|
+| `widen_t` vs `raw` | ≈equal on homogeneous ‖r‖; ±1 bit only under engineered heterogeneity | **≡ raw** (‖r‖ norm-pinned, cv≤0.11; matched Δbits −0.08) → **refuted** |
+| raw margin knee | free lunch (↑cert margin, ↑top1, faster, ~0 fit cost) | **reproduces** across arch (~+0.3 bits) → **ship** |
+| scaling | widen advantage flips sign with dim/over-completeness | **headroom** scales (Pythia↑, Qwen flat) — τ* shape, no universal law |
+| capacity price | real but dormant (ceiling ≫ V) | not exercised (real `code/V` not near 1) |
+
+### Open questions (honest — hypotheses, not claims)
+
+- **Why does Pythia's headroom improve with scale but Qwen's is flat?** Candidate causes, not yet
+  separated: architecture (NeoX parallel attn+MLP, untied embed, no QK-norm vs Qwen's RoPE+tied embed) vs
+  **training-data/regime** (Pythia: one deduped corpus across the ladder; Qwen: heavily-tuned instruct at
+  every size). The τ* work hit the same confound — needs a same-data size ladder to decide.
+- **Why does Pythia compose (block-PR≈18) while Qwen/Llama retrieve (≈9)?** Likely the parallel
+  attn+MLP residual structure spreads contribution across more blocks; untestable from logits alone —
+  would need per-block ablations (fieldrun `--block-ablate`) to confirm causally.
 
 ## 9. Phasing (updated)
 
