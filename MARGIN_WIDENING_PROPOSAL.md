@@ -17,6 +17,12 @@ behaviour changes; this adds an optional objective + an experiment.*
 
 ## Current status & go/no-go
 
+> **Recommended immediate action.** Ship the **λ×γ knee** — a `widen_t` margin auxiliary at **γ≈0.15,
+> λ≈0.5–1.0** — as an opt-in regularizer. It is a *measured* free lunch: ~13× larger binding certified
+> margin than no-margin training, faster convergence, and no fit cost (§3 table below). **Gate** any
+> *replacement* of PIL's raw hinge by the normalized term behind the real-data **size × architecture
+> `--source-dump` sweep** (§6) — §4a shows the normalized-vs-raw win is regime-specific.
+
 **What this is, today:** a proposal *and* a PoC that **measured the margin regimes on synthetic data
 before recommending any PIL training change** — the same measure-before-build discipline as fieldrun's
 Step 0. The PoC answers three things: (1) is the *normalized* margin a better target than the raw margin
@@ -127,6 +133,18 @@ the objective demands *over*-separation the likelihood does not want. So "a smal
 not a heuristic — it is the measured knee, and λ,γ are the dials. (Raw shows the same shape: `nll` 1.895 at
 target 1.0, rising to 1.96 by target 4.0.)
 
+**The knee vs. the baselines** (the shippable free lunch, at a glance):
+
+| config | nll ↓ (fit) | top1 ↑ | t90 ↓ (speed) | binding nm_p10 ↑ (cert) | |
+|---|---|---|---|---|---|
+| pure NLL (λ=0, no margin term) | 1.900 | 0.916 | 187 | 0.011 | quant-brittle |
+| raw hinge (target 2.0, λ=0.5) | 1.949 | 0.993 | 175 | 0.126 | PIL today |
+| **knee: `widen_t` γ=0.15, λ=1.0** | **1.896** | **1.000** | **150** | **0.143** | **free lunch** |
+
+vs no-margin training the knee is a strict win on *every* axis (≈13× certified margin, +8 pts top1,
+−20 % steps, lower nll); vs the raw hinge it matches on this homogeneous-‖r‖ substrate (the §2/§6 gate) at
+lower nll and faster descent.
+
 ## 4. The provable price — capacity & dynamics
 
 Margin-widening is **not** unconditionally free; it has a kernel-proved ceiling. The decode-side
@@ -231,7 +249,8 @@ margin behaviour will **differ by family**, not scale uniformly. Output: a per-(
   **No change to PIL's shipped loss.**
 - **v1.5 (next):** run §6 as a **size × architecture sweep** on real `fieldrun --source-dump` — the
   decisive test, since §4a/τ* say the verdict is regime-specific. Per cell: `Δbits` certified at equal
-  held-out flip rate.
+  held-out flip rate. **Ablate the interaction** with PIL's existing terms (`frame_reg` Gram conditioning,
+  support-size/PR, host-fidelity) and the prune-stats objective — does the knee compose, or compete?
 - **v2:** land `widen_t` and/or the small-γ knee as an opt-in `PILConfig` objective, **gated on the
   (size, arch) cells where v1.5 showed a win**; joint with the capacity ceiling (allocate dimension where
   `γ̃` widening would otherwise overflow the packing bound — the `code/V`→1 regime of §4a).
