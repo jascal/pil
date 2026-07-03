@@ -163,19 +163,25 @@ class ProjectiveIncidenceLearner(nn.Module):
         out = self.forward(sources, target=target)
         loss = out["total_loss"]
 
+        cert_stats: dict[str, float] = {}
         if optimizer is not None:
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             self.normalize_U()
             if certifier is not None:
-                certifier.step()
+                rec = certifier.step()
+                cert_stats = {          # certificate telemetry, ready for run logging
+                    f"cert_{k}": float(rec[k])
+                    for k in ("premise_hold_rate", "delta", "beta_share",
+                              "margin_min", "new_flips")
+                }
 
         return {
             k: float(v.item())
             for k, v in out.items()
             if isinstance(v, Tensor) and v.numel() == 1
-        } | {"loss": float(loss.item())}
+        } | {"loss": float(loss.item())} | cert_stats
 
     # -- evaluation ---------------------------------------------------------
     @torch.no_grad()

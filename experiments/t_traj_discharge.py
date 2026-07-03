@@ -156,6 +156,7 @@ def fmt_cell(row: dict) -> str:
             f" | flips {s['total_new_flips']} (never {s['never_flipped_frac']:.2f};"
             f" ho-never {s['heldout_split'].get('never_flipped_frac', float('nan')):.2f})"
             f" | VIOL pf={s['viol_premise_flip']} tr={s['viol_transfer']}"
+            f" | S2-improve {s['margin_improved_under_premise_mean']:.3f}"
             f" | beta-share {s['beta_share_mean']:.3f}"
             f" | 2*budget {s['budget_2sum']:.2f} vs m0_p50 {s['m0_p50']:.3f}"
             f" (vacuous {s['budget_vacuous_frac']:.2f} @T*~{s['budget_T*_p50']})"

@@ -135,6 +135,13 @@ class TrajectoryCertificate:
         tv = int((m_now < self.m_prev - 2.0 * delta - self.tol).sum())
         self.viol_transfer += tv
 
+        # early S2 (margin monotonicity) signal: among premise-holding contexts, how often
+        # did the margin actually improve this step (vs merely not falling below m - 2δ)?
+        improved_under_premise = (
+            float((premise & (m_now >= self.m_prev)).sum() / premise.sum())
+            if bool(premise.any()) else float("nan")
+        )
+
         self.n_steps += 1
         newly_flipped = torch.nonzero(flipped_this_step).flatten()
         self.flipped_at[newly_flipped] = self.n_steps
@@ -152,6 +159,7 @@ class TrajectoryCertificate:
             "beta_share": beta / delta if delta > 0 else 0.0,
             "premise_hold_rate": float(premise.float().mean()),
             "premise_hold_rate_perctx": float(premise_i.float().mean()),
+            "margin_improved_under_premise": improved_under_premise,
             "silent_rate": float((~premise).float().mean()),
             "decided_rate": float(decided_now.float().mean()),
             "new_flips": int(flipped_this_step.sum()),
@@ -203,6 +211,12 @@ class TrajectoryCertificate:
             "premise_hold_rate_last25%": float(late.mean()),
             "premise_hold_rate_perctx_mean": float(hold_i.mean()),
             "premise_hold_rate_perctx_last25%": float(hold_i[int(0.75 * len(hold_i)):].mean()),
+            # early S2 signal (margin monotonicity under the premise), NaN-safe mean
+            "margin_improved_under_premise_mean": float(
+                torch.tensor(
+                    [r["margin_improved_under_premise"] for r in self.records]
+                ).nanmean()
+            ),
             "total_new_flips": int((~never).sum()),
             "never_flipped_frac": float(never.float().mean()),
             "viol_premise_flip": self.viol_premise_flip,     # must be 0

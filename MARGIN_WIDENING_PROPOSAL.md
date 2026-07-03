@@ -399,3 +399,9 @@ cannot rely on the a-priori budget and cannot be rescued by lr cooling alone; th
 is a **trust-region P3** — clip per-row `‖ΔU_v‖` (and `|Δb_v|`) so `2(ρε_t + β_t)` stays under
 the current tracked minimum margin, re-arming the per-step certificate each iteration —
 **untested; achievability open**.
+
+**Post-review addendum (S2 early signal).** Among premise-holding steps, the tracked margin
+actually *improves* on only 20–53% of steps (`margin_improved_under_premise`, all cells):
+per-step margin monotonicity (S2) does **not** hold under real P3 refinement — the certificate
+holds because drift stays within `2δ`, not because margins grow. Any future T-mass/S2 statement
+must be about *budgeted* drift, not monotone improvement.
