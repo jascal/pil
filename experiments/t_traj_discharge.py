@@ -128,10 +128,13 @@ def run_cell(
         loss.backward()
         opt.step()
         model.normalize_U()
-        if step == mid:
-            cert_mid = TrajectoryCertificate(model, bank_src, ho_mask, bank_tgt)
         cert0.step()
-        if cert_mid is not None:
+        if step == mid:
+            # construct AFTER this step's normalize_U and do NOT .step() it this iteration:
+            # its first recorded update is the NEXT effective step (PR #5 review fix — the
+            # old same-iteration .step() recorded a zero-delta no-op as step 1)
+            cert_mid = TrajectoryCertificate(model, bank_src, ho_mask, bank_tgt)
+        elif cert_mid is not None:
             cert_mid.step()
 
     return {
