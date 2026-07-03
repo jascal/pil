@@ -48,6 +48,7 @@ class IncidenceBundle:
     cands: Tensor     # (N, K)      candidate token ids
     margins: Tensor   # (N,)        model decode margin (top1 - top2)
     ent: Tensor       # (N,)        full-vocab next-token entropy (nats); exp(ent) = effective output support
+    pred: Tensor | None = None      # (N,) model decision token id (the faithfulness anchor)
     meta: dict | None = None
 
     @property
@@ -84,8 +85,28 @@ def load_pil_dump(
     cands = torch.tensor([r["cands"] for r in recs], dtype=torch.long, device=device)
     margins = torch.tensor([r["margin"] for r in recs], dtype=dtype, device=device)
     ent = torch.tensor([r.get("ent", float("nan")) for r in recs], dtype=dtype, device=device)
+    pred = (
+        torch.tensor([r["pred"] for r in recs], dtype=torch.long, device=device)
+        if all("pred" in r for r in recs) else None
+    )
     meta = {"path": str(path), "n": len(recs), "nb": contrib.shape[1], "k": contrib.shape[2]}
-    return IncidenceBundle(contrib=contrib, tgt_idx=tgt_idx, cands=cands, margins=margins, ent=ent, meta=meta)
+    return IncidenceBundle(
+        contrib=contrib, tgt_idx=tgt_idx, cands=cands, margins=margins, ent=ent,
+        pred=pred, meta=meta,
+    )
+
+
+def recon_fraction(bundle: IncidenceBundle) -> float:
+    """Faithfulness of a pil-dump: fraction of positions where the summed incidences
+    ``Σ_b contrib[b][k] = ⟨r, U_cand_k⟩`` (the bias-free logit) argmax to the model
+    decision ``pred``. Must be 1.0 for a bias-free unembed — the pil-side twin of the
+    fieldrun ``--pil-dump`` recon self-check (fieldrun#123): a dump that fails this is
+    unfit to seed the PIL/picard loop."""
+    if bundle.pred is None:
+        raise ValueError("dump lacks `pred`: cannot check faithfulness")
+    summed = bundle.contrib.sum(dim=1)                      # (N, K)
+    picked = bundle.cands.gather(1, summed.argmax(dim=1, keepdim=True)).squeeze(1)
+    return float((picked == bundle.pred).float().mean())
 
 
 @dataclass

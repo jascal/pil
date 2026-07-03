@@ -65,3 +65,15 @@ def test_decision_subspace_quantity_extracts():
     pred_is_target = b.tgt_idx == 0
     if pred_is_target.any():
         assert torch.allclose(gap[pred_is_target], b.margins[pred_is_target], atol=1e-2)
+
+
+def test_pred_field_and_recon_fraction_utility():
+    """Follow-up to the above: `pred` is now carried explicitly on the bundle (rather than
+    the cands[0] positional convention) and `recon_fraction` exposes the faithfulness
+    check to runtime consumers (the loader-level twin of fieldrun#123's --strict)."""
+    from pil.fieldrun_io import recon_fraction
+
+    b = load_pil_dump(FIXTURE)
+    assert b.pred is not None and b.pred.shape == (b.contrib.shape[0],)
+    assert torch.equal(b.pred, b.cands[:, 0])      # the convention, now explicit
+    assert recon_fraction(b) == 1.0
