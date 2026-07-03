@@ -1,0 +1,1 @@
+{"task": "induction (A B .. A -> B)", "eval": "held-out (n=1800), chance=0.125", "rule_hard_acc": 0.9988889098167419, "mlp_acc": 0.3683333396911621, "rules": 231, "rule_params": 8317, "mlp_params": 84488, "rule_s": 789, "mlp_s": 18, "summary": {"n_rules": 231, "rules_per_stratum": [224, 7, 0], "active_literals_per_stratum": [605, 56, 0], "mean_binary_gap": 6.163924467728066e-06}}

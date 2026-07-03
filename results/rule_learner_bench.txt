@@ -1,0 +1,63 @@
+# PIC rule learner — benchmark results (2026-07-02)
+
+All tasks are expressed in the **pythia/GPT-NeoX token space** (pil.tokens.TokenSpace reading
+rosetta's bundle.tokenizer.json; encoder verified byte-exact vs HF tokenizers). "hard acc" is
+the Boolean-gate (Datalog-semantics) accuracy — the number the exported Soufflé program
+reproduces (verify_export agreement 1.00 on every exported program tested). MLP baseline:
+embedding -> ReLU hidden -> logits, trained on identical data; params counted over used
+embedding rows only.
+
+## Headline table
+
+task                         | eval                          | rules hard | MLP    | rule params | MLP params
+-----------------------------|-------------------------------|-----------:|-------:|------------:|----------:
+parity-8                     | unseen-pattern (n=4000)       |  **1.000** | 1.000  |         869 |     66,370
+parity-16                    | strictly unseen (n=3287)      |  **0.993** | 0.976  |       6,239 |    131,906
+induction (A B .. A -> B)    | held-out (n=1800, chance .125)|  **0.999** | 0.368  |       8,317 |     84,488
+modadd (p=97, 50% of pairs)  | unseen pairs (n=4705)         |  **1.000** | 0.001  |       6,305 |     61,121
+wikitext-2 (top-512 cands)   | val positions (n=8000)        |      0.248 | 0.236  |   1,072,358 |    846,432
+
+- **parity**: AND-rules alone plateau at ~0.57; the PIC-T3 *threshold gate* (count >= θ,
+  a Soufflé `count` aggregate) solves it. The learned parity program is the textbook
+  depth-2 threshold circuit — head signs alternate with the ones-count parity
+  (experiments/rule_program_demo.py prints it; results/parity8_learned.dl is the artifact,
+  Soufflé-verified 1.00 on 1000 instances).
+- **induction**: with only (offset, token) literals both arms stall (~0.40 rules / ~0.39 MLP);
+  adding the *equality literal* `x[o1]==x[o2]` — the smallest instance of PIC-LP's
+  position-indexed join, exported as `tok(I,o1,C), tok(I,o2,C)` — lifts the rule learner to
+  0.999 while the MLP stays at 0.37. The learner recovers the induction-head clause that
+  rosetta's decompiler finds in real transformers, this time *from data*.
+- **modadd**: two-act story. *Ground rules only*: both arms memorize the 50% training table
+  and transfer **0%** to unseen pairs (the grokking regime; an MLP needs orders more epochs
+  + weight decay to grok) — the measured boundary of the ground-rule hypothesis class,
+  mirroring PIC's composed/forge-tax residue. *With the schema channel* (ILP background
+  knowledge: a modular-arithmetic + copy/pointer library; **selection learned** from data
+  hit-rates, weights by SGD): the proposer adopts exactly `add_mod97[0,2]` (hit-rate 1.0),
+  the pruner then deletes **every** ground rule, and the final program — one arithmetic
+  Datalog clause over `num(token,value)` facts — scores **1.000** on unseen pairs in 6s of
+  training. The copy schema in the same library is rosetta's `ind_ctxlogit` clause.
+
+- **wikitext-2** (pythia tokenizer, top-512 candidates covering 0.60 of positions, 60k train
+  windows): ground rules alone land *under* the bigram floor (0.197 vs 0.278) — anchored
+  clauses cannot match lookup-table capacity. Adding **lookup source families** at the last
+  two offsets (the rosetta ngram-backbone move; identity-gated sources `d = A_o[x[o]]`)
+  lifts the program to **0.248, above the matched MLP (0.236)** but still under the bigram
+  floor (0.278): the rank-48 factored table trades sharpness for shared structure (train acc
+  0.77 — the gap is generalization, not capacity). Soft-hard agreement 0.990 here (LM scale;
+  the sub-1.00 residue is hardening drift on near-tied decisions); PIC §5.5 certifies 0.795
+  of val decisions robust at δ=0.25. Decision agreement with pythia-160m itself on the
+  rosetta logit-cache contexts: 0.15 — reported as the comparability hook, not a claim.
+  Scaling the LM program (more rules, higher-rank lookups, longer training) is open.
+
+## Bridges (what makes these numbers PIC-native)
+
+- train soft (log-semiring, T=1) -> harden (round_structure) -> refit heads: soft argmax ==
+  Boolean argmax == Soufflé decide (decode temperature-invariance, PIC_SPEC §3.1, executed).
+- per-rule ablation utilities are exact (additivity of the ⊗-monomial decode) — pruning and
+  the utility signal are closed-form, not estimated.
+- certified_fraction reports PIC §5.5: the fraction of decisions provably robust to
+  per-token clause-weight drift δ (margin > 2δ) — the certificate for quantizing/pruning
+  exported incidence tables.
+
+Raw rows: bench_parity8.jsonl, bench_parity16.jsonl, bench_induction.jsonl,
+bench_modadd.jsonl, bench_wikitext.jsonl (this file summarizes them).

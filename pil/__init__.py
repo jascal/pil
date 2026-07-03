@@ -9,6 +9,7 @@ Companion to fieldrun's PIC formalization (``fieldrun/PIC_PROPOSAL.md``).
 
 from __future__ import annotations
 
+from .datalog_export import export_program, run_souffle, verify_export
 from .geometry import (
     cosine_gram,
     frame_potential,
@@ -30,6 +31,15 @@ from .learner import (
     create_synthetic_problem,
 )
 from .proposer import RuleBank, build_sources, rulebank_from_weights, targeted_rulebank
+from .rule_learner import FitReport, PICRuleLearner, RuleLearnerConfig
+from .rules import RuleProgram, RuleProgramConfig, certified_fraction, program_summary
+from .schemas import (
+    Schema,
+    SchemaBank,
+    arithmetic_library,
+    copy_library,
+    propose_schemas,
+)
 from .scoring import (
     ambiguity_resolution_score,
     candidate_activations,
@@ -43,12 +53,29 @@ from .synthetic import (
     within_cluster_cosine,
     within_cluster_report,
 )
+from .tokens import TokenSpace
 
 __version__ = "0.0.1"
 
 __all__ = [
     "PILConfig",
     "ProjectiveIncidenceLearner",
+    "RuleProgram",
+    "RuleProgramConfig",
+    "program_summary",
+    "certified_fraction",
+    "PICRuleLearner",
+    "RuleLearnerConfig",
+    "FitReport",
+    "TokenSpace",
+    "export_program",
+    "run_souffle",
+    "verify_export",
+    "Schema",
+    "SchemaBank",
+    "arithmetic_library",
+    "copy_library",
+    "propose_schemas",
     "create_synthetic_problem",
     "create_clustered_problem",
     "create_compositional_problem",

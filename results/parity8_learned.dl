@@ -1,0 +1,305 @@
+// parity8_learned -- learned PIC-LP program exported by pil.datalog_export
+// EDB: tok(inst,pos,id) with pos in 0..W-1; decode predicts the next token.
+// window=8 candidates=2 rules=41 strata=1
+.decl tok(inst:number, pos:number, id:number)
+.input tok
+.decl inst(i:number)
+inst(I) :- tok(I,_,_).
+.decl cand(v:number)
+cand(0).
+cand(1).
+
+.decl fired0(inst:number, k:number)
+fired0(I,4) :- inst(I), tok(I,1,10).
+fired0(I,6) :- inst(I), tok(I,5,11).
+fired0(I,7) :- inst(I), tok(I,0,11), tok(I,2,10).
+fired0(I,10) :- inst(I), tok(I,3,10), tok(I,6,11).
+fired0(I,12) :- inst(I), tok(I,0,10).
+fired0(I,15) :- inst(I), tok(I,1,11).
+fired0(I,18) :- inst(I), tok(I,0,10).
+fired0(I,21) :- inst(I), tok(I,0,11), tok(I,3,10).
+fired0(I,24) :- inst(I), tok(I,5,11).
+fired0(I,25) :- inst(I), tok(I,0,10), tok(I,4,10).
+fired0(I,27) :- inst(I), tok(I,0,10), tok(I,7,11).
+fired0(I,28) :- inst(I), tok(I,0,10).
+fired0(I,29) :- inst(I), tok(I,5,11).
+fired0(I,30) :- inst(I), tok(I,1,11).
+fired0(I,31) :- inst(I), tok(I,0,10).
+fired0(I,33) :- inst(I), tok(I,2,11).
+fired0(I,34) :- inst(I), tok(I,5,10).
+fired0(I,36) :- inst(I), tok(I,4,10), tok(I,5,11), tok(I,6,10), tok(I,7,11).
+fired0(I,38) :- inst(I), tok(I,4,11).
+.decl sat0(inst:number, k:number, lit:number)
+.decl thr0(k:number, t:number)
+thr0(0,4).
+sat0(I,0,0) :- tok(I,0,11).
+sat0(I,0,1) :- tok(I,1,10).
+sat0(I,0,2) :- tok(I,2,11).
+sat0(I,0,3) :- tok(I,3,10).
+sat0(I,0,4) :- tok(I,4,11).
+sat0(I,0,5) :- tok(I,5,11).
+sat0(I,0,6) :- tok(I,6,10).
+sat0(I,0,7) :- tok(I,7,11).
+thr0(1,5).
+sat0(I,1,0) :- tok(I,0,10).
+sat0(I,1,1) :- tok(I,1,11).
+sat0(I,1,2) :- tok(I,2,10).
+sat0(I,1,3) :- tok(I,3,11).
+sat0(I,1,4) :- tok(I,4,11).
+sat0(I,1,5) :- tok(I,5,10).
+sat0(I,1,6) :- tok(I,6,10).
+sat0(I,1,7) :- tok(I,7,11).
+thr0(2,1).
+sat0(I,2,1) :- tok(I,1,11).
+sat0(I,2,4) :- tok(I,4,11).
+thr0(3,6).
+sat0(I,3,0) :- tok(I,0,10).
+sat0(I,3,1) :- tok(I,1,11).
+sat0(I,3,2) :- tok(I,2,10).
+sat0(I,3,3) :- tok(I,3,11).
+sat0(I,3,4) :- tok(I,4,10).
+sat0(I,3,5) :- tok(I,5,10).
+sat0(I,3,6) :- tok(I,6,11).
+sat0(I,3,7) :- tok(I,7,10).
+thr0(5,5).
+sat0(I,5,0) :- tok(I,0,10).
+sat0(I,5,1) :- tok(I,1,11).
+sat0(I,5,2) :- tok(I,2,10).
+sat0(I,5,3) :- tok(I,3,10).
+sat0(I,5,4) :- tok(I,4,10).
+sat0(I,5,5) :- tok(I,5,11).
+sat0(I,5,7) :- tok(I,7,10).
+thr0(8,7).
+sat0(I,8,0) :- tok(I,0,10).
+sat0(I,8,1) :- tok(I,1,11).
+sat0(I,8,2) :- tok(I,2,10).
+sat0(I,8,4) :- tok(I,4,11).
+sat0(I,8,5) :- tok(I,5,10).
+sat0(I,8,6) :- tok(I,6,10).
+sat0(I,8,7) :- tok(I,7,11).
+thr0(9,4).
+sat0(I,9,0) :- tok(I,0,10).
+sat0(I,9,1) :- tok(I,1,11).
+sat0(I,9,2) :- tok(I,2,10).
+sat0(I,9,3) :- tok(I,3,10).
+sat0(I,9,4) :- tok(I,4,11).
+sat0(I,9,5) :- tok(I,5,10).
+sat0(I,9,6) :- tok(I,6,11).
+sat0(I,9,7) :- tok(I,7,10).
+thr0(11,5).
+sat0(I,11,0) :- tok(I,0,11).
+sat0(I,11,1) :- tok(I,1,11).
+sat0(I,11,2) :- tok(I,2,11).
+sat0(I,11,3) :- tok(I,3,11).
+sat0(I,11,4) :- tok(I,4,11).
+sat0(I,11,5) :- tok(I,5,11).
+sat0(I,11,6) :- tok(I,6,11).
+sat0(I,11,7) :- tok(I,7,10).
+thr0(13,4).
+sat0(I,13,0) :- tok(I,0,10).
+sat0(I,13,1) :- tok(I,1,11).
+sat0(I,13,2) :- tok(I,2,11).
+sat0(I,13,3) :- tok(I,3,11).
+sat0(I,13,4) :- tok(I,4,11).
+sat0(I,13,5) :- tok(I,5,11).
+sat0(I,13,6) :- tok(I,6,10).
+sat0(I,13,7) :- tok(I,7,11).
+thr0(14,6).
+sat0(I,14,0) :- tok(I,0,11).
+sat0(I,14,1) :- tok(I,1,10).
+sat0(I,14,2) :- tok(I,2,11).
+sat0(I,14,3) :- tok(I,3,10).
+sat0(I,14,4) :- tok(I,4,11).
+sat0(I,14,5) :- tok(I,5,11).
+sat0(I,14,6) :- tok(I,6,11).
+sat0(I,14,7) :- tok(I,7,11).
+thr0(16,4).
+sat0(I,16,0) :- tok(I,0,11).
+sat0(I,16,1) :- tok(I,1,11).
+sat0(I,16,2) :- tok(I,2,10).
+sat0(I,16,3) :- tok(I,3,10).
+sat0(I,16,4) :- tok(I,4,10).
+sat0(I,16,5) :- tok(I,5,11).
+sat0(I,16,6) :- tok(I,6,10).
+sat0(I,16,7) :- tok(I,7,11).
+thr0(17,6).
+sat0(I,17,0) :- tok(I,0,11).
+sat0(I,17,1) :- tok(I,1,10).
+sat0(I,17,2) :- tok(I,2,10).
+sat0(I,17,3) :- tok(I,3,10).
+sat0(I,17,4) :- tok(I,4,10).
+sat0(I,17,6) :- tok(I,6,10).
+sat0(I,17,7) :- tok(I,7,11).
+thr0(19,5).
+sat0(I,19,0) :- tok(I,0,10).
+sat0(I,19,1) :- tok(I,1,11).
+sat0(I,19,2) :- tok(I,2,10).
+sat0(I,19,3) :- tok(I,3,10).
+sat0(I,19,4) :- tok(I,4,10).
+sat0(I,19,5) :- tok(I,5,11).
+sat0(I,19,6) :- tok(I,6,11).
+sat0(I,19,7) :- tok(I,7,10).
+thr0(20,2).
+sat0(I,20,1) :- tok(I,1,10).
+sat0(I,20,7) :- tok(I,7,11).
+thr0(22,4).
+sat0(I,22,0) :- tok(I,0,11).
+sat0(I,22,1) :- tok(I,1,10).
+sat0(I,22,2) :- tok(I,2,10).
+sat0(I,22,3) :- tok(I,3,10).
+sat0(I,22,4) :- tok(I,4,11).
+sat0(I,22,5) :- tok(I,5,11).
+sat0(I,22,6) :- tok(I,6,10).
+sat0(I,22,7) :- tok(I,7,10).
+thr0(23,4).
+sat0(I,23,0) :- tok(I,0,11).
+sat0(I,23,1) :- tok(I,1,11).
+sat0(I,23,2) :- tok(I,2,10).
+sat0(I,23,3) :- tok(I,3,10).
+sat0(I,23,4) :- tok(I,4,11).
+sat0(I,23,5) :- tok(I,5,11).
+sat0(I,23,6) :- tok(I,6,10).
+sat0(I,23,7) :- tok(I,7,10).
+thr0(26,4).
+sat0(I,26,0) :- tok(I,0,11).
+sat0(I,26,1) :- tok(I,1,10).
+sat0(I,26,2) :- tok(I,2,11).
+sat0(I,26,3) :- tok(I,3,11).
+sat0(I,26,4) :- tok(I,4,10).
+sat0(I,26,5) :- tok(I,5,10).
+sat0(I,26,6) :- tok(I,6,11).
+sat0(I,26,7) :- tok(I,7,11).
+thr0(32,6).
+sat0(I,32,0) :- tok(I,0,10).
+sat0(I,32,1) :- tok(I,1,11).
+sat0(I,32,2) :- tok(I,2,10).
+sat0(I,32,3) :- tok(I,3,10).
+sat0(I,32,4) :- tok(I,4,10).
+sat0(I,32,5) :- tok(I,5,11).
+sat0(I,32,7) :- tok(I,7,10).
+thr0(35,2).
+sat0(I,35,1) :- tok(I,1,11).
+sat0(I,35,3) :- tok(I,3,10).
+sat0(I,35,7) :- tok(I,7,11).
+thr0(37,5).
+sat0(I,37,0) :- tok(I,0,11).
+sat0(I,37,1) :- tok(I,1,10).
+sat0(I,37,2) :- tok(I,2,10).
+sat0(I,37,3) :- tok(I,3,10).
+sat0(I,37,4) :- tok(I,4,10).
+sat0(I,37,6) :- tok(I,6,11).
+thr0(39,4).
+sat0(I,39,0) :- tok(I,0,11).
+sat0(I,39,1) :- tok(I,1,10).
+sat0(I,39,2) :- tok(I,2,11).
+sat0(I,39,3) :- tok(I,3,11).
+sat0(I,39,4) :- tok(I,4,10).
+sat0(I,39,5) :- tok(I,5,10).
+sat0(I,39,6) :- tok(I,6,11).
+sat0(I,39,7) :- tok(I,7,10).
+thr0(40,4).
+sat0(I,40,0) :- tok(I,0,10).
+sat0(I,40,1) :- tok(I,1,11).
+sat0(I,40,2) :- tok(I,2,10).
+sat0(I,40,3) :- tok(I,3,11).
+sat0(I,40,4) :- tok(I,4,10).
+sat0(I,40,5) :- tok(I,5,10).
+sat0(I,40,7) :- tok(I,7,11).
+fired0(I,K) :- inst(I), thr0(K,T), N = count : { sat0(I,K,_) }, N >= T.
+.decl headw0(k:number, v:number, w:float)
+headw0(0,0,-12.419529).
+headw0(0,1,11.7720909).
+headw0(1,0,-10.1167002).
+headw0(1,1,9.7111063).
+headw0(2,0,-7.52858543).
+headw0(2,1,7.06977701).
+headw0(3,0,-16.9608421).
+headw0(3,1,16.0956211).
+headw0(4,0,2.36474061).
+headw0(4,1,-1.83502138).
+headw0(5,0,-17.2945747).
+headw0(5,1,15.9552231).
+headw0(6,0,-4.61879253).
+headw0(6,1,4.49324322).
+headw0(7,0,7.81667233).
+headw0(7,1,-7.41856289).
+headw0(8,0,-22.8330803).
+headw0(8,1,21.8463287).
+headw0(9,0,-10.9416513).
+headw0(9,1,10.4566669).
+headw0(10,0,-6.20281029).
+headw0(10,1,5.51371479).
+headw0(11,0,11.0101871).
+headw0(11,1,-10.315937).
+headw0(12,0,3.53715324).
+headw0(12,1,-3.0894053).
+headw0(13,0,9.37797737).
+headw0(13,1,-8.85537815).
+headw0(14,0,15.1073112).
+headw0(14,1,-14.3143082).
+headw0(15,0,-2.70080352).
+headw0(15,1,2.58421779).
+headw0(16,0,12.9508829).
+headw0(16,1,-12.1991062).
+headw0(17,0,-9.09498787).
+headw0(17,1,8.16497612).
+headw0(18,0,3.55547452).
+headw0(18,1,-3.10904932).
+headw0(19,0,21.4992561).
+headw0(19,1,-20.4682522).
+headw0(20,0,-6.17026615).
+headw0(20,1,6.03418159).
+headw0(21,0,6.41041708).
+headw0(21,1,-6.16068363).
+headw0(22,0,-7.29782581).
+headw0(22,1,6.94105244).
+headw0(23,0,9.2290144).
+headw0(23,1,-8.60731506).
+headw0(24,0,-4.04751587).
+headw0(24,1,3.95717812).
+headw0(25,0,-14.7534122).
+headw0(25,1,14.199872).
+headw0(26,0,-14.8691778).
+headw0(26,1,13.8596277).
+headw0(27,0,6.2453146).
+headw0(27,1,-5.82724524).
+headw0(28,0,3.276052).
+headw0(28,1,-2.84668016).
+headw0(29,0,-4.78661823).
+headw0(29,1,4.64900208).
+headw0(30,0,-2.33059812).
+headw0(30,1,2.24388313).
+headw0(31,0,3.61096001).
+headw0(31,1,-3.17775726).
+headw0(32,0,10.0440731).
+headw0(32,1,-8.84146595).
+headw0(33,0,-3.07889676).
+headw0(33,1,2.80734706).
+headw0(34,0,4.99730682).
+headw0(34,1,-4.73115921).
+headw0(35,0,-1.93722773).
+headw0(35,1,1.77915907).
+headw0(36,0,7.14637041).
+headw0(36,1,-5.95711994).
+headw0(37,0,-4.14426517).
+headw0(37,1,3.4783783).
+headw0(38,0,6.13061905).
+headw0(38,1,-5.93275976).
+headw0(39,0,10.9860163).
+headw0(39,1,-10.5111094).
+headw0(40,0,8.21007729).
+headw0(40,1,-7.86238098).
+
+.decl contrib(inst:number, v:number, w:float)
+contrib(I,V,0.0) :- inst(I), cand(V).      // ⊗-identity pad: sum is always grounded
+contrib(I,V,W) :- fired0(I,K), headw0(K,V,W).
+.decl biasf(v:number, b:float)
+biasf(0,-0.00371973426).
+biasf(1,0.00371359824).
+.decl logit(inst:number, v:number, s:float)
+logit(I,V,B+S) :- inst(I), biasf(V,B), S = sum W : { contrib(I,V,W) }.   // ⊗ over sources
+.decl best(inst:number, v:number)
+best(I,V) :- logit(I,V,S), S = max S2 : { logit(I,_,S2) }.               // ⊕ at T -> 0
+.decl decide(inst:number, v:number)
+decide(I,V) :- best(I,V), V = min V2 : { best(I,V2) }.                   // deterministic tie-break
+.output decide

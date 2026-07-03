@@ -1,0 +1,52 @@
+{
+ "labels": "/tmp/claude-1000/-home-allans-code-pil/9c868468-870b-45a8-b78c-fb33d0f1ee47/scratchpad/pythia160m_labels.npz",
+ "n_train": 87817,
+ "n_heldout": 20000,
+ "candidates": 1024,
+ "cand_coverage_heldout": 0.8719,
+ "bigram_floor": {
+  "overall": 0.3459,
+  "fired_frac": 1.0,
+  "on_fired": 0.3459
+ },
+ "pil_wikitext": {
+  "overall": 0.3007,
+  "fired_frac": 1.0,
+  "on_fired": 0.3007,
+  "in_cand_only": 0.3448
+ },
+ "rosetta_wikitext": {
+  "overall": 0.0401,
+  "fired_frac": 0.1262,
+  "on_fired": 0.3178
+ },
+ "rosetta_wikitext_n": 8000,
+ "pil_home_turf": {
+  "overall": 0.1567,
+  "fired_frac": 1.0,
+  "on_fired": 0.1567
+ },
+ "rosetta_home_turf": {
+  "overall": 1.0,
+  "fired_frac": 1.0,
+  "on_fired": 1.0
+ },
+ "home_turf_n": 300,
+ "pil_fit_s": 2778,
+ "rosetta_souffle_s": 11,
+ "certified_frac_delta_0.25": 0.867,
+ "program": {
+  "n_rules": 1264,
+  "rules_per_stratum": [
+   1211,
+   21,
+   32
+  ],
+  "active_literals_per_stratum": [
+   4226,
+   112,
+   176
+  ],
+  "mean_binary_gap": 6.170987414103972e-06
+ }
+}

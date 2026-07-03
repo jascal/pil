@@ -1,0 +1,60 @@
+# PIC rule learner — LLM-wheelhouse benchmarks (2026-07-02)
+
+All in the pythia-160m token space (pil.tokens.TokenSpace == HF tokenizers, verified).
+
+## 1. IOI (indirect object identification) — the mech-interp canon task
+
+"When A and B went to the store, B gave a drink to" -> A, real pythia tokens (29
+single-token names), **test name pairs disjoint from training pairs** (memorizing
+pair->answer transfers nothing). experiments/ioi_bench.py, results/ioi_bench.jsonl.
+
+  PIL (hard, Datalog semantics)   0.966   (715 rules, 27.8k params, souffle exact 1.00,
+                                           99.8% of decisions certified at δ=0.25)
+  MLP (matched data)              1.000
+  chance                          0.034
+
+Notes (honest): the MLP *also* generalizes to unseen pairs — IOI's relational rule is
+learnable in embedding space, so this task does not separate MLPs from rule learners the
+way it separates both from pure memorizers. PIL needed equality literals (the Datalog
+join x[o1]==x[o2]) and, critically, live structure search: with the solved-val gate
+mistakenly frozen (val split shares train pairs) it plateaued at 0.73; unblocked it
+reaches 0.966. The learned program is a relational+memorized mix (715 rules vs the ~58
+of the pure "answer = the un-repeated name" program) — proposer-side compression open.
+
+## 2. Pythia-160m head-to-head: learned vs decompiled vs host (the flagship)
+
+Distill pythia-160m's argmax on 8-token windows (120k wikitext-2 windows labeled by the
+model itself; semantics identical to rosetta's logit_cache keys) into a PIC program;
+score against rosetta's decompiled circuits.dl via its own `souffle run.dl` harness on
+identical contexts. experiments/pythia_headtohead.py, results/pythia_headtohead.json.
+
+v1 (rank-64 lookup backbone only):
+
+  arena                          | decompiled circuits.dl        | learned PIL      | bigram floor
+  -------------------------------|-------------------------------|------------------|-------------
+  wikitext held-out (20k)        | 0.040 overall (fires 12.6%,   | 0.322 overall    | 0.346
+                                 |  0.318 where it fires)        | (fires 100%)     |
+  home turf (300 cached ctxs)    | 1.000 (certificate reproduced)| 0.170            | --
+
+The headline structure: **the two programs fail in opposite directions.** The decompiled
+program is certified-exact on its mining domain and nearly silent off it; the learned
+program answers everywhere at ~8x the decompiled overall transfer, and on contexts where
+both speak they tie (0.318 vs 0.322). Precision-with-abstention vs coverage-without-
+certificates — the claymore routing shape (decompiled expert first, learned fallback).
+
+v2 added a full-rank direct bigram table (rosetta's gram2d shape, learnable, zero-init,
+exported as lkpd facts) — and produced a clean negative: held-out DROPPED to 0.301 with
+train agreement 0.93. An unregularized 50M-param table memorizes noisy (last-token ->
+argmax) pairs where the count-based mode estimate is robust (results/pythia_headtohead.json
+holds the v2 numbers). Fix (v3, in the ladder runs): initialize the direct table from
+train co-occurrence counts — rosetta's gram mining used as an initializer (centered
+smoothed log P(target | token)) — plus weight decay + reduced lr on that group, so SGD
+refines a robust statistical estimate instead of memorizing from zero.
+
+## 3. Pythia ladder distillation (behavioral distillability vs scale) — in flight
+
+Same 120k shared windows labeled by pythia {14m, 70m, 160m, 410m, 1b(, 1.4b, 2.8b)};
+identical program budget per rung; distributional distillation (soft CE vs teacher top-8);
+per rung: teacher agreement, teacher-top5 hit, teacher's own bigram floor, lift over it,
+certified fraction. experiments/pythia_ladder_distill.py ->
+results/pythia_ladder_distill.jsonl (appended per rung as runs land).
