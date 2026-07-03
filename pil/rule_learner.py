@@ -47,6 +47,9 @@ class RuleLearnerConfig:
     frame_lr: float = 1e-2
     direct_lookup_lr: float = 5e-3       # full-rank tables: lower lr + decay (they memorize)
     direct_lookup_wd: float = 1e-4
+    hard_target_weight: float = 0.0      # under soft distillation, extra hard-CE on the
+    #                                      teacher argmax (distribution fit trades against
+    #                                      argmax agreement; mix when agreement is the metric)
     batch_size: int = 256
     epochs_per_phase: int = 40
     margin_weight: float = 0.3
@@ -74,6 +77,9 @@ class RuleLearnerConfig:
     max_splits_per_phase: int = 8
     deepen_patience: int = 2             # phases without val improvement before deepening
     solved_val_acc: float = 0.995        # past this, stop structural edits (only refine/harden)
+    death_on_val: bool = False           # measure death-ablation utility on the val slice
+    #                                      (memorizing rules look useful on train; on val
+    #                                      they don't -- the honest pruning signal for LM)
     max_strata: int = 3
     deep_births: int = 32
     deep_arity: int = 2
@@ -229,6 +235,8 @@ class PICRuleLearner:
             lp = torch.log_softmax(L, dim=-1)
             gathered = lp.gather(-1, idx.clamp_min(0))
             nll = -(p * gathered).sum(dim=-1).mean()
+            if self.cfg.hard_target_weight > 0:
+                nll = nll + self.cfg.hard_target_weight * F.cross_entropy(L, tgt)
         else:
             nll = F.cross_entropy(L, tgt)
         m = margin_to_worst(L, tgt)
@@ -505,7 +513,7 @@ class PICRuleLearner:
             self.prog.beta = cfg.beta_start + (cfg.beta_end - cfg.beta_start) * t
             self.refine(Xtr, ytr, cfg.epochs_per_phase, gap_w, soft=soft_tr)
 
-            stats = self.feedback(Xtr, ytr)
+            stats = self.feedback(Xva, yva) if cfg.death_on_val else self.feedback(Xtr, ytr)
             val_acc = self._acc(Xva, yva)
             hard_acc = self._acc(Xva, yva, hard=True)
             rep.log(

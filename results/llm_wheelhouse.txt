@@ -51,10 +51,45 @@ train co-occurrence counts — rosetta's gram mining used as an initializer (cen
 smoothed log P(target | token)) — plus weight decay + reduced lr on that group, so SGD
 refines a robust statistical estimate instead of memorizing from zero.
 
-## 3. Pythia ladder distillation (behavioral distillability vs scale) — in flight
+## 3. Pythia ladder distillation: behavioral distillability vs scale (5 rungs, complete)
 
-Same 120k shared windows labeled by pythia {14m, 70m, 160m, 410m, 1b(, 1.4b, 2.8b)};
-identical program budget per rung; distributional distillation (soft CE vs teacher top-8);
-per rung: teacher agreement, teacher-top5 hit, teacher's own bigram floor, lift over it,
-certified fraction. experiments/pythia_ladder_distill.py ->
-results/pythia_ladder_distill.jsonl (appended per rung as runs land).
+Same 120k shared wikitext windows labeled by each teacher (argmax + top-8 logits);
+identical program budget per rung (1536 rules, frozen count-init direct table, rank-64
+lookups, soft+hard mixed distillation, val-slice death ablations).
+experiments/pythia_ladder_distill.py -> results/pythia_ladder_distill.jsonl.
+
+  teacher | PIL agree | count-table | lift/ct | bigram floor | teacher-top5 | certified
+  --------|----------:|------------:|--------:|-------------:|-------------:|---------:
+  14m     |     0.415 |       0.432 |  -0.017 |        0.436 |        0.664 |     0.70
+  70m     |     0.311 |       0.343 |  -0.032 |        0.350 |        0.560 |     0.66
+  160m    |     0.307 |       0.336 |  -0.029 |        0.342 |        0.529 |     0.66
+  410m    |     0.296 |       0.326 |  -0.031 |        0.335 |        0.511 |     0.67
+  1b      |     0.287 |       0.319 |  -0.032 |        0.329 |        0.501 |     0.67
+
+Two findings, both crisp:
+
+1. **Distillability falls monotonically with teacher scale.** The retrievable-by-lookup
+   fraction (count-table column) shrinks 0.432 -> 0.319 from 14m to 1b, and teacher-top5
+   containment falls 0.664 -> 0.501, on identical contexts. Bigger pythias put
+   systematically more of their next-token decisions beyond what 8-token window
+   statistics recover — the learning-side echo of the analysis-side result that the
+   composed/forge-tax fraction grows with capacity (tau_star_entropy: r_eff tracks
+   capacity, not entropy).
+
+2. **At this budget, learned rules add ~nothing over counting — uniformly.** Lift over
+   the count table is a flat -2..-3 points at every rung (the residual trainable parts —
+   frame, rank lookups, bias — trade a little argmax agreement for distribution fit even
+   with the mixed objective). The program-distillable fraction ~= the count-retrievable
+   fraction, at every scale tested. Honest negative, sharp interpretation: the teacher's
+   non-lookup decisions on natural text need either relational/compositional machinery
+   the current literal vocabulary cannot reach from ~90k samples, or attention. The
+   companion measurement is the sibling `tropic` session's 2-layer *attention* student on
+   the same teachers: the per-rung gap between its agreement and this table's is a direct
+   empirical estimate of what attention buys (the forge tax measured from the learning
+   side, between two student classes).
+
+Method notes: three failed configurations preceded this one and are part of the record —
+pure soft-CE trades argmax agreement for distribution fit (lift -0.055); an unregularized
+full-rank table memorizes (train 0.93 / held 0.30); train-side death ablations keep
+memorizing rules alive. Fixes: mixed objective, count-based init with the table frozen,
+val-slice deaths. 1.4b/2.8b rungs pending label generation (CPU; GPU is shared).

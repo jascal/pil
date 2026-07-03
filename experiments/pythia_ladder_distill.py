@@ -68,10 +68,17 @@ def bench_rung(labels: Path, size: str, n_train: int, top_v: int, seed: int = 0)
     lc = RuleLearnerConfig(
         n_phases=5, init_rules=768, births_per_phase=384, epochs_per_phase=3,
         max_rules=1536, batch_size=512, probe_size=1024,
-        ambiguity_split_threshold=0.4, max_splits_per_phase=32, seed=seed, verbose=False,
+        ambiguity_split_threshold=0.4, max_splits_per_phase=32,
+        hard_target_weight=0.5, death_on_val=True, seed=seed, verbose=False,
     )
     learner = PICRuleLearner(prog, lc)
     init_direct_lookup_from_counts(prog, Xtr[tr_in], prog.target_index(ytr[tr_in]))
+    for emb in prog.direct_lookup.values():
+        emb.weight.requires_grad_(False)   # the count estimate is already right; SGD hurt it
+    # reference: the untrained count-table program (gram mining alone, no learning)
+    with torch.no_grad():
+        L0 = learner._logits_in_chunks(Xte, hard=True)
+        count_agree = float((prog.candidate_ids[L0.argmax(-1)] == yte).float().mean())
     soft = learner.make_soft_targets(tk_ids[:n_train][tr_in], tk_log[:n_train][tr_in])
     t0 = time.time()
     learner.fit(Xtr[tr_in], ytr[tr_in], soft=soft)
@@ -89,8 +96,10 @@ def bench_rung(labels: Path, size: str, n_train: int, top_v: int, seed: int = 0)
         "n_train": int(tr_in.sum()), "n_heldout": len(yte),
         "cand_coverage": round(coverage, 4),
         "teacher_bigram_floor": round(bigram, 4),
+        "count_table_agreement": round(count_agree, 4),
         "pil_agreement": round(agree, 4),
         "lift_over_bigram": round(agree - bigram, 4),
+        "lift_over_count_table": round(agree - count_agree, 4),
         "pil_in_teacher_top5": round(top5, 4),
         "certified_frac_delta_0.25": round(certified_fraction(prog, Xte[:4000], 0.25), 3),
         "fit_s": round(t_fit),
