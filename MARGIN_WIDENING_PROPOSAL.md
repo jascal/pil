@@ -349,3 +349,59 @@ log-linear fit — i.e. saturation, not a power law. So:
 - **v3:** the only routes left for a *bigger* win — **whole-model** training (move `d̃_b`: reshape
   retrieve/compose) and/or **relaxing the final norm** (the only way to make `‖r‖` heterogeneous and revive
   a normalized margin); the indefinite/Krein frame (`γ̃` signature-dependent); unify with prune+quant.
+
+## 10. T-traj discharge experiment 1: do real P3 steps satisfy the theorem's premises? (2026-07-03)
+
+T-traj (kernel-proved, i-orca `examples/pic_learn/PIC_Learn.thy`, merged main `735973f`) is
+unconditional; this section reports whether **real optimizer steps** — AdamW(wd=1e-4) + row
+renormalization, the actual P3 — live inside its premises, and with how much slack.
+Instrumentation: `pil/certify.py` (`TrajectoryCertificate`, off by default; effective updates
+measured post-normalization→post-normalization; decisions frozen at entry; ρ-constancy asserted;
+silent contexts counted, not dropped). Sweep: `experiments/t_traj_discharge.py` — {easy, hard,
+mwl_raw, real(pythia-70m `--source-dump`, 70 positions, recon 1.00)} × lr {5e-3, 3e-4} × 2 seeds
+× 2 entry points (step 0 / 25%); tracked banks half train, half held-out. Raw numbers:
+`results/t_traj_discharge.{txt,json}`. All rows **empirical**.
+
+**Harness soundness (the theorem's self-checks).** Across all 20 cells × 600 steps × 2 entries:
+**zero** flips-while-premise-held and **zero** transfer violations (`m' < m − 2δ`). The forbidden
+events never occur on real AdamW+renorm steps — the measurement matches the mathematics.
+
+**Findings (descriptive):**
+
+1. **Entry point dominates.** At entry@0 the premise almost never holds (init margins 0.13–0.26
+   vs per-step `2δ` up to ~0.6 at lr 5e-3) and essentially every tracked decision flips. At
+   entry@25% — the picard-relevant "cell visited mid-loop" case — hold-rates are 0.99 (easy),
+   0.72–0.83 (hard/mwl, lr 5e-3), but only **0.24–0.47 on real residuals**.
+2. **The premise is margin-limited, not step-limited.** The hot lr (5e-3) has *higher*
+   post-warmup hold-rates than 3e-4 (hard: 0.72–0.83 vs 0.37–0.60, and at 3e-4 the rate
+   *declines* over time): margins grow faster than δ under the hot lr, while the slow lr
+   lingers in the small-margin churn zone. Naively cooling the optimizer does not rescue the
+   certificate.
+3. **The a-priori trajectory budget is vacuous everywhere.** `2Σδ` crosses `m₀` within 1–22
+   steps in every cell (vacuous fraction 1.00); telescoped slack ≈ the whole budget. The usable
+   form on real runs is the **per-step check** (`step_decode_preserved`), re-armed each step —
+   exactly the plan's runtime-corollary framing; the trajectory form is for *clipped* updates.
+4. **Bias drift is real but small.** β contributes 2–4.6% of δ on synthetics and ≈0 on real —
+   Correction 1's term belongs in the theorem, and ρε dominates it 20–50× in practice.
+5. **Per-context ρᵢ buys nothing.** Tracking the tighter per-context premise
+   (`m_i > 2(‖r_i‖ε + β)`) moves hold-rates by ≤0.01 everywhere including real. The
+   conservatism lives in `ε = max_v ‖ΔU_v‖` and in the margins themselves, not in ρ spread.
+6. **Held-out contexts flip more than train contexts** (never-flipped 0.54–0.64 vs 0.69–0.82 on
+   hard at 5e-3) — the corpus-mirage direction, visible even in the certificate.
+7. **hard ≡ mwl_raw at shipped defaults**: the learner's `total_loss` (margin_weight 0.5,
+   target 2.0, frame_reg 0.05) *is* the mwl raw objective; the two regimes produce identical
+   trajectories. One fewer distinct regime than intended; kept for the record.
+
+**Reading (per the decision rule; no headline).** At these lr/dim settings the per-step premise
+holds at high rates only post-warmup on synthetics; on real residuals it fails at rates
+0.53–0.76, dominated by **small margins relative to ε** (not β, not ρ). A certified P3 therefore
+cannot rely on the a-priori budget and cannot be rescued by lr cooling alone; the candidate fix
+is a **trust-region P3** — clip per-row `‖ΔU_v‖` (and `|Δb_v|`) so `2(ρε_t + β_t)` stays under
+the current tracked minimum margin, re-arming the per-step certificate each iteration —
+**untested; achievability open**.
+
+**Post-review addendum (S2 early signal).** Among premise-holding steps, the tracked margin
+actually *improves* on only 20–53% of steps (`margin_improved_under_premise`, all cells):
+per-step margin monotonicity (S2) does **not** hold under real P3 refinement — the certificate
+holds because drift stays within `2δ`, not because margins grow. Any future T-mass/S2 statement
+must be about *budgeted* drift, not monotone improvement.
