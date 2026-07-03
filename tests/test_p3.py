@@ -119,3 +119,25 @@ def test_tmass_groups_tracked():
     mass = p3.certified_mass(delta_ref=0.01)
     assert set(mass.keys()) == {0, 1}
     assert p3.summary()["enforced_flips_total"] == 0
+
+
+def test_renorm_free_does_not_project_rows_to_unit_sphere():
+    """renorm=False is the teacher-seeded variant: a frame's row norms carry its margin structure,
+    so a phase must leave them untouched (renorm=True would unit-normalize them)."""
+    cfg, model, src, tgt = setup()
+    with torch.no_grad():                                   # varied, non-unit row norms (teacher-like)
+        model.U.data *= torch.linspace(0.5, 3.0, model.U.shape[0]).unsqueeze(1)
+    t = model.forward(src)["logits"].argmax(-1)
+
+    free = ProjectiveIncidenceLearner(cfg)
+    free.U.data.copy_(model.U.data)
+    free.bias.data.copy_(model.bias.data)
+    opt = torch.optim.AdamW(free.parameters(), lr=1e-2)
+    p3 = CertifiedP3(free, opt, src, t, renorm=False)
+    for _ in range(5):
+        p3.step(free.forward(src, target=t)["total_loss"])
+    norms = free.U.data.norm(dim=-1)
+    # the varied entry norms survive: not collapsed to the unit sphere (renorm=True would)
+    assert not torch.allclose(norms, torch.ones_like(norms), atol=0.1), "renorm=False must not unit-normalize"
+    assert norms.max() / norms.min() > 2.0, "the varied row-norm structure is preserved"
+    assert all(r["enforced_flips"] == 0 for r in p3.records)   # inviolability still exact

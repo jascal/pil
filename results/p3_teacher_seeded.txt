@@ -1,0 +1,49 @@
+device=cuda  frame U (50304, 512)  contexts N=1500
+
+=== renorm (pil convention) ===
+entry m0:  median -22.169   frac>0 0.00   protect_n 1/1500   min -39.36
+  step    m_p50  cert_frac  protect_n   alpha
+     0  -22.161      0.001          1  0.0312
+   100  -11.300      0.001          1  1.0000
+   199   -1.927      0.001          2  0.0039
+enforced flips: 0 (must be 0)   fragile flips allowed+counted (exact_floor): 0
+
+=== renorm-FREE, m_floor=0 (entry fix only) ===
+entry m0:  median +0.714   frac>0 1.00   protect_n 1500/1500   min +0.00
+  step    m_p50  cert_frac  protect_n   alpha
+     0    0.714      1.000       1500  0.0000
+   100    0.714      1.000       1500  0.0000
+   199    0.714      1.000       1500  0.0000
+enforced flips: 0 (must be 0)   fragile flips allowed+counted (exact_floor): 0
+
+=== renorm-FREE + m_floor=0.5 (certify robust) ===
+entry m0:  median +0.714   frac>0 1.00   protect_n 1500/1500   min +0.00
+  step    m_p50  cert_frac  protect_n   alpha
+     0    0.714      1.000        925  0.0000
+   100    0.714      1.000        925  0.0000
+   199    0.714      1.000        925  0.0000
+enforced flips: 0 (must be 0)   fragile flips allowed+counted (exact_floor): 0
+
+=== renorm-FREE + m_floor=0.5, exact_floor=0.2 (widen robust, drop fragile) ===
+entry m0:  median +0.714   frac>0 1.00   protect_n 1500/1500   min +0.00
+  step    m_p50  cert_frac  protect_n   alpha
+     0    0.786      0.858        925  0.0078
+   100    1.505      0.858       1190  0.0156
+   199    1.688      0.855       1248  0.0156
+enforced flips: 0 (must be 0)   fragile flips allowed+counted (exact_floor): 502
+
+# READ: renorm-free teacher-seeded P3 widening (pythia-70m frame, 1500 real contexts, GPU).
+# 1. renorm (pil convention): row-renorm destroys the teacher's margins -> m0 median -22.2,
+#    protect 1/1500. Confirms the CertifiedP3 real-arm diagnosis; widening impossible.
+# 2. renorm-FREE (the fix, CertifiedP3(renorm=False)): entry restored to the REAL pythia margins
+#    (m0 median +0.714, protect 1500/1500, cert_frac 1.0). The fix works -- NECESSARY.
+#    But widening is flat (alpha=0): min protected margin ~0 gates the certificate 2d <= eta*m_protect.
+# 3. + m_floor=0.5: still flat -- relaxing only the CERTIFICATE doesn't help; enforcement(a) is over
+#    ALL decided contexts and the fragile <0.5 tail blocks every step.
+# 4. + m_floor=0.5, exact_floor=0.2: widening PROCEEDS -- m_p50 0.71->1.69 (2.4x), protect set GROWS
+#    925->1248, cert 0.86, ZERO enforced flips, at the cost of 502 COUNTED flips on the fragile <0.2 tail.
+# VERDICT: renorm-free is the correct entry fix (necessary, validated) but NOT sufficient -- real-frame
+# widening is margin-limited by the fragile near-zero-margin tail (pil's "margin-limited" P3 finding,
+# now on a real teacher-seeded frame). Certified widening of the ROBUST CORE is achievable only by
+# explicitly dropping that tail (exact_floor). Ties to tropic F12: the fragile tail is exactly what
+# doesn't survive compression -- widening the robust core grows the certifiable/compressible set.
