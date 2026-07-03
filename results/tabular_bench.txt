@@ -1,0 +1,36 @@
+# PIC rule learner — classic tabular ML benchmarks (2026-07-02)
+
+Fixed 70/30 stratified splits (seed 0). Baselines on the same splits: HistGradientBoosting
+(the incumbent for tabular; sees RAW floats) and LogisticRegression (standardized raw
+floats) via sklearn; the MLP and PIL consume identical quantile-binned atoms (16
+bins/feature, categoricals pass through; encoding in experiments/tabular_bench.py).
+"PIL hard" = Boolean-gate accuracy — the number the exported Soufflé program reproduces
+(verified exact on breast_cancer and wine test sets: agreement 1.00, 0 undecided).
+certified@0.25 = PIC §5.5 fraction of test decisions provably robust to per-token
+clause-weight drift δ=0.25.
+
+dataset        | n_tr   | F  | C  | PIL hard | GBT    | LogReg | MLP    | cert@.25 | rules | PIL params
+---------------|-------:|---:|---:|---------:|-------:|-------:|-------:|---------:|------:|----------:
+breast_cancer  |    398 | 30 |  2 |    0.901 |  0.942 |  0.959 |  0.918 |     1.00 |   299 |      7,552
+wine           |    124 | 13 |  3 |    0.944 |  1.000 |  1.000 |  0.944 |     1.00 |   322 |      6,947
+digits         |  1,257 | 64 | 10 |    0.907 |  0.982 |  0.972 |  0.950 |    0.989 |   518 |     35,313
+adult (UCI)    | 21,113 | 14 |  2 |    0.843 |  0.868 |  0.821 |  0.808 |     0.90 |   565 |     12,112
+
+Reading (honest):
+- **GBT wins everywhere** — as expected: it is the tuned incumbent and sees raw floats
+  while PIL sees 16-level bins. The gap is 2.4–7.5 points.
+- **PIL beats LogReg and the MLP on adult** — the largest and most "real" dataset (mixed
+  categorical/numeric): 0.843 vs 0.821 / 0.808. On the small numeric datasets the nearly
+  linear structure favours LogReg (wine is linearly separable: LogReg 1.0).
+- **Ordinal literals were load-bearing**: wine 0.833 → 0.944 the moment `x[o] ≤ b` tests
+  (tree-style splits; exported as `tok(I,o,C), C <= c`) joined the literal vocabulary.
+- What PIL uniquely delivers at these accuracies: a runnable, certified Datalog program
+  (rules with explicit bodies; Soufflé-verified decode), per-decision §5.5 robustness
+  certificates (adult: 90% of decisions certified at δ=0.25), exact per-rule ablations,
+  and free abstention semantics — none of which GBT/MLP provide.
+- Un-pulled levers for closing the GBT gap: finer bins / learned bin edges, per-class
+  targeted births, bagged programs, longer training (adult = 199s CPU here), and raw-value
+  threshold literals (skip binning entirely).
+
+Raw rows: results/tabular_bench.jsonl. Dataset/baseline materializer:
+scratchpad/make_tabular.py (run under a sklearn venv).

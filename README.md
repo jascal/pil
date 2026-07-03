@@ -90,6 +90,63 @@ allocates rules to the at-risk facets, so tropical targeting buys initialization
 held-out control (`signal=False` → all arms at chance) confirms generation can't manufacture absent
 signal.
 
+## The PIC rule learner (new: learning PIC-LP programs from data)
+
+`pil` now contains the *learning* arrow the analysis stack runs in reverse: instead of
+decompiling a trained transformer into PIC-LP rules (`fieldrun` → `rosetta`), **train the
+weighted-Datalog rules directly from data**, starting from random rules
+(`docs/notes/pic_rule_learner.md` is the design note):
+
+- **`pil/rules.py`** — the differentiable PIC-LP program: strata of rules whose bodies are
+  token-predicate literals (stratum 1) or earlier rules' firings (deep strata), each literal
+  carrying a learnable *relevance* (present/absent) and *sign* (positive/negated); two gate
+  families — AND (t-norm ⊗) and **PIC-T3 threshold** (`Σ ρ·lit ≥ θ`, the additive coalition
+  bracket behind a margin turnstile, exportable as a Soufflé `count` aggregate); heads are
+  PIC-native incidences `⟨a_k, U_v⟩` in a learned frame. Soft semantics at `T>0` for
+  training, Boolean semantics at `T=0` for deployment — the same argmax by decode
+  temperature-invariance (PIC_SPEC §3.1).
+- **`pil/rule_learner.py`** — Generate→Gate→Refine over *program structure*:
+  (i) random-in-data-measure initialization (random rules that are alive under a Zipfian
+  vocabulary; zero heads = decode-neutral birth); (ii) incidence backprop through the soft
+  semiring with annealed hardening; (iii) structural edits from feedback — boosting births
+  on the loss residual, death by *exact* per-rule ablation (additivity makes it O(1)),
+  ID3-style specialization of high-ambiguity rules, and deepening on plateau.
+- **`pil/tokens.py`** — the same token spaces as the LLMs modeled in `../rosetta`: a pure-
+  Python byte-level BPE codec verified exact against HF `tokenizers` for the pythia/GPT-NeoX,
+  Qwen2, and llama-3 families (loads `bundle.tokenizer.json` straight from a rosetta package).
+- **`pil/datalog_export.py`** — hardened programs export to runnable Soufflé in rosetta's
+  house style (`tok(inst,pos,id)` EDB, stratified negation, `sum`/`max` aggregates = the
+  semiring), with `verify_export` checking **exact** agreement Soufflé ↔ tensor path.
+
+Two further channels round out the hypothesis class, both rosetta-native: **lookup source
+families** (per-offset incidence tables, the ngram backbone — the *retrieved* fraction) and
+**schema rules** (`pil/schemas.py` — ILP-style background knowledge: modular arithmetic,
+copy/pointer = rosetta's `ind_ctxlogit`; *selection* learned from data hit-rates, weights by
+SGD; exported as arithmetic Datalog clauses over `num(token,value)` facts).
+
+Measured (see `experiments/rule_learner_bench.py`, `results/rule_learner_bench.txt`; MLP =
+matched-data baseline, params counted on used rows):
+
+| task | eval | rules (hard) | MLP |
+|---|---|---:|---:|
+| parity-8 | unseen patterns | **1.000** | 1.000 |
+| parity-16 | strictly unseen patterns | **0.993** | 0.976 |
+| induction A B … A → B | held-out (chance .125) | **0.999** (needs eq literals) | 0.368 |
+| modadd p=97, 50% pairs | unseen pairs | **1.000** (needs schemas; 0.000 without) | 0.001 |
+| wikitext-2 (top-512 cands) | val positions | **0.248** (needs lookup families) | 0.236 |
+
+On classic tabular ML (`experiments/tabular_bench.py`, `results/tabular_bench.txt`;
+breast-cancer / wine / digits / UCI-adult, fixed splits, ordinal `x≤b` literals): PIL is
+mid-pack — behind HistGradientBoosting everywhere (2.4–7.5 pts; GBT sees raw floats),
+**ahead of LogReg and the MLP on adult** (0.843 vs 0.821/0.808) — while being the only
+model in the table that emits a certified runnable Datalog program with per-decision §5.5
+robustness certificates and abstention semantics.
+
+The parity program is 41 rules / 869 params (vs 66k MLP) and is the textbook alternating
+threshold circuit, rediscovered; the modadd program ends as **one** arithmetic clause (the
+learner prunes every ground rule once the schema covers the data). Every exported program
+agrees 1.00 with Soufflé execution (`verify_export`).
+
 ## Repository structure
 
 ```
@@ -97,6 +154,10 @@ pil/
   pil/
     geometry.py      incidences, Gram, margins, frame potential (Welch-floored), PR, power diagram
     learner.py       ProjectiveIncidenceLearner: propose -> gate -> refine; labelled losses
+    rules.py         the differentiable PIC-LP program (AND + T3-threshold rules, strata, PIC heads)
+    rule_learner.py  the PIC rule learner: data-measure init, semiring backprop, structural edits
+    tokens.py        LLM token spaces (pythia/Qwen2/llama-3 BPE, exact, pure-Python; rosetta packages)
+    datalog_export.py  hardened program -> runnable Soufflé .dl + exact-agreement verification
     synthetic.py     hard problems: over-complete + synonym clusters; XOR-coded compositional; diagnostics
     proposer.py      RuleBank (the generative step) + targeted / from-weights rule construction
     scoring.py       theory-guided propose-score-select (ambiguity η², variance) for candidate rules

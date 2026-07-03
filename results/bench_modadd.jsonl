@@ -1,0 +1,1 @@
+{"task": "modadd(p=97, 50% train)", "eval": "held-out pairs (n=4705)", "rule_hard_acc": 1.0, "schemas_adopted": {"add_mod97[0,2]": 1.0}, "mlp_acc": 0.0008501593838445842, "rules": 0, "rule_params": 6305, "mlp_params": 61121, "rule_s": 6, "mlp_s": 61, "summary": {"n_rules": 0, "rules_per_stratum": [0], "active_literals_per_stratum": [0], "mean_binary_gap": 0.0}}

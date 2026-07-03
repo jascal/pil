@@ -1,0 +1,1 @@
+{"task": "parity8", "eval": "unseen patterns (n=4000)", "rule_hard_acc": 1.0, "mlp_acc": 1.0, "rules": 41, "rule_params": 869, "mlp_params": 66370, "rule_s": 6, "mlp_s": 7, "summary": {"n_rules": 41, "rules_per_stratum": [41], "active_literals_per_stratum": [179], "mean_binary_gap": 6.185918664414203e-06}}
