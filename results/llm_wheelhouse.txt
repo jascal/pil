@@ -51,7 +51,7 @@ train co-occurrence counts — rosetta's gram mining used as an initializer (cen
 smoothed log P(target | token)) — plus weight decay + reduced lr on that group, so SGD
 refines a robust statistical estimate instead of memorizing from zero.
 
-## 3. Pythia ladder distillation: behavioral distillability vs scale (5 rungs, complete)
+## 3. Pythia ladder distillation: behavioral distillability vs scale (7 rungs, complete)
 
 Same 120k shared wikitext windows labeled by each teacher (argmax + top-8 logits);
 identical program budget per rung (1536 rules, frozen count-init direct table, rank-64
@@ -65,8 +65,15 @@ experiments/pythia_ladder_distill.py -> results/pythia_ladder_distill.jsonl.
   160m    |     0.307 |       0.336 |  -0.029 |        0.342 |        0.529 |     0.66
   410m    |     0.296 |       0.326 |  -0.031 |        0.335 |        0.511 |     0.67
   1b      |     0.287 |       0.319 |  -0.032 |        0.329 |        0.501 |     0.67
+  1.4b    |     0.277 |       0.308 |  -0.030 |        0.317 |        0.482 |     0.68
+  2.8b    |     0.279 |       0.307 |  -0.028 |        0.317 |        0.485 |     0.66
 
-Two findings, both crisp:
+Three findings, all crisp:
+
+0. **The decline saturates.** From 1.4b to 2.8b (2x params) every column is flat to
+   within noise (count-table 0.308 -> 0.307, top5 0.482 -> 0.485). The window-
+   retrievable fraction asymptotes near ~0.31 — consistent with the earlier same-data
+   pythia-ladder finding (results commit #3: headroom saturates, no scaling law).
 
 1. **Distillability falls monotonically with teacher scale.** The retrievable-by-lookup
    fraction (count-table column) shrinks 0.432 -> 0.319 from 14m to 1b, and teacher-top5
