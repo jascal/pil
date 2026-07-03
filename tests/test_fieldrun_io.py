@@ -77,3 +77,18 @@ def test_pred_field_and_recon_fraction_utility():
     assert b.pred is not None and b.pred.shape == (b.contrib.shape[0],)
     assert torch.equal(b.pred, b.cands[:, 0])      # the convention, now explicit
     assert recon_fraction(b) == 1.0
+
+
+def test_recon_fraction_rejects_non_finite():
+    """Parity with fieldrun#123's NaN guard: a non-finite block-sum must count as a failure,
+    not slip through an undefined argmax and falsely pass."""
+
+    from pil.fieldrun_io import recon_fraction
+
+    b = load_pil_dump(FIXTURE)
+    assert recon_fraction(b) == 1.0
+    # poison one position's target-block contribution with a NaN -> that position must not count as faithful
+    b.contrib[0, 0, 0] = float("nan")
+    frac = recon_fraction(b)
+    n = b.contrib.shape[0]
+    assert abs(frac - (n - 1) / n) < 1e-6, f"expected {(n - 1) / n:.4f}, got {frac:.4f}"

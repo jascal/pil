@@ -105,8 +105,12 @@ def recon_fraction(bundle: IncidenceBundle) -> float:
     if bundle.pred is None:
         raise ValueError("dump lacks `pred`: cannot check faithfulness")
     summed = bundle.contrib.sum(dim=1)                      # (N, K)
-    picked = bundle.cands.gather(1, summed.argmax(dim=1, keepdim=True)).squeeze(1)
-    return float((picked == bundle.pred).float().mean())
+    # a non-finite block-sum must count as a failure (parity with fieldrun#123's NaN guard),
+    # not slip through an argmax whose behaviour on NaN is undefined
+    finite = torch.isfinite(summed).all(dim=1)
+    argmax = summed.nan_to_num(nan=float("-inf")).argmax(dim=1, keepdim=True)
+    picked = bundle.cands.gather(1, argmax).squeeze(1)
+    return float(((picked == bundle.pred) & finite).float().mean())
 
 
 @dataclass
