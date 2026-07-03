@@ -1,0 +1,63 @@
+T-traj discharge experiment 1 — per-cell premise hold-rates and slack
+(theorem: i-orca examples/pic_learn/PIC_Learn.thy; all rows empirical)
+
+  easy     dim=32  V=64   lr=0.005   seed=0
+    entry@0  : hold 0.049 (last25% 0.035; per-ctx 0.054/0.035) | flips 247 (never 0.04; ho-never 0.03) | VIOL pf=0 tr=0 | beta-share 0.041 | 2*budget 84.12 vs m0_p50 0.231 (vacuous 1.00 @T*~1) | slack p50 79.70
+    entry@25%: hold 0.993 (last25% 0.993; per-ctx 0.993/0.994) | flips 2 (never 0.99; ho-never 0.98) | VIOL pf=0 tr=0 | beta-share 0.046 | 2*budget 46.35 vs m0_p50 2.145 (vacuous 1.00 @T*~22) | slack p50 46.51
+  easy     dim=32  V=64   lr=0.005   seed=1
+    entry@0  : hold 0.018 (last25% 0.004; per-ctx 0.027/0.004) | flips 255 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.036 | 2*budget 92.63 vs m0_p50 0.257 (vacuous 1.00 @T*~1) | slack p50 88.26
+    entry@25%: hold 0.999 (last25% 1.000; per-ctx 1.000/1.000) | flips 0 (never 1.00; ho-never 1.00) | VIOL pf=0 tr=0 | beta-share 0.040 | 2*budget 52.12 vs m0_p50 2.092 (vacuous 1.00 @T*~15) | slack p50 52.29
+  easy     dim=32  V=64   lr=0.0003  seed=0
+    entry@0  : hold 0.558 (last25% 0.251; per-ctx 0.566/0.255) | flips 208 (never 0.19; ho-never 0.22) | VIOL pf=0 tr=0 | beta-share 0.025 | 2*budget 12.51 vs m0_p50 0.231 (vacuous 1.00 @T*~11) | slack p50 11.79
+    entry@25%: hold 0.573 (last25% 0.328; per-ctx 0.582/0.331) | flips 187 (never 0.27; ho-never 0.31) | VIOL pf=0 tr=0 | beta-share 0.024 | 2*budget 9.35 vs m0_p50 0.209 (vacuous 1.00 @T*~11) | slack p50 8.81
+  easy     dim=32  V=64   lr=0.0003  seed=1
+    entry@0  : hold 0.577 (last25% 0.319; per-ctx 0.588/0.325) | flips 186 (never 0.27; ho-never 0.31) | VIOL pf=0 tr=0 | beta-share 0.020 | 2*budget 14.94 vs m0_p50 0.257 (vacuous 1.00 @T*~11) | slack p50 14.23
+    entry@25%: hold 0.626 (last25% 0.428; per-ctx 0.638/0.433) | flips 156 (never 0.39; ho-never 0.45) | VIOL pf=0 tr=0 | beta-share 0.020 | 2*budget 11.10 vs m0_p50 0.218 (vacuous 1.00 @T*~10) | slack p50 10.61
+  hard     dim=24  V=192  lr=0.005   seed=0
+    entry@0  : hold 0.018 (last25% 0.004; per-ctx 0.024/0.004) | flips 256 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.042 | 2*budget 108.92 vs m0_p50 0.213 (vacuous 1.00 @T*~1) | slack p50 104.91
+    entry@25%: hold 0.737 (last25% 0.724; per-ctx 0.755/0.736) | flips 80 (never 0.69; ho-never 0.54) | VIOL pf=0 tr=0 | beta-share 0.045 | 2*budget 68.71 vs m0_p50 0.516 (vacuous 1.00 @T*~4) | slack p50 68.76
+  hard     dim=24  V=192  lr=0.005   seed=1
+    entry@0  : hold 0.016 (last25% 0.002; per-ctx 0.025/0.003) | flips 256 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.039 | 2*budget 113.88 vs m0_p50 0.184 (vacuous 1.00 @T*~1) | slack p50 109.87
+    entry@25%: hold 0.774 (last25% 0.770; per-ctx 0.797/0.786) | flips 70 (never 0.73; ho-never 0.56) | VIOL pf=0 tr=0 | beta-share 0.041 | 2*budget 74.00 vs m0_p50 0.609 (vacuous 1.00 @T*~5) | slack p50 74.14
+  hard     dim=24  V=192  lr=0.0003  seed=0
+    entry@0  : hold 0.530 (last25% 0.260; per-ctx 0.539/0.266) | flips 204 (never 0.20; ho-never 0.26) | VIOL pf=0 tr=0 | beta-share 0.031 | 2*budget 11.65 vs m0_p50 0.213 (vacuous 1.00 @T*~12) | slack p50 11.06
+    entry@25%: hold 0.598 (last25% 0.367; per-ctx 0.609/0.373) | flips 174 (never 0.32; ho-never 0.41) | VIOL pf=0 tr=0 | beta-share 0.030 | 2*budget 8.76 vs m0_p50 0.170 (vacuous 1.00 @T*~10) | slack p50 8.40
+  hard     dim=24  V=192  lr=0.0003  seed=1
+    entry@0  : hold 0.566 (last25% 0.321; per-ctx 0.577/0.330) | flips 188 (never 0.27; ho-never 0.34) | VIOL pf=0 tr=0 | beta-share 0.028 | 2*budget 12.26 vs m0_p50 0.184 (vacuous 1.00 @T*~10) | slack p50 11.86
+    entry@25%: hold 0.586 (last25% 0.389; per-ctx 0.601/0.400) | flips 166 (never 0.35; ho-never 0.44) | VIOL pf=0 tr=0 | beta-share 0.027 | 2*budget 9.27 vs m0_p50 0.162 (vacuous 1.00 @T*~9) | slack p50 8.99
+  hard     dim=48  V=384  lr=0.005   seed=0
+    entry@0  : hold 0.007 (last25% 0.000; per-ctx 0.012/0.000) | flips 256 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.032 | 2*budget 151.60 vs m0_p50 0.167 (vacuous 1.00 @T*~1) | slack p50 147.26
+    entry@25%: hold 0.812 (last25% 0.805; per-ctx 0.831/0.821) | flips 51 (never 0.80; ho-never 0.60) | VIOL pf=0 tr=0 | beta-share 0.035 | 2*budget 92.57 vs m0_p50 1.261 (vacuous 1.00 @T*~5) | slack p50 92.59
+  hard     dim=48  V=384  lr=0.005   seed=1
+    entry@0  : hold 0.008 (last25% 0.000; per-ctx 0.013/0.000) | flips 256 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.033 | 2*budget 141.07 vs m0_p50 0.131 (vacuous 1.00 @T*~1) | slack p50 136.73
+    entry@25%: hold 0.825 (last25% 0.814; per-ctx 0.843/0.826) | flips 46 (never 0.82; ho-never 0.64) | VIOL pf=0 tr=0 | beta-share 0.036 | 2*budget 88.36 vs m0_p50 1.375 (vacuous 1.00 @T*~6) | slack p50 88.40
+  hard     dim=48  V=384  lr=0.0003  seed=0
+    entry@0  : hold 0.394 (last25% 0.170; per-ctx 0.411/0.178) | flips 215 (never 0.16; ho-never 0.26) | VIOL pf=0 tr=0 | beta-share 0.020 | 2*budget 18.59 vs m0_p50 0.167 (vacuous 1.00 @T*~6) | slack p50 18.03
+    entry@25%: hold 0.447 (last25% 0.285; per-ctx 0.472/0.297) | flips 185 (never 0.28; ho-never 0.45) | VIOL pf=0 tr=0 | beta-share 0.019 | 2*budget 14.19 vs m0_p50 0.095 (vacuous 1.00 @T*~4) | slack p50 13.89
+  hard     dim=48  V=384  lr=0.0003  seed=1
+    entry@0  : hold 0.431 (last25% 0.229; per-ctx 0.443/0.237) | flips 208 (never 0.19; ho-never 0.32) | VIOL pf=0 tr=0 | beta-share 0.022 | 2*budget 17.15 vs m0_p50 0.131 (vacuous 1.00 @T*~5) | slack p50 16.64
+    entry@25%: hold 0.486 (last25% 0.313; per-ctx 0.501/0.325) | flips 190 (never 0.26; ho-never 0.42) | VIOL pf=0 tr=0 | beta-share 0.021 | 2*budget 13.00 vs m0_p50 0.110 (vacuous 1.00 @T*~6) | slack p50 12.70
+  mwl_raw  dim=24  V=192  lr=0.005   seed=0
+    entry@0  : hold 0.018 (last25% 0.004; per-ctx 0.024/0.004) | flips 256 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.042 | 2*budget 108.92 vs m0_p50 0.213 (vacuous 1.00 @T*~1) | slack p50 104.91
+    entry@25%: hold 0.737 (last25% 0.724; per-ctx 0.755/0.736) | flips 80 (never 0.69; ho-never 0.54) | VIOL pf=0 tr=0 | beta-share 0.045 | 2*budget 68.71 vs m0_p50 0.516 (vacuous 1.00 @T*~4) | slack p50 68.76
+  mwl_raw  dim=24  V=192  lr=0.005   seed=1
+    entry@0  : hold 0.016 (last25% 0.002; per-ctx 0.025/0.003) | flips 256 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.039 | 2*budget 113.88 vs m0_p50 0.184 (vacuous 1.00 @T*~1) | slack p50 109.87
+    entry@25%: hold 0.774 (last25% 0.770; per-ctx 0.797/0.786) | flips 70 (never 0.73; ho-never 0.56) | VIOL pf=0 tr=0 | beta-share 0.041 | 2*budget 74.00 vs m0_p50 0.609 (vacuous 1.00 @T*~5) | slack p50 74.14
+  mwl_raw  dim=24  V=192  lr=0.0003  seed=0
+    entry@0  : hold 0.530 (last25% 0.260; per-ctx 0.539/0.266) | flips 204 (never 0.20; ho-never 0.26) | VIOL pf=0 tr=0 | beta-share 0.031 | 2*budget 11.65 vs m0_p50 0.213 (vacuous 1.00 @T*~12) | slack p50 11.06
+    entry@25%: hold 0.598 (last25% 0.367; per-ctx 0.609/0.373) | flips 174 (never 0.32; ho-never 0.41) | VIOL pf=0 tr=0 | beta-share 0.030 | 2*budget 8.76 vs m0_p50 0.170 (vacuous 1.00 @T*~10) | slack p50 8.40
+  mwl_raw  dim=24  V=192  lr=0.0003  seed=1
+    entry@0  : hold 0.566 (last25% 0.321; per-ctx 0.577/0.330) | flips 188 (never 0.27; ho-never 0.34) | VIOL pf=0 tr=0 | beta-share 0.028 | 2*budget 12.26 vs m0_p50 0.184 (vacuous 1.00 @T*~10) | slack p50 11.86
+    entry@25%: hold 0.586 (last25% 0.389; per-ctx 0.601/0.400) | flips 166 (never 0.35; ho-never 0.44) | VIOL pf=0 tr=0 | beta-share 0.027 | 2*budget 9.27 vs m0_p50 0.162 (vacuous 1.00 @T*~9) | slack p50 8.99
+  real     dim=512 V=622  lr=0.005   seed=0
+    entry@0  : hold 0.000 (last25% 0.000; per-ctx 0.000/0.000) | flips 28 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.000 | 2*budget 7832.87 vs m0_p50 1.595 (vacuous 1.00 @T*~1) | slack p50 7378.65
+    entry@25%: hold 0.266 (last25% 0.440; per-ctx 0.267/0.441) | flips 23 (never 0.18; ho-never 0.07) | VIOL pf=0 tr=0 | beta-share 0.000 | 2*budget 3059.66 vs m0_p50 1.339 (vacuous 1.00 @T*~2) | slack p50 3059.45
+  real     dim=512 V=622  lr=0.005   seed=1
+    entry@0  : hold 0.000 (last25% 0.000; per-ctx 0.000/0.000) | flips 28 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.000 | 2*budget 8759.03 vs m0_p50 2.150 (vacuous 1.00 @T*~1) | slack p50 8300.62
+    entry@25%: hold 0.239 (last25% 0.465; per-ctx 0.240/0.465) | flips 26 (never 0.07; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.000 | 2*budget 3568.32 vs m0_p50 2.331 (vacuous 1.00 @T*~2) | slack p50 3564.74
+  real     dim=512 V=622  lr=0.0003  seed=0
+    entry@0  : hold 0.001 (last25% 0.001; per-ctx 0.001/0.001) | flips 28 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.000 | 2*budget 1328.33 vs m0_p50 1.595 (vacuous 1.00 @T*~1) | slack p50 1311.85
+    entry@25%: hold 0.115 (last25% 0.144; per-ctx 0.115/0.144) | flips 27 (never 0.04; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.000 | 2*budget 800.02 vs m0_p50 0.421 (vacuous 1.00 @T*~2) | slack p50 797.66
+  real     dim=512 V=622  lr=0.0003  seed=1
+    entry@0  : hold 0.000 (last25% 0.000; per-ctx 0.000/0.000) | flips 28 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.000 | 2*budget 1406.07 vs m0_p50 2.150 (vacuous 1.00 @T*~1) | slack p50 1384.73
+    entry@25%: hold 0.044 (last25% 0.057; per-ctx 0.044/0.057) | flips 28 (never 0.00; ho-never 0.00) | VIOL pf=0 tr=0 | beta-share 0.000 | 2*budget 876.22 vs m0_p50 0.350 (vacuous 1.00 @T*~2) | slack p50 873.07

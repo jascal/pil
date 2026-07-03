@@ -150,7 +150,12 @@ class ProjectiveIncidenceLearner(nn.Module):
         sources: Tensor | None = None,
         target: int | Tensor | None = None,
         optimizer: torch.optim.Optimizer | None = None,
+        certifier=None,
     ) -> dict[str, float]:
+        """One optimize step. ``certifier`` (a :class:`pil.certify.TrajectoryCertificate`,
+        off by default and zero-cost when ``None``) records the T-traj premises around the
+        *effective* update — it is invoked after ``normalize_U()``, so the measured ``ΔU``
+        is post-normalization to post-normalization, matching the decode actually served."""
         if sources is None:
             sources = self.propose_parallel_sources()
 
@@ -163,6 +168,8 @@ class ProjectiveIncidenceLearner(nn.Module):
             loss.backward()
             optimizer.step()
             self.normalize_U()
+            if certifier is not None:
+                certifier.step()
 
         return {
             k: float(v.item())
