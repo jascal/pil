@@ -154,9 +154,13 @@ def run_cell(arm, lr, seed, variant, steps, dump, teacher_frame, eta=0.9):
     if tr_on:
         row["p3"] = p3.summary()
         row["tmass"] = tmass
-        # T-mass verdict data: did old-support (g0) certified mass ever decrease?
+        # T-mass verdict data: old-support (g0) certified-mass transitions (review item:
+        # same-vs-increased fractions alongside the decrease count)
         g0 = [t["g0"] for t in tmass]
+        trans = max(len(g0) - 1, 1)
         row["g0_decreases"] = sum(1 for i in range(1, len(g0)) if g0[i] < g0[i - 1])
+        row["g0_same_frac"] = sum(1 for i in range(1, len(g0)) if g0[i] == g0[i - 1]) / trans
+        row["g0_increase_frac"] = sum(1 for i in range(1, len(g0)) if g0[i] > g0[i - 1]) / trans
     return row
 
 
@@ -181,7 +185,8 @@ def fmt(row: dict) -> str:
                  f" | 2Σδ {p['budget_2sum']:.3f} vs m0_pos p10/p50 "
                  f"{p.get('m0_pos_p10', float('nan')):.3f}/{p.get('m0_pos_p50', float('nan')):.3f}"
                  f" ({alive})"
-                 f" | g0-decreases {row['g0_decreases']}")
+                 f" | g0 dec/same/inc {row['g0_decreases']}/"
+                 f"{row['g0_same_frac']:.2f}/{row['g0_increase_frac']:.2f}")
     return base
 
 

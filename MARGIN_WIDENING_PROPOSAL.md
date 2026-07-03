@@ -408,8 +408,11 @@ must be about *budgeted* drift, not monotone improvement.
 
 ## 11. Certified P3: the trust-region frame step (discharge experiment 5 + S1/S2; 2026-07-03)
 
-Implementation: `pil/p3.py` (`CertifiedP3`; flag-gated, off by default) — the shipped raw
-objective unchanged; **enforcement (a)** = exact bank-argmax inviolability per accepted step;
+Theorem: `step_decode_preserved` / `traj_decode_preserved`, kernel-proved in i-orca
+`examples/pic_learn/PIC_Learn.thy` (PR #21, main `735973f`) — the formal–empirical link this
+section discharges. Implementation: `pil/p3.py` (`CertifiedP3`; flag-gated, off by default) —
+the shipped raw objective unchanged; **enforcement (a)** = exact bank-argmax inviolability
+per accepted step;
 **certification (b)** = per-step `step_decode_preserved` headroom `2(ρε+β) ≤ η·m_protect`;
 backtracking on the step scale α (optimizer moments keep the full step). The two mechanisms
 are reported separately everywhere. Sweep: `experiments/p3_trust_region.py` — {easy, hard,

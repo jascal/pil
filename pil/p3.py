@@ -39,8 +39,19 @@ from .geometry import margin_to_worst, normalize_rows
 class CertifiedP3:
     """Trust-region wrapper around AdamW-step + ``normalize_U`` for one P3 phase.
 
+    **The two guarantees, distinct by design:**
+
+    * **Enforcement (a)** — *exact* and always on while the mode is active: no visited
+      decision flips across an accepted step (bank argmax checked against the frozen
+      ``t_x``, evaluated, not bounded). Non-probabilistic; what makes "inviolable" true.
+    * **Certification (b)** — the per-step ``step_decode_preserved`` premise with headroom:
+      what is *provable without evaluating*. ``certified_frac`` is the **serving-grade
+      number** (what picard P4 exports); (a) without (b) is safe but uncertified, (b)
+      implies (a) on the certified subset.
+
     ``sources``: (B, J, dim) visited bank (teacher-anchored: fixed forever); ``t_frozen``:
-    (B,) decisions frozen at dump/entry time. ``eta``: certificate headroom. ``m_floor``:
+    (B,) decisions frozen at dump/entry time. ``eta``: certificate headroom (logged in
+    ``summary()`` so runs record how conservative the certificate was). ``m_floor``:
     protect-set floor (contexts with ``m ≤ m_floor`` are silent for (b) but still covered
     by (a)). ``exact_floor``: if not ``None``, contexts with ``m ≤ exact_floor`` are excluded
     from the exact check too (the separately-flagged variant) — their flips are *counted and
@@ -214,6 +225,9 @@ class CertifiedP3:
         return {
             "n_steps": self.n_steps,
             "rho": self.rho,
+            "eta": self.eta,                       # effective headroom used (review item)
+            "m_floor": self.m_floor,
+            "exact_floor": self.exact_floor,
             "enforced_flips_total": int(sum(r["enforced_flips"] for r in self.records)),
             "flips_on_excluded_total": self.flips_on_excluded,
             "clip_frac": float((alphas < 1.0).float().mean()),
