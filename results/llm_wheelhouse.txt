@@ -95,6 +95,35 @@ Three findings, all crisp:
    empirical estimate of what attention buys (the forge tax measured from the learning
    side, between two student classes).
 
+## 4. The joint table: program-class vs attention-class students, matched protocol
+
+Teacher pythia-70m; the SAME 20k held-out 8-token shared windows (ladder_labels);
+metric = agreement with the teacher's argmax. tropic students re-scored on these windows
+from their committed checkpoints (runs/*/student.pt); tropic's own 8-48-token eval gives
+them 0.191 — the 8-token protocol is *more* favourable to them (0.228), so the gaps below
+are conservative.
+
+  student                                        | params | agree | top5  | distinct preds
+  -----------------------------------------------|-------:|------:|------:|--------------:
+  bigram mode table (zero learning)              |      — | 0.350 | 0.621 |            792
+  PIL rule program (rules + frozen count tables) |  ~1.2k rules | 0.311 | 0.560 |      —
+  tropic 2L attention student (learned frame)    |  27.4M | 0.228 | 0.453 |             79
+  tropic 2L attention student (tied true frame)  |  27.4M | 0.201 | 0.415 |            107
+
+Readings (joint, cross-session):
+- **At today's budgets, the attention student trails the zero-learning count table by
+  ~12 points and the rule program by ~8, on identical contexts.** SGD-from-scratch
+  attention spends its data budget re-deriving retrieval statistics that counting gets
+  for free; "what attention buys" is not yet purchasable at 40k samples / 27M params.
+- **Mode collapse is real and class-independent in direction but not degree**: the
+  attention student concentrates on 79-107 distinct predictions vs the count table's
+  792 — the Zipf-head collapse tropic's F5 diagnosed, quantified here on shared data.
+- Both classes sit below the retrieval fraction; neither has begun paying the forge
+  tax. The two plateaus (0.19-0.23 attention, 0.31-0.34 counting/rules) are the same
+  wall seen at different heights, and the joint escalation path both sessions' results
+  point at is white-box supervision (tropic's "pil DLA-seam" lever) rather than more
+  of either black-box recipe.
+
 Method notes: three failed configurations preceded this one and are part of the record —
 pure soft-CE trades argmax agreement for distribution fit (lift -0.055); an unregularized
 full-rank table memorizes (train 0.93 / held 0.30); train-side death ablations keep
