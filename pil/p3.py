@@ -68,6 +68,7 @@ class CertifiedP3:
         m_floor: float = 0.0,
         exact_floor: float | None = None,
         alpha_min: float = 1.0 / 1024,
+        renorm: bool = True,
     ):
         self.model = model
         self.opt = optimizer
@@ -75,6 +76,13 @@ class CertifiedP3:
         self.m_floor = m_floor
         self.exact_floor = exact_floor
         self.alpha_min = alpha_min
+        # renorm=False is the TEACHER-SEEDED variant: a real frame's row norms encode its margin
+        # structure, so projecting them to the unit sphere destroys the teacher's entry margins
+        # (m0 goes negative, the protect set empties, widening has nothing to hold). Skipping the
+        # renorm keeps U at the seed frame so the frozen decisions and their margins are the real
+        # ones. Row renorm is a pil training convention, not a T-traj premise — the theorem only
+        # needs ε=max‖ΔU_v‖ and β, which the backtrack measures either way.
+        self.renorm = renorm
 
         self.sources = sources
         self.t = t_frozen.clone()
@@ -132,7 +140,8 @@ class CertifiedP3:
         self.opt.zero_grad()
         loss.backward()
         self.opt.step()
-        model.normalize_U()                     # moments keep the FULL step (clip is applied-change only)
+        if self.renorm:
+            model.normalize_U()                 # moments keep the FULL step (clip is applied-change only)
 
         with torch.no_grad():
             U1 = model.U.detach().clone()
@@ -148,7 +157,8 @@ class CertifiedP3:
                     decided_now = decided_prev
                     m_now = m_prev
                     break
-                model.U.data.copy_(normalize_rows(U0 + alpha * (U1 - U0)))
+                cand = U0 + alpha * (U1 - U0)
+                model.U.data.copy_(normalize_rows(cand) if self.renorm else cand)
                 model.bias.data.copy_(b0 + alpha * (b1 - b0))
                 eps = float((model.U.data - U0).norm(dim=-1).max())
                 beta = float((model.bias.data - b0).abs().max())
