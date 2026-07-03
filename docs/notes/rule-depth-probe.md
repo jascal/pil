@@ -51,3 +51,25 @@ lookup** — the first structure-axis data point. The fair test of "is the compu
 symbolic-in-a-richer-class or genuinely distributed" is a *bigger model + more data + a recursion-scheme
 learner* (where fieldrun already located the emergence). This probe is the cheap negative that motivates
 paying for that.
+
+## pythia-1b re-run (3 seeds) — a weak, seed-sensitive hint, not a robust effect
+
+Ran the same probe on pythia-1b's decode (its own argmax on the same windows, ~2.9k in-candidate),
+three seeds. hard-acc by depth:
+
+| depth | seed 0 | seed 1 | seed 2 | 70m (seed 0) |
+|------:|-------:|-------:|-------:|-------------:|
+| 1 | 0.160 | 0.170 | 0.160 | 0.178 |
+| 2 | 0.166 | 0.146 | 0.161 | 0.163 |
+| 3 | 0.182 | 0.157 | 0.173 | 0.184 |
+| 4 | **0.196** | 0.173 | 0.176 | 0.182 |
+| Δ(1→4) | +0.036 | +0.003 | +0.016 | +0.004 |
+
+The mean depth-1→4 gain at 1b is **+0.018** vs 70m's **+0.004** — so depth *does* seem to pay a bit more
+at scale, in the direction fieldrun's "recursion emerges with scale" predicts. **But it is not robust:**
+seed 1 is essentially flat and non-monotonic, and seed 0 (the clean monotone rise) is the optimistic
+tail of the spread. Honest verdict: a **weak, seed-sensitive hint** of scale-dependent composition, not a
+confirmed effect. This is consistent with the rate axis (tropic F14) showing pythia's decode is still
+**data-limited** even at 1b — ~2.9k windows is too few to resolve a small structural signal. The clean
+structure test still needs *more data + a model where the computed circuits are actually exercised* (the
+regime where fieldrun's tree-vs-list gap was decisive), not natural-text decode at a CPU budget.

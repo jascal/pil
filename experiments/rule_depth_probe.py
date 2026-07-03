@@ -29,8 +29,8 @@ W = 8
 TOP_V = 512
 
 
-def build_windows():
-    d = torch.load(SP / "m2_train.pt")
+def build_windows(fname="m2_train.pt"):
+    d = torch.load(SP / fname)
     ids, mask, pred = d["ids"], d["mask"], d["pred"]
     lens = mask.long().sum(1)
     keep = lens >= W
@@ -48,9 +48,14 @@ def hard_acc(learner, prog, xte, yte):
 
 
 def main():
-    x, y = build_windows()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--data", default="m2_train.pt")
+    ap.add_argument("--seed", type=int, default=0)
+    args = ap.parse_args()
+    x, y = build_windows(args.data)
     n = x.shape[0]
-    g = torch.Generator().manual_seed(0)
+    g = torch.Generator().manual_seed(args.seed)
     perm = torch.randperm(n, generator=g)
     cut = int(0.8 * n)
     xtr, ytr = x[perm[:cut]], y[perm[:cut]]
@@ -69,11 +74,11 @@ def main():
     print(f"\n{'max_strata':>11}{'strata_used':>12}{'n_rules':>9}{'coverage@0.25':>14}{'hard_acc':>9}")
     for ms in (1, 2, 3, 4):
         cfg = RuleProgramConfig(vocab_size=50304, window=W, frame_dim=64, candidates=cands.tolist(),
-                                lookup_offsets=(W - 3, W - 2), direct_lookup_offsets=(W - 1,), seed=0)
+                                lookup_offsets=(W - 3, W - 2), direct_lookup_offsets=(W - 1,), seed=args.seed)
         prog = RuleProgram(cfg)
         lc = RuleLearnerConfig(n_phases=12, init_rules=768, births_per_phase=384, epochs_per_phase=4,
                                max_rules=2048, batch_size=512, probe_size=1024, max_strata=ms,
-                               deepen_patience=1, seed=0, verbose=False)
+                               deepen_patience=1, seed=args.seed, verbose=False)
         learner = PICRuleLearner(prog, lc)
         learner.fit(xtr, ytr)
         cov = certified_fraction(prog, xte, 0.25)
