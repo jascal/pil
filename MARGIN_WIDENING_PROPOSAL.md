@@ -405,3 +405,56 @@ actually *improves* on only 20–53% of steps (`margin_improved_under_premise`, 
 per-step margin monotonicity (S2) does **not** hold under real P3 refinement — the certificate
 holds because drift stays within `2δ`, not because margins grow. Any future T-mass/S2 statement
 must be about *budgeted* drift, not monotone improvement.
+
+## 11. Certified P3: the trust-region frame step (discharge experiment 5 + S1/S2; 2026-07-03)
+
+Theorem: `step_decode_preserved` / `traj_decode_preserved`, kernel-proved in i-orca
+`examples/pic_learn/PIC_Learn.thy` (PR #21, main `735973f`) — the formal–empirical link this
+section discharges. Implementation: `pil/p3.py` (`CertifiedP3`; flag-gated, off by default) —
+the shipped raw objective unchanged; **enforcement (a)** = exact bank-argmax inviolability
+per accepted step;
+**certification (b)** = per-step `step_decode_preserved` headroom `2(ρε+β) ≤ η·m_protect`;
+backtracking on the step scale α (optimizer moments keep the full step). The two mechanisms
+are reported separately everywhere. Sweep: `experiments/p3_trust_region.py` — {easy, hard,
+real pythia-70m teacher-seeded, real random-seeded} × lr {5e-3, 3e-4} × 2 seeds × TR {off,
+strict(floor 0), floored(0.1 — the separately-flagged variant; excluded flips counted)},
+400 steps. Raw: `results/p3_trust_region.{txt,json}`. All rows **empirical**.
+
+1. **Enforcement is exact and never failed**: enforced flips = 0 in all 48 cells (asserted
+   per step). Floored-variant flips on excluded (≤0.1-margin) contexts: 0–9 per cell,
+   counted and reported, never silent.
+2. **Strict TR = the predicted α→0 collapse, everywhere**: the ratchet captures decisions
+   the moment they cross zero margin, then the exact check pins α (mean 0.005–0.43);
+   decided rate ends 0.03–0.23 vs 0.68–1.00 unconstrained. Measured, as instructed — not
+   silently fixed.
+3. **Floored TR on synthetics at working lr is the positive result**: decided rate matches
+   unconstrained (0.996–1.000 vs 0.996–1.000), margin cost is −0.03…−0.17 certified bits
+   (nm_p10, both floors stated: off-leg nm_p10 +0.17…+0.36), certified fraction climbs
+   0.60→0.83–0.97, zero enforced flips. **Protection ≈ free where ρ is moderate and margins
+   are won during the phase.** At cool lr the TR never binds (clip 0.00) yet certification
+   still reports 0.24→0.63 — certification without enforcement cost when steps are small.
+4. **The a-priori budget form stays dead even with clipping** (the sweep's key question):
+   `budget_alive` = False in every cell — 2Σδ over 400 accepted steps (2.2–31 synthetic,
+   59–309 real) still dwarfs entry-positive margins (≤0.8). Clipping controls δ per step;
+   it does not make the whole-phase telescoped certificate live. A phase-level budget would
+   need δ *scheduled* against m/(2T) — untested, open.
+5. **Real arm: the renorm seam dominates.** Row renormalization destroys the teacher's
+   entry margins w.r.t. its own decisions (m0_p50 −3.5…−8.7; protect set empty), so the
+   picard-shaped start ("teacher geometry, visited margins ~0.9") does not survive the
+   shipped renorm. From that start, ρ ≈ 35 × tight margins pins α ≈ 0.005 (effective lr
+   ~2.5e-5): decided ends 0.06–0.26 vs 1.000 unconstrained — for BOTH variants. Scalar-α
+   clipping is the wrong shape at real ρ; candidates (open, untested): a *directional*
+   trust region (project the update off the at-risk contexts' top-2 frame rows only), or
+   teacher-scale-preserving frames (row norms folded into bias — a fieldrun/plan-side
+   decision; also note the dump does not carry `U`: worked around via HF `embed_out`).
+6. **Teacher-seeded vs random (PR #5 review note 3)**: under renorm, teacher seeding gives
+   no entry advantage w.r.t. *teacher* decisions (both start undecided — see 5). But the
+   teacher frame's own entry argmax is far more stable under training: measurement
+   hold-rates 0.66–0.79 (teacher-seeded, cool lr) vs 0.00–0.02 (random). Teacher geometry
+   does move hold-rates toward synthetic levels — for the decisions the normalized frame
+   actually makes; preserving the teacher's *decisions* through normalization is the seam
+   question.
+7. **T-mass (S2's empirical premise, not a theorem claim)**: old-support certified mass at
+   fixed δ_ref decreased in 0 events under strict TR across all cells; 1 event each in 3
+   floored cells (sub-floor drift is permitted there by design). Strictly monotone under
+   strict-TR — collected as S2's premise; S2 itself stays a named unproved invariant.

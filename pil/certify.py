@@ -95,6 +95,11 @@ class TrajectoryCertificate:
 
         self._U_prev = model.U.detach().clone()
         self._b_prev = model.bias.detach().clone()
+        # decided-at-previous-step, tracked independently of first-flip bookkeeping so that
+        # RE-flips (flip -> recover -> flip again) are checked against the premise too
+        # (PR #5 review fix; this counter is load-bearing for the trust-region P3)
+        self._decided_prev = self.t == self.t              # all True at entry by construction
+        self.total_flip_events = 0
         self.budget = 0.0                                  # Σ_s (ρ ε_s + β_s)
         self.flipped_at = torch.full((self.B,), -1, dtype=torch.long)
         self.budget_out_at = torch.full((self.B,), -1, dtype=torch.long)
@@ -126,10 +131,14 @@ class TrajectoryCertificate:
         premise = self.m_prev > 2.0 * delta                # step_decode_preserved's guard
         delta_i = self.rho_i * eps + beta                  # per-context form of the lemma
         premise_i = self.m_prev > 2.0 * delta_i
+        # flip EVENTS: decided at the previous step, not decided now (includes re-flips);
+        # first-flip bookkeeping (flipped_at) stays separate for horizon stats
+        flip_events = self._decided_prev & decided_now.logical_not()
+        self.total_flip_events += int(flip_events.sum())
         flipped_this_step = decided_now.logical_not() & (self.flipped_at < 0)
 
         # -- theorem self-checks (violations = harness bug, not a finding) ------------
-        pf = int((premise & flipped_this_step).sum())
+        pf = int((premise & flip_events).sum())
         self.viol_premise_flip += pf
         # step_margin_survives: m_now >= m_prev - 2 delta (up to fp tolerance)
         tv = int((m_now < self.m_prev - 2.0 * delta - self.tol).sum())
@@ -172,6 +181,7 @@ class TrajectoryCertificate:
         }
         self.records.append(rec)
         self.m_prev = m_now
+        self._decided_prev = decided_now
         self._U_prev = U.clone()
         self._b_prev = b.clone()
         return rec
@@ -218,6 +228,7 @@ class TrajectoryCertificate:
                 ).nanmean()
             ),
             "total_new_flips": int((~never).sum()),
+            "total_flip_events": self.total_flip_events,   # includes re-flips (review fix)
             "never_flipped_frac": float(never.float().mean()),
             "viol_premise_flip": self.viol_premise_flip,     # must be 0
             "viol_transfer": self.viol_transfer,             # must be 0

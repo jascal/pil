@@ -1,0 +1,83 @@
+Certified P3 trust-region sweep (theorem: i-orca examples/pic_learn, main 735973f; follow-up to pil#5)
+All rows empirical.
+
+  easy          lr=0.005   seed=0 TR=off     | m_p10/p50 +1.980/+2.120 | nm_p10 +0.3623 | hinge 0.037 | decided 1.000 | hold 0.031 | flip-events 390
+  easy          lr=0.005   seed=0 TR=strict  | m_p10/p50 -2.558/-1.485 | nm_p10 -0.4930 | hinge 3.493 | decided 0.055 | hold 0.785 | flip-events 123
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.011 a_min 0.0000 | cert 0.052->0.055 | 2Σδ 2.155 vs m0_pos p10/p50 0.071/0.195 (pos-alive p10=False p50=False (n=14)) | g0 dec/same/inc 0/1.00/0.00
+  easy          lr=0.005   seed=0 TR=floored | m_p10/p50 +1.493/+2.007 | nm_p10 +0.3217 | hinge 0.119 | decided 0.996 | hold 0.177 | flip-events 556
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.211 a_min 0.1250 | cert 0.647->0.964 | 2Σδ 30.243 vs m0_pos p10/p50 0.165/0.812 (pos-alive p10=False p50=False (n=89)) | g0 dec/same/inc 0/0.42/0.58
+  easy          lr=0.005   seed=1 TR=off     | m_p10/p50 +1.996/+2.189 | nm_p10 +0.3589 | hinge 0.021 | decided 1.000 | hold 0.027 | flip-events 409
+  easy          lr=0.005   seed=1 TR=strict  | m_p10/p50 -2.761/-1.433 | nm_p10 -0.4933 | hinge 3.480 | decided 0.062 | hold 0.748 | flip-events 361
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.015 a_min 0.0000 | cert 0.043->0.042 | 2Σδ 2.803 vs m0_pos p10/p50 0.328/0.328 (pos-alive p10=False p50=False (n=2)) | g0 dec/same/inc 0/1.00/0.00
+  easy          lr=0.005   seed=1 TR=floored | m_p10/p50 +1.718/+2.024 | nm_p10 +0.3330 | hinge 0.072 | decided 1.000 | hold 0.166 | flip-events 651
+                TR: flips 0 excl-flips 1 | clip 1.00 a_mean 0.228 a_min 0.1250 | cert 0.653->0.974 | 2Σδ 28.365 vs m0_pos p10/p50 0.129/0.627 (pos-alive p10=False p50=False (n=80)) | g0 dec/same/inc 0/0.68/0.32
+  easy          lr=0.0003  seed=0 TR=off     | m_p10/p50 -0.573/+0.419 | nm_p10 -0.1257 | hinge 1.619 | decided 0.730 | hold 0.476 | flip-events 1114
+  easy          lr=0.0003  seed=0 TR=strict  | m_p10/p50 -2.249/-1.226 | nm_p10 -0.4487 | hinge 3.220 | decided 0.090 | hold 0.769 | flip-events 615
+                TR: flips 0 excl-flips 0 | clip 0.84 a_mean 0.291 a_min 0.0010 | cert 0.057->0.078 | 2Σδ 3.376 vs m0_pos p10/p50 0.082/0.207 (pos-alive p10=False p50=False (n=14)) | g0 dec/same/inc 0/0.58/0.42
+  easy          lr=0.0003  seed=0 TR=floored | m_p10/p50 -0.573/+0.419 | nm_p10 -0.1258 | hinge 1.619 | decided 0.730 | hold 0.476 | flip-events 1066
+                TR: flips 0 excl-flips 0 | clip 0.00 a_mean 1.000 a_min 1.0000 | cert 0.238->0.633 | 2Σδ 11.361 vs m0_pos p10/p50 0.145/0.351 (pos-alive p10=False p50=False (n=27)) | g0 dec/same/inc 0/0.00/1.00
+  easy          lr=0.0003  seed=1 TR=off     | m_p10/p50 -0.775/+0.379 | nm_p10 -0.1476 | hinge 1.694 | decided 0.676 | hold 0.494 | flip-events 1344
+  easy          lr=0.0003  seed=1 TR=strict  | m_p10/p50 -2.786/-1.445 | nm_p10 -0.5015 | hinge 3.508 | decided 0.059 | hold 0.795 | flip-events 689
+                TR: flips 0 excl-flips 0 | clip 0.85 a_mean 0.247 a_min 0.0020 | cert 0.034->0.039 | 2Σδ 2.759 vs m0_pos p10/p50 0.328/0.328 (pos-alive p10=False p50=False (n=2)) | g0 dec/same/inc 0/0.84/0.16
+  easy          lr=0.0003  seed=1 TR=floored | m_p10/p50 -0.774/+0.379 | nm_p10 -0.1475 | hinge 1.694 | decided 0.676 | hold 0.494 | flip-events 1336
+                TR: flips 0 excl-flips 0 | clip 0.00 a_mean 1.000 a_min 1.0000 | cert 0.205->0.568 | 2Σδ 11.044 vs m0_pos p10/p50 0.016/0.100 (pos-alive p10=False p50=False (n=10)) | g0 dec/same/inc 0/0.00/1.00
+  hard          lr=0.005   seed=0 TR=off     | m_p10/p50 +0.883/+1.494 | nm_p10 +0.1748 | hinge 0.530 | decided 1.000 | hold 0.013 | flip-events 425
+  hard          lr=0.005   seed=0 TR=strict  | m_p10/p50 -3.194/-1.484 | nm_p10 -0.6281 | hinge 3.576 | decided 0.062 | hold 0.568 | flip-events 898
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.023 a_min 0.0000 | cert 0.045->0.062 | 2Σδ 3.503 vs m0_pos p10/p50 0.100/0.188 (pos-alive p10=False p50=False (n=7)) | g0 dec/same/inc 0/0.89/0.11
+  hard          lr=0.005   seed=0 TR=floored | m_p10/p50 +0.761/+1.394 | nm_p10 +0.1715 | hinge 0.618 | decided 0.996 | hold 0.071 | flip-events 580
+                TR: flips 0 excl-flips 6 | clip 0.99 a_mean 0.317 a_min 0.1250 | cert 0.590->0.820 | 2Σδ 31.515 vs m0_pos p10/p50 0.111/0.541 (pos-alive p10=False p50=False (n=45)) | g0 dec/same/inc 0/0.37/0.63
+  hard          lr=0.005   seed=1 TR=off     | m_p10/p50 +0.826/+1.630 | nm_p10 +0.1871 | hinge 0.485 | decided 0.996 | hold 0.012 | flip-events 411
+  hard          lr=0.005   seed=1 TR=strict  | m_p10/p50 -3.480/-1.796 | nm_p10 -0.7118 | hinge 3.902 | decided 0.031 | hold 0.676 | flip-events 187
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.016 a_min 0.0000 | cert 0.025->0.023 | 2Σδ 2.317 vs m0_pos p10/p50 0.029/0.029 (pos-alive p10=False p50=False (n=2)) | g0 dec/same/inc 0/1.00/0.00
+  hard          lr=0.005   seed=1 TR=floored | m_p10/p50 +0.732/+1.463 | nm_p10 +0.1709 | hinge 0.570 | decided 0.996 | hold 0.082 | flip-events 536
+                TR: flips 0 excl-flips 9 | clip 1.00 a_mean 0.312 a_min 0.2500 | cert 0.600->0.826 | 2Σδ 31.475 vs m0_pos p10/p50 0.078/0.466 (pos-alive p10=False p50=False (n=49)) | g0 dec/same/inc 1/0.32/0.63
+  hard          lr=0.0003  seed=0 TR=off     | m_p10/p50 -1.644/-0.276 | nm_p10 -0.3498 | hinge 2.381 | decided 0.391 | hold 0.423 | flip-events 2014
+  hard          lr=0.0003  seed=0 TR=strict  | m_p10/p50 -3.097/-1.417 | nm_p10 -0.6096 | hinge 3.475 | decided 0.078 | hold 0.614 | flip-events 1546
+                TR: flips 0 excl-flips 0 | clip 0.71 a_mean 0.427 a_min 0.0020 | cert 0.037->0.073 | 2Σδ 3.999 vs m0_pos p10/p50 0.010/0.142 (pos-alive p10=False p50=False (n=7)) | g0 dec/same/inc 0/0.63/0.37
+  hard          lr=0.0003  seed=0 TR=floored | m_p10/p50 -1.644/-0.276 | nm_p10 -0.3498 | hinge 2.381 | decided 0.391 | hold 0.423 | flip-events 1985
+                TR: flips 0 excl-flips 0 | clip 0.00 a_mean 1.000 a_min 1.0000 | cert 0.110->0.286 | 2Σδ 9.555 vs m0_pos p10/p50 0.214/0.328 (pos-alive p10=False p50=False (n=9)) | g0 dec/same/inc 0/0.00/1.00
+  hard          lr=0.0003  seed=1 TR=off     | m_p10/p50 -1.661/-0.334 | nm_p10 -0.3648 | hinge 2.416 | decided 0.375 | hold 0.456 | flip-events 1755
+  hard          lr=0.0003  seed=1 TR=strict  | m_p10/p50 -3.503/-1.802 | nm_p10 -0.7134 | hinge 3.912 | decided 0.031 | hold 0.723 | flip-events 420
+                TR: flips 0 excl-flips 0 | clip 0.76 a_mean 0.268 a_min 0.0000 | cert 0.022->0.026 | 2Σδ 2.402 vs m0_pos p10/p50 0.008/0.020 (pos-alive p10=False p50=False (n=3)) | g0 dec/same/inc 0/1.00/0.00
+  hard          lr=0.0003  seed=1 TR=floored | m_p10/p50 -1.658/-0.334 | nm_p10 -0.3647 | hinge 2.416 | decided 0.375 | hold 0.456 | flip-events 1749
+                TR: flips 0 excl-flips 1 | clip 0.00 a_mean 1.000 a_min 1.0000 | cert 0.100->0.284 | 2Σδ 9.516 vs m0_pos p10/p50 0.029/0.213 (pos-alive p10=False p50=False (n=3)) | g0 dec/same/inc 0/0.00/1.00
+  real_teacher  lr=0.005   seed=0 TR=off     | m_p10/p50 +4.587/+6.550 | nm_p10 +0.0105 | hinge 0.000 | decided 1.000 | hold 0.000 | flip-events 53
+  real_teacher  lr=0.005   seed=0 TR=strict  | m_p10/p50 -7.144/-3.496 | nm_p10 -0.0163 | hinge 5.848 | decided 0.143 | hold 0.112 | flip-events 47
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.005 a_min 0.0000 | cert 0.119->0.096 | 2Σδ 198.703 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_teacher  lr=0.005   seed=0 TR=floored | m_p10/p50 -6.066/-2.779 | nm_p10 -0.0138 | hinge 5.065 | decided 0.171 | hold 0.052 | flip-events 50
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.006 a_min 0.0000 | cert 0.130->0.115 | 2Σδ 241.905 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_teacher  lr=0.005   seed=1 TR=off     | m_p10/p50 +4.566/+5.825 | nm_p10 +0.0104 | hinge 0.000 | decided 1.000 | hold 0.000 | flip-events 53
+  real_teacher  lr=0.005   seed=1 TR=strict  | m_p10/p50 -6.077/-3.865 | nm_p10 -0.0138 | hinge 5.527 | decided 0.143 | hold 0.094 | flip-events 48
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.005 a_min 0.0000 | cert 0.119->0.096 | 2Σδ 197.707 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_teacher  lr=0.005   seed=1 TR=floored | m_p10/p50 -6.001/-3.793 | nm_p10 -0.0136 | hinge 5.437 | decided 0.143 | hold 0.093 | flip-events 48
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.005 a_min 0.0000 | cert 0.117->0.096 | 2Σδ 202.045 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_teacher  lr=0.0003  seed=0 TR=off     | m_p10/p50 +1.999/+2.757 | nm_p10 +0.0045 | hinge 0.028 | decided 1.000 | hold 0.000 | flip-events 55
+  real_teacher  lr=0.0003  seed=0 TR=strict  | m_p10/p50 -8.773/-5.054 | nm_p10 -0.0200 | hinge 7.235 | decided 0.057 | hold 0.790 | flip-events 10
+                TR: flips 0 excl-flips 0 | clip 0.95 a_mean 0.058 a_min 0.0000 | cert 0.037->0.038 | 2Σδ 144.663 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_teacher  lr=0.0003  seed=0 TR=floored | m_p10/p50 -6.880/-3.753 | nm_p10 -0.0157 | hinge 5.745 | decided 0.114 | hold 0.701 | flip-events 69
+                TR: flips 0 excl-flips 0 | clip 0.94 a_mean 0.078 a_min 0.0078 | cert 0.068->0.077 | 2Σδ 194.381 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_teacher  lr=0.0003  seed=1 TR=off     | m_p10/p50 +1.912/+2.677 | nm_p10 +0.0044 | hinge 0.030 | decided 1.000 | hold 0.000 | flip-events 57
+  real_teacher  lr=0.0003  seed=1 TR=strict  | m_p10/p50 -7.910/-4.740 | nm_p10 -0.0179 | hinge 6.575 | decided 0.086 | hold 0.749 | flip-events 11
+                TR: flips 0 excl-flips 0 | clip 0.95 a_mean 0.060 a_min 0.0000 | cert 0.043->0.058 | 2Σδ 148.334 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/0.95/0.05
+  real_teacher  lr=0.0003  seed=1 TR=floored | m_p10/p50 -5.866/-3.157 | nm_p10 -0.0134 | hinge 4.990 | decided 0.143 | hold 0.664 | flip-events 17
+                TR: flips 0 excl-flips 0 | clip 0.94 a_mean 0.081 a_min 0.0078 | cert 0.074->0.096 | 2Σδ 203.329 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/0.89/0.11
+  real_random   lr=0.005   seed=0 TR=off     | m_p10/p50 +4.612/+6.545 | nm_p10 +0.0105 | hinge 0.000 | decided 1.000 | hold 0.000 | flip-events 53
+  real_random   lr=0.005   seed=0 TR=strict  | m_p10/p50 -38.055/-7.804 | nm_p10 -0.0868 | hinge 16.107 | decided 0.171 | hold 0.000 | flip-events 53
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.003 a_min 0.0000 | cert 0.141->0.115 | 2Σδ 105.559 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_random   lr=0.005   seed=0 TR=floored | m_p10/p50 -28.353/-3.222 | nm_p10 -0.0645 | hinge 10.363 | decided 0.257 | hold 0.000 | flip-events 53
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.003 a_min 0.0000 | cert 0.203->0.173 | 2Σδ 124.037 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_random   lr=0.005   seed=1 TR=off     | m_p10/p50 +4.453/+6.623 | nm_p10 +0.0101 | hinge 0.000 | decided 1.000 | hold 0.000 | flip-events 53
+  real_random   lr=0.005   seed=1 TR=strict  | m_p10/p50 -31.378/-9.000 | nm_p10 -0.0714 | hinge 17.190 | decided 0.114 | hold 0.000 | flip-events 53
+                TR: flips 0 excl-flips 0 | clip 1.00 a_mean 0.005 a_min 0.0000 | cert 0.094->0.077 | 2Σδ 209.583 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_random   lr=0.005   seed=1 TR=floored | m_p10/p50 -6.801/-1.719 | nm_p10 -0.0155 | hinge 6.549 | decided 0.171 | hold 0.000 | flip-events 53
+                TR: flips 0 excl-flips 5 | clip 1.00 a_mean 0.007 a_min 0.0010 | cert 0.156->0.135 | 2Σδ 308.536 vs m0_pos p10/p50 0.057/0.057 (pos-alive p10=False p50=False (n=2)) | g0 dec/same/inc 0/0.95/0.05
+  real_random   lr=0.0003  seed=0 TR=off     | m_p10/p50 +1.999/+3.114 | nm_p10 +0.0045 | hinge 0.079 | decided 1.000 | hold 0.000 | flip-events 53
+  real_random   lr=0.0003  seed=0 TR=strict  | m_p10/p50 -36.426/-5.350 | nm_p10 -0.0829 | hinge 14.888 | decided 0.229 | hold 0.018 | flip-events 53
+                TR: flips 0 excl-flips 0 | clip 0.98 a_mean 0.024 a_min 0.0000 | cert 0.179->0.154 | 2Σδ 58.709 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_random   lr=0.0003  seed=0 TR=floored | m_p10/p50 -7.835/-2.536 | nm_p10 -0.0178 | hinge 4.891 | decided 0.229 | hold 0.005 | flip-events 76
+                TR: flips 0 excl-flips 4 | clip 0.98 a_mean 0.039 a_min 0.0039 | cert 0.167->0.154 | 2Σδ 114.561 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 1/0.89/0.05
+  real_random   lr=0.0003  seed=1 TR=off     | m_p10/p50 +2.037/+2.632 | nm_p10 +0.0046 | hinge 0.009 | decided 1.000 | hold 0.000 | flip-events 54
+  real_random   lr=0.0003  seed=1 TR=strict  | m_p10/p50 -33.360/-7.794 | nm_p10 -0.0760 | hinge 15.423 | decided 0.057 | hold 0.000 | flip-events 54
+                TR: flips 0 excl-flips 0 | clip 0.97 a_mean 0.029 a_min 0.0000 | cert 0.046->0.038 | 2Σδ 70.731 vs m0_pos p10/p50 nan/nan (pos-alive p10=False p50=False (n=0)) | g0 dec/same/inc 0/1.00/0.00
+  real_random   lr=0.0003  seed=1 TR=floored | m_p10/p50 -8.472/-1.768 | nm_p10 -0.0193 | hinge 5.453 | decided 0.143 | hold 0.000 | flip-events 54
+                TR: flips 0 excl-flips 3 | clip 0.97 a_mean 0.050 a_min 0.0078 | cert 0.145->0.135 | 2Σδ 131.975 vs m0_pos p10/p50 0.293/0.293 (pos-alive p10=False p50=False (n=2)) | g0 dec/same/inc 1/0.89/0.05
