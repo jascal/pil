@@ -49,44 +49,69 @@ class MLPDecode(torch.nn.Module):
         return self.net(r)
 
 
-V, STEPS = 1024, 1800    # restrict to top-V frequent next-tokens (in-vocab examples only) for a fast, clean
-#                          localization; the RELATIVE gaps (linear/memb/rules) are what matter, not absolutes
+class HybridDecode(torch.nn.Module):
+    """THE FIX: decode reads BOTH the membership vector (bulk, linear -- beats residual) AND soft-AND
+    rule firings (relational structure the linear reader cannot do -- eq_atom, composition)."""
+    def __init__(self, d, nclass, k=K, rr=R):
+        super().__init__()
+        self.Ug = torch.nn.Parameter(torch.randn(k, d) * (1.0 / d ** 0.5))
+        self.bg = torch.nn.Parameter(torch.zeros(k))
+        self.req = torch.nn.Parameter(torch.randn(rr, k + 1) * 0.3 - 2.0)
+        self.dec = torch.nn.Linear(k + 1 + rr, nclass)             # [memberships, eq_atom, rule firings] -> V
+
+    def forward(self, r, ids):
+        memb = torch.sigmoid((r @ self.Ug.T - self.bg) / WD.TAU)
+        teq = (ids[:, :-1] == ids[:, -1:]).any(1, keepdim=True).float()
+        feats = torch.cat([memb, teq], -1)
+        req = torch.sigmoid(self.req)
+        fire = (1 - req.unsqueeze(0) + req.unsqueeze(0) * feats.unsqueeze(1)).prod(-1)
+        return self.dec(torch.cat([memb, teq, fire], -1))
 
 
 def main():
+    gpu = WD.DEV == "cuda"
+    V, STEPS = (None, 4000) if gpu else (1024, 1800)               # full vocab on GPU; restricted on CPU
     d = torch.load(WD.DATA)
     r = d["r"].float()
     r = (r - r.mean(0)) / (r.std(0) + 1e-6)
     ids = d["kept_ids"]
     target = d["target"]
-    topv = torch.bincount(target).argsort(descending=True)[:V]     # keep only in-top-V examples (no 'other')
-    keep = torch.isin(target, topv)
-    r, ids, target = r[keep], ids[keep], target[keep]
+    if V is not None:                                             # CPU fallback: restrict to top-V
+        topv = torch.bincount(target).argsort(descending=True)[:V]
+        keep = torch.isin(target, topv)
+        r, ids, target = r[keep], ids[keep], target[keep]
     uniq, y = target.unique(return_inverse=True)
+    r, ids, y = r.to(WD.DEV), ids.to(WD.DEV), y.to(WD.DEV)
     nclass = len(uniq)
     n = r.shape[0]
-    tr = torch.arange(int(0.85 * n))
-    te = torch.arange(int(0.85 * n), n)
-    print(f"decode ablation @ K={K}, R={R}  -- top-{V} vocab ({nclass} classes, in-vocab only), top-1  "
-          f"(train {len(tr)}/test {len(te)})\n")
+    tr = torch.arange(int(0.85 * n), device=WD.DEV)
+    te = torch.arange(int(0.85 * n), n, device=WD.DEV)
+    vlab = "FULL" if V is None else f"top-{V}"
+    print(f"decode ablation @ K={K}, R={R} -- {vlab} vocab ({nclass} cls), {STEPS} steps, {WD.DEV}, "
+          f"top-1 (tr {len(tr)}/te {len(te)})\n")
 
     lin = WD.train_top1(WD.Linear(r.shape[1], nclass), r, None, y, tr, te, steps=STEPS)
     memb = WD.train_top1(MembDecode(r.shape[1], nclass), r, ids, y, tr, te, steps=STEPS)
     rules = WD.train_top1(WD.WylyDecode(r.shape[1], nclass, K, R), r, ids, y, tr, te, steps=STEPS)
+    hybrid = WD.train_top1(HybridDecode(r.shape[1], nclass), r, ids, y, tr, te, steps=STEPS)
     mlp = WD.train_top1(MLPDecode(r.shape[1], nclass), r, None, y, tr, te, steps=STEPS)
 
-    print(f"{'decode path':>28}{'top-1':>9}{'% linear':>10}")
+    print(f"{'decode path':>32}{'top-1':>9}{'% linear':>10}")
     rows = [("linear  r->V (ceiling)", lin), ("memb->V  (concepts, no rules)", memb),
-            ("rules->V (full Wyly)", rules), ("mlp->V   (ReLU-K control)", mlp)]
+            ("rules->V (soft-AND, full Wyly)", rules), ("HYBRID->V (memb + rules)", hybrid),
+            ("mlp->V   (ReLU-K control)", mlp)]
     for name, a in rows:
-        print(f"{name:>28}{a:>9.3f}{a / lin * 100:>9.0f}%", flush=True)
-    print("\nlocalization:")
+        print(f"{name:>32}{a:>9.3f}{a / lin * 100:>9.0f}%", flush=True)
+    print("\nlocalization + fix:")
     print(f"  concept bottleneck cost (linear - memb): {lin - memb:+.3f}")
-    print(f"  soft-AND rule cost     (memb - rules)  : {memb - rules:+.3f}")
-    if memb - rules > lin - memb:
-        print("  => SOFT-AND RULE stage is the dominant lossy step (concepts largely preserve decode).")
+    print(f"  soft-AND rule cost      (memb - rules) : {memb - rules:+.3f}")
+    print(f"  HYBRID lift over full-Wyly (hybrid - rules): {hybrid - rules:+.3f}   "
+          f"over memb-only: {hybrid - memb:+.3f}")
+    if hybrid >= max(memb, lin) - 0.005:
+        print("  => HYBRID (linear-over-memberships + rules) CLEARS the soft-AND plateau: bulk decode off")
+        print("     memberships, rules kept for the relational structure. Move-1.5 fix works.")
     else:
-        print("  => SIGMOID-MEMBERSHIP bottleneck is the dominant lossy step (rules add little loss).")
+        print("  => hybrid did NOT clear it; the decode form needs more than concatenating memb + fire.")
 
 
 if __name__ == "__main__":
