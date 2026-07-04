@@ -1,6 +1,6 @@
 """Grounding bridge v0: concepts as HYPERPLANES in a real tiny model's residual space.
 
-The load-bearing open problem (Coppice §5.5, confirmed by Grok): the concept substrate has been over token
+The load-bearing open problem (Wyly §5.5, confirmed by Grok): the concept substrate has been over token
 IDs (a lookup), not grounded in a model's geometry. Grounding = concept is a hyperplane (direction u_c +
 bias b_c) in RESIDUAL space; membership is geometric incidence m_c(r) = sigmoid(<r,u_c> - b_c). Then the
 concept lattice = the face lattice of a hyperplane arrangement = tropic's cells; rules = polyhedral regions.

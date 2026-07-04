@@ -1,4 +1,4 @@
-"""Coppice with a UNIFIED graded-incidence field -- active/plastic/frozen/prune lifecycle on one axis.
+"""Wyly with a UNIFIED graded-incidence field -- active/plastic/frozen/prune lifecycle on one axis.
 
 Per the design: replace the ad-hoc masks (active/prot/use + prune/merge) with ONE incidence-importance
 field omega per concept and per rule (and per task head). The whole lifecycle is positions on that one axis:
@@ -11,7 +11,7 @@ falls below THETA -> dropped. The binary system is the step-function limit (LAMB
 omega is the graded incidence weight; THETA is the gamma-margin of the PIC turnstile. eq_atom stays a fixed
 (param-free) feature. Sparse rule init keeps unused incidences ~inert so frozen rules don't drift on growth.
 
-Run: cd pil && .venv/bin/python experiments/coppice_incidence.py
+Run: cd pil && .venv/bin/python experiments/wyly_incidence.py
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ def prot(w):
     return 1.0 / (1.0 + BETA * w)
 
 
-class Coppice(torch.nn.Module):
+class Wyly(torch.nn.Module):
     def __init__(self, d, ntask, use_token_eq=True):
         super().__init__()
         self.d, self.use_token_eq = d, use_token_eq
@@ -224,18 +224,18 @@ def balanced_task(R, ids, y, seed):
 
 
 def main():
-    d = torch.load(SP / "coppice_pythia70m.pt")
+    d = torch.load(SP / "wyly_pythia70m.pt")
     labels = dict(d["labels"])
     labels["rep_cap"] = (labels["local_repeat"].bool() & labels["cap"].bool()).long()
     r, ids = d["r"].float(), d["kept_ids"]
     stream = ["func", "cap", "local_repeat", "rep_func", "rep_cap"]
-    print("Coppice with UNIFIED graded-incidence field (binary lifecycle = special case)")
+    print("Wyly with UNIFIED graded-incidence field (binary lifecycle = special case)")
     print(f"BETA={BETA} CONS=({CONS_C},{CONS_R},{CONS_H}) DECAY={DECAY} THETA={THETA} SEED={SEED}\n")
     accs, caps, drops = [], [], []
     for s in (0, 1, 2):
         data = {t: balanced_task(r, ids, labels[t], s) for t in stream}
         torch.manual_seed(s)
-        m = Coppice(r.shape[-1], len(stream))
+        m = Wyly(r.shape[-1], len(stream))
         res, cap, dropped = run_stream(m, stream, data, s)
         accs.append(res)
         caps.append(cap)

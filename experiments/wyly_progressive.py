@@ -1,4 +1,4 @@
-"""Coppice end-to-end: progressive learning on a UNIFIED substrate (geometric + token-identity concepts).
+"""Wyly end-to-end: progressive learning on a UNIFIED substrate (geometric + token-identity concepts).
 
 The synthesis. One substrate:
   - GEOMETRIC concepts: Kg hyperplanes on residuals (memberships per position)
@@ -9,11 +9,11 @@ Learned PROGRESSIVELY with frozen-core (wake/sleep) consolidation over a sequenc
   B relational (local_repeat)         -> token eq_atom (geometry alone CANNOT, per ground_multipos.py)
   C compositional (rep_func = repeat AND func) -> a RULE combining B's eq_atom with A's frozen func-concept
 
-Learners: coppice (unified, frozen-core progressive) vs geometric-only (no token_eq -> should FAIL B/C) vs
+Learners: wyly (unified, frozen-core progressive) vs geometric-only (no token_eq -> should FAIL B/C) vs
 monolithic (one net retrained per phase, no consolidation -> should FORGET A) vs joint (all-at-once ceiling).
 Metric: after A->B->C, accuracy retained on EACH task family (balanced, chance 0.5).
 
-Run: cd pil && .venv/bin/python experiments/coppice_progressive.py
+Run: cd pil && .venv/bin/python experiments/wyly_progressive.py
 """
 
 from __future__ import annotations
@@ -24,14 +24,14 @@ import torch
 import torch.nn.functional as F
 
 SP = Path("/tmp/claude-1000/-home-allans-code/79593291-dade-4d02-a009-357bd1c48e92/scratchpad")
-DATA = SP / "coppice_pythia70m.pt"
+DATA = SP / "wyly_pythia70m.pt"
 KG, NR = 16, 30                         # geometric concepts, rules
 TASKS = ["func", "cap", "local_repeat", "rep_func"]
 PHASES = {"A": ["func", "cap"], "B": ["local_repeat"], "C": ["rep_func"]}
 RULE_GROUP = {"A": range(0, 12), "B": range(12, 21), "C": range(21, 30)}
 
 
-class Coppice(torch.nn.Module):
+class Wyly(torch.nn.Module):
     """Unified substrate + soft-AND rules + per-task heads. use_token_eq gates the token concept."""
     def __init__(self, d, use_token_eq=True):
         super().__init__()
@@ -117,16 +117,16 @@ def evaluate(name, data, seed):
     dim = d0.shape[-1]
     torch.manual_seed(seed)                                       # seed model init (concept hyperplanes)
     if name == "monolithic":                                      # one net, retrained per phase, NO freeze
-        model = Coppice(dim, use_token_eq=True)
+        model = Wyly(dim, use_token_eq=True)
         for ph in ["A", "B", "C"]:
             fit(model, PHASES[ph], data, 2500, seed=seed)
         return {t: acc(model, TASKS.index(t), *data[t][:3], data[t][4]) for t in TASKS}
     if name == "joint":
-        model = Coppice(dim, use_token_eq=True)
+        model = Wyly(dim, use_token_eq=True)
         fit(model, TASKS, data, 6000, seed=seed)
         return {t: acc(model, TASKS.index(t), *data[t][:3], data[t][4]) for t in TASKS}
-    # coppice (unified) / geometric-only: frozen-core progressive
-    model = Coppice(dim, use_token_eq=(name == "coppice"))
+    # wyly (unified) / geometric-only: frozen-core progressive
+    model = Wyly(dim, use_token_eq=(name == "wyly"))
     fit(model, PHASES["A"], data, 3000, mask=rule_mask_full(model, "A"), seed=seed)  # A trains concepts
     fit(model, PHASES["B"], data, 2500, mask=rule_mask(model, ["B"]), seed=seed)
     fit(model, PHASES["C"], data, 2500, mask=rule_mask(model, ["C"]), seed=seed)      # C reuses frozen A+B
@@ -145,10 +145,10 @@ def main():
     d = torch.load(DATA)
     R = d["r"].float()
     ids = d["kept_ids"]
-    print(f"Coppice progressive: A(func,cap)->B(local_repeat)->C(rep_func)  R {tuple(R.shape)}")
+    print(f"Wyly progressive: A(func,cap)->B(local_repeat)->C(rep_func)  R {tuple(R.shape)}")
     print("unified substrate = geometric concepts + token-identity eq_atom; frozen-core consolidation\n")
     rows = {}
-    for name in ["coppice", "geometric-only", "monolithic", "joint"]:
+    for name in ["wyly", "geometric-only", "monolithic", "joint"]:
         seeds = [{} for _ in range(2)]
         for si, s in enumerate((0, 1)):
             data = {t: balanced_task(R, ids, d["labels"][t], s) for t in TASKS}
@@ -158,10 +158,10 @@ def main():
     for name, r in rows.items():
         mean = sum(r.values()) / len(r)
         print(f"{name:>15}" + "".join(f"{r[t]:>13.3f}" for t in TASKS) + f"{mean:>8.3f}", flush=True)
-    print("\nread: coppice (unified) should learn ALL of A/B/C and RETAIN them; geometric-only should FAIL B "
+    print("\nread: wyly (unified) should learn ALL of A/B/C and RETAIN them; geometric-only should FAIL B "
           "(local_repeat) and C (rep_func) -- no token eq_atom; monolithic should FORGET A after B/C (no "
           "consolidation); joint = ceiling. If so: token-identity-as-degenerate-concept unifies symbolic+"
-          "geometric, and Coppice's frozen-core is a working progressive learner over the unified substrate.")
+          "geometric, and Wyly's frozen-core is a working progressive learner over the unified substrate.")
 
 
 if __name__ == "__main__":

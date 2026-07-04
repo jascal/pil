@@ -1,16 +1,16 @@
-"""DECISIVE normative test: does Coppice's reuse beat PackNet when B REUSES A (compositional, low budget)?
+"""DECISIVE normative test: does Wyly's reuse beat PackNet when B REUSES A (compositional, low budget)?
 
-Rung-2 found Coppice ties PackNet on UNRELATED continual tasks (reuse got no chance). Here B's concepts are
+Rung-2 found Wyly ties PackNet on UNRELATED continual tasks (reuse got no chance). Here B's concepts are
 explicit compositions of A's PRIMITIVES, so cross-task reuse is genuinely available -- the setting where
-Coppice's design is supposed to pay off. On real pythia-70m residuals:
+Wyly's design is supposed to pay off. On real pythia-70m residuals:
   A (primitives): func, punct, cap
   B (compositions of A): B0 = func AND cap ,  B1 = punct OR cap ,  B2 = cap AND NOT func   (derived labels)
 We SWEEP the B training budget (few -> many examples). A learner that can REUSE clean A-concepts should hold
 B accuracy at LOW budget; one that must learn B from scratch should collapse.
 
-Learners: coppice+reuse (B reads frozen A-concepts) · coppice-isolated (fresh B concepts, no reuse) ·
+Learners: wyly+reuse (B reads frozen A-concepts) · wyly-isolated (fresh B concepts, no reuse) ·
 packnet (prune A, B reads frozen-A transfer + released) · scratch (fresh bank on residual, no A).
-Decisive: coppice+reuse > packnet at low budget = the NOVEL Coppice win; tie = interpretability-at-parity.
+Decisive: wyly+reuse > packnet at low budget = the NOVEL Wyly win; tie = interpretability-at-parity.
 
 Run: cd pil && .venv/bin/python experiments/normative_compositional.py
 """
@@ -98,13 +98,13 @@ def run(name, r, YA, YB, nB, seed):
         fit_budget(bank, Rtr, Ytr, bids, 3000, nB, mask=mB, seed=seed)
         return NC.acc(bank, Rte, Yte, aids), NC.acc(bank, Rte, Yte, bids)
 
-    # coppice+reuse / coppice-isolated: freeze A-concepts, learn B on plastic concepts at budget nB
+    # wyly+reuse / wyly-isolated: freeze A-concepts, learn B on plastic concepts at budget nB
     mB = zeros_mask()
     mB["U"][KA:K] = 1
     mB["b"][KA:K] = 1
     for t in bids:
         mB["heads"][t] = 1
-        if name == "coppice-isolated":
+        if name == "wyly-isolated":
             mB["heads"][t, :KA] = 0                     # B reads ONLY plastic B-concepts (no reuse)
     fit_budget(bank, Rtr, Ytr, bids, 3000, nB, mask=mB, seed=seed)
     return NC.acc(bank, Rte, Yte, aids), NC.acc(bank, Rte, Yte, bids)
@@ -130,18 +130,18 @@ def main():
     YB = [make_B(labels)[:, j] for j in range(3)]
     print("DECISIVE normative test: B = compositions of A-primitives (reuse available), sweep B budget")
     print("A = [func,punct,cap] -> B = [func&cap, punct|cap, cap&~func]  (real pythia-70m)\n")
-    cols = ["coppice+reuse", "coppice-isol", "packnet", "scratch"]
+    cols = ["wyly+reuse", "wyly-isol", "packnet", "scratch"]
     print(f"{'B-budget':>9}" + "".join(f"{c:>15}" for c in cols))
     for nB in BUDGETS:
         row = []
-        for name in ["coppice+reuse", "coppice-isolated", "packnet"]:
+        for name in ["wyly+reuse", "wyly-isolated", "packnet"]:
             res = [run(name, r, YA, YB, nB, s) for s in (0, 1, 2)]
             row.append(sum(x[1] for x in res) / len(res))          # B accuracy
         sc = sum(run_scratch(r, YB, nB, s) for s in (0, 1, 2)) / 3
         row.append(sc)
         print(f"{nB:>9}" + "".join(f"{v:>16.3f}" for v in row), flush=True)
-    print("\nread: reuse-learners (coppice+reuse, packnet) holding B at LOW budget while isolated/scratch\n"
-          "collapse = REUSE pays off. coppice+reuse > packnet at low budget = the NOVEL Coppice win; ~ = at\n"
+    print("\nread: reuse-learners (wyly+reuse, packnet) holding B at LOW budget while isolated/scratch\n"
+          "collapse = REUSE pays off. wyly+reuse > packnet at low budget = the NOVEL Wyly win; ~ = at\n"
           "parity even WITH reuse ('better' = interpretability only).")
 
 

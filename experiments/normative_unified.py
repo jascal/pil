@@ -1,11 +1,11 @@
-"""Close the Coppice~PackNet tie: race them on the UNIFIED substrate + compositional chain.
+"""Close the Wyly~PackNet tie: race them on the UNIFIED substrate + compositional chain.
 
 The earlier tie (0.939) was on lexical tasks with a geometric-only substrate. The end-to-end result showed
 the unified substrate (token eq_atom) is more capable than geometric-only -- but that is a SUBSTRATE win, not
-a Coppice-vs-PackNet win. To honestly close the tie we give BOTH learners the SAME unified substrate
+a Wyly-vs-PackNet win. To honestly close the tie we give BOTH learners the SAME unified substrate
 (geometric concepts + token eq_atom + rules; concepts trained+frozen in phase A for all), isolating the
-CONSOLIDATION algorithm: Coppice's pre-allocated frozen-core vs PackNet's train-all -> prune -> release.
-Chain: A(func,cap) -> B(local_repeat) -> C(rep_func = repeat AND func). Does Coppice BEAT PackNet (frozen-core
+CONSOLIDATION algorithm: Wyly's pre-allocated frozen-core vs PackNet's train-all -> prune -> release.
+Chain: A(func,cap) -> B(local_repeat) -> C(rep_func = repeat AND func). Does Wyly BEAT PackNet (frozen-core
 reuse preserves a concept PackNet prunes) or TIE (parity confirmed, substrate advantage shared)?
 
 Run: cd pil && .venv/bin/python experiments/normative_unified.py
@@ -19,10 +19,10 @@ import sys
 import torch
 
 sys.path.insert(0, os.path.dirname(__file__))
-import coppice_progressive as CP  # noqa: E402
+import wyly_progressive as CP  # noqa: E402
 
 TASKS, PHASES, NR = CP.TASKS, CP.PHASES, CP.NR
-KEEP = {"A": 12, "B": 9}                 # rules PackNet keeps per phase (matches Coppice group sizes)
+KEEP = {"A": 12, "B": 9}                 # rules PackNet keeps per phase (matches Wyly group sizes)
 
 
 def zero_mask(model):
@@ -48,7 +48,7 @@ def importance(model, tasks):
 def run_packnet(dim, data, seed):
     """train-all-on-A -> prune top-KEEP by importance -> fine-tune -> freeze -> release for B -> C."""
     torch.manual_seed(seed)
-    model = CP.Coppice(dim, use_token_eq=True)
+    model = CP.Wyly(dim, use_token_eq=True)
     free = set(range(NR))
     # phase A: train concepts + ALL rules + A-heads
     mA = phase_mask(model, free, PHASES["A"], train_concepts=True)
@@ -72,7 +72,7 @@ def run_packnet(dim, data, seed):
 def run_ewc(dim, data, seed, lam=40.0):
     """all rules plastic; anchor to post-phase weights with diagonal-Fisher penalty."""
     torch.manual_seed(seed)
-    model = CP.Coppice(dim, use_token_eq=True)
+    model = CP.Wyly(dim, use_token_eq=True)
     anchors = []
     for ph in ["A", "B", "C"]:
         opt = torch.optim.Adam(model.parameters(), lr=0.02)
@@ -100,15 +100,15 @@ def main():
     d = torch.load(CP.DATA)
     R, ids = d["r"].float(), d["kept_ids"]
     print(f"CLOSE THE TIE -- unified substrate, compositional chain A->B->C  R {tuple(R.shape)}")
-    print("both Coppice & PackNet get geometric concepts + token eq_atom; isolate the consolidation algo\n")
+    print("both Wyly & PackNet get geometric concepts + token eq_atom; isolate the consolidation algo\n")
     rows = {}
-    for name in ["coppice", "packnet", "ewc", "joint"]:
+    for name in ["wyly", "packnet", "ewc", "joint"]:
         seeds = []
         for s in (0, 1, 2, 3, 4):
             data = {t: CP.balanced_task(R, ids, d["labels"][t], s) for t in TASKS}
             dim = data[TASKS[0]][0].shape[-1]
-            if name == "coppice":
-                seeds.append(CP.evaluate("coppice", data, s))
+            if name == "wyly":
+                seeds.append(CP.evaluate("wyly", data, s))
             elif name == "packnet":
                 seeds.append(run_packnet(dim, data, s))
             elif name == "ewc":
@@ -120,11 +120,11 @@ def main():
     for name, r in rows.items():
         print(f"{name:>10}" + "".join(f"{r[t]:>13.3f}" for t in TASKS) + f"{sum(r.values()) / len(r):>8.3f}",
               flush=True)
-    cm, pm = (sum(rows[x].values()) / 4 for x in ("coppice", "packnet"))
-    print(f"\ncoppice {cm:.3f}  packnet {pm:.3f}  diff {cm - pm:+.3f}")
-    print("read: diff ~ 0 = the tie HOLDS on the unified substrate + compositional chain -- Coppice's "
+    cm, pm = (sum(rows[x].values()) / 4 for x in ("wyly", "packnet"))
+    print(f"\nwyly {cm:.3f}  packnet {pm:.3f}  diff {cm - pm:+.3f}")
+    print("read: diff ~ 0 = the tie HOLDS on the unified substrate + compositional chain -- Wyly's "
           "consolidation is at PARITY with PackNet (substrate advantage shared; value = interpretability). "
-          "diff > 0 = Coppice's frozen-core reuse genuinely beats prune-and-release on compositional tasks "
+          "diff > 0 = Wyly's frozen-core reuse genuinely beats prune-and-release on compositional tasks "
           "(inspect C=rep_func: PackNet may prune a concept C needs).")
 
 

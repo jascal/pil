@@ -1,20 +1,20 @@
-"""NORMATIVE head-to-head: does Coppice's consolidation beat baselines at continual concept learning?
+"""NORMATIVE head-to-head: does Wyly's consolidation beat baselines at continual concept learning?
 
-The first test of the NORMATIVE claim (Coppice BETTER, not just descriptive). Real pythia-70m residuals +
+The first test of the NORMATIVE claim (Wyly BETTER, not just descriptive). Real pythia-70m residuals +
 6 concept labels (concepts_pythia70m.pt), split into task families A and B, learned SEQUENTIALLY
 (A then B, never A again). All learners get MATCHED total feature capacity K = K_A + K_B. Metric after B:
 retain-A + learn-B, and the balanced min.
 
 Learners:
-  coppice   -- frozen-core consolidation: K_A concept-hyperplanes for A, FROZEN at sleep; K_B fresh plastic
+  wyly   -- frozen-core consolidation: K_A concept-hyperplanes for A, FROZEN at sleep; K_B fresh plastic
                concept-hyperplanes for B. A decoded via frozen A-concepts, B via plastic ones.
   naive     -- one shared K-feature bank + linear heads; train A then B (features drift -> forget A).
   ewc       -- naive + a Fisher/quadratic penalty pinning the feature bank near its post-A values during B.
   joint     -- CEILING: train the K-feature bank on A and B together.
   frozen    -- FLOOR-ish control: random frozen K features (no learning of the bank) + heads for A then B.
 
-coppice >= ewc on the balanced metric = a genuine normative win (parity/better vs a real CL method, plus the
-features are interpretable directions). coppice < ewc = an honest negative. Reported straight.
+wyly >= ewc on the balanced metric = a genuine normative win (parity/better vs a real CL method, plus the
+features are interpretable directions). wyly < ewc = an honest negative. Reported straight.
 
 Run: cd pil && .venv/bin/python experiments/normative_continual.py
 """
@@ -96,7 +96,7 @@ def evaluate(name, r, Y, seed):
     Ytr = [Y[i][tr] for i in range(len(Y))]
     Yte = [Y[i][te] for i in range(len(Y))]
 
-    if name == "coppice":
+    if name == "wyly":
         bank = Bank(d, K, len(Y))
         # learn A on the FIRST KA concepts only (mask others off)
         mA = {"U": torch.zeros(K, d), "b": torch.zeros(K), "heads": torch.zeros(len(Y), K + 1)}
@@ -116,8 +116,8 @@ def evaluate(name, r, Y, seed):
         fit(bank, Rtr, Ytr, B_IDS, 3000, mask=mB)
         return acc(bank, Rte, Yte, A_IDS), acc(bank, Rte, Yte, B_IDS)
 
-    if name == "coppice+reuse":
-        # like coppice, but B-heads ALSO read the frozen A-concepts (forward transfer / reuse)
+    if name == "wyly+reuse":
+        # like wyly, but B-heads ALSO read the frozen A-concepts (forward transfer / reuse)
         bank = Bank(d, K, len(Y))
         mA = {"U": torch.zeros(K, d), "b": torch.zeros(K), "heads": torch.zeros(len(Y), K + 1)}
         mA["U"][:KA] = 1
@@ -199,7 +199,7 @@ def main():
           f"(matched capacity K={KA + KB})\n")
     print(f"{'learner':>10}{'retain_A':>10}{'learn_B':>10}{'balanced':>10}")
     rows = {}
-    for name in ["frozen", "naive", "ewc", "packnet", "coppice", "coppice+reuse", "joint"]:
+    for name in ["frozen", "naive", "ewc", "packnet", "wyly", "wyly+reuse", "joint"]:
         res = [evaluate(name, r, Y, s) for s in (0, 1, 2, 3)]
         aA = sum(x[0] for x in res) / len(res)
         aB = sum(x[1] for x in res) / len(res)
@@ -207,14 +207,14 @@ def main():
         rows[name] = (aA, aB, bal)
         print(f"{name:>10}{aA:>10.3f}{aB:>10.3f}{bal:>10.3f}", flush=True)
     best = max(rows, key=lambda k: rows[k][2])
-    cop = max(rows["coppice"][2], rows["coppice+reuse"][2])
-    print(f"\nbest balanced: {best} {rows[best][2]:.3f}  |  coppice(best) {cop:.3f}  "
+    cop = max(rows["wyly"][2], rows["wyly+reuse"][2])
+    print(f"\nbest balanced: {best} {rows[best][2]:.3f}  |  wyly(best) {cop:.3f}  "
           f"packnet {rows['packnet'][2]:.3f}  ewc {rows['ewc'][2]:.3f}")
     print("read: PACKNET is the fair strong baseline (also parameter-isolation: full-capacity A -> prune -> "
-          "release for B, forward transfer). If coppice ~ packnet, Coppice is AT PARITY with the best "
+          "release for B, forward transfer). If wyly ~ packnet, Wyly is AT PARITY with the best "
           "method (its extra value is then interpretability, not raw CL). Beating packnet would need the "
           "reuse/compositional structure to pay off -- unrelated surface concepts likely give parity. "
-          "coppice+reuse lets B read frozen A-concepts (the transfer packnet also has).")
+          "wyly+reuse lets B read frozen A-concepts (the transfer packnet also has).")
 
 
 if __name__ == "__main__":

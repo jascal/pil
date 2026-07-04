@@ -1,7 +1,7 @@
-"""FULL autonomous Coppice, end-to-end: adaptive capacity + wake/sleep + replay, NOTHING hand-allocated.
+"""FULL autonomous Wyly, end-to-end: adaptive capacity + wake/sleep + replay, NOTHING hand-allocated.
 
-The controlled coppice_progressive.py pre-allocated rule groups and hand-specified phases. This is the actual
-Coppice proposal -- a self-organizing learner over a task STREAM with NO pre-set capacity:
+The controlled wyly_progressive.py pre-allocated rule groups and hand-specified phases. This is the actual
+Wyly proposal -- a self-organizing learner over a task STREAM with NO pre-set capacity:
   WAKE  : train on current task (+ replay of prior tasks); if under-learned, OVER-SUBSCRIBE -> GROW concepts
           + rules from a reserve pool and retrain, until learned or capacity exhausted.
   SLEEP : (1) curate REPLAY exemplars = k representative (random) + k edge (highest-loss); (2) CONSOLIDATE by
@@ -13,7 +13,7 @@ Stream: func -> cap -> local_repeat -> rep_func(=repeat&func) -> rep_cap(=repeat
 compositional, reuse). Compare: autonomous vs fixed-small (under-provisions) vs monolithic (forgets) vs
 controlled (hand-allocated) vs joint (ceiling). Report per-task retention + final active concept/rule counts.
 
-Run: cd pil && .venv/bin/python experiments/coppice_autonomous.py
+Run: cd pil && .venv/bin/python experiments/wyly_autonomous.py
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ import torch
 import torch.nn.functional as F
 
 SP = Path("/tmp/claude-1000/-home-allans-code/79593291-dade-4d02-a009-357bd1c48e92/scratchpad")
-DATA = SP / "coppice_pythia70m.pt"
+DATA = SP / "wyly_pythia70m.pt"
 STREAM = ["func", "cap", "local_repeat", "rep_func", "rep_cap"]
 KMAX, RMAX = 40, 60
 KINIT, RINIT = 6, 8                     # start small; grow as needed
@@ -33,7 +33,7 @@ TARGET = 0.88                           # wake grows until task val-acc reaches 
 TAU = 0.6
 
 
-class AutoCoppice(torch.nn.Module):
+class AutoWyly(torch.nn.Module):
     """Growable unified substrate with active/protected masks over a fixed backing store."""
     def __init__(self, d, use_token_eq=True):
         super().__init__()
@@ -193,7 +193,7 @@ def homeostasis(model, data, t):
 
 def run_autonomous(dim, data, seed):
     torch.manual_seed(seed)
-    model = AutoCoppice(dim)
+    model = AutoWyly(dim)
     replay = {}
     trace = []
     for t in STREAM:
@@ -208,7 +208,7 @@ def run_autonomous(dim, data, seed):
 def run_fixed(dim, data, seed, grow=False):
     """fixed-small: no growth (KINIT/RINIT only); tests if starting capacity suffices."""
     torch.manual_seed(seed)
-    model = AutoCoppice(dim)
+    model = AutoWyly(dim)
     replay = {}
     for t in STREAM:
         wake(model, t, data, replay, seed, allow_grow=grow)
@@ -219,7 +219,7 @@ def run_fixed(dim, data, seed, grow=False):
 def run_monolithic(dim, data, seed):
     """full capacity active, retrained per task, NO replay/consolidation -> forgets."""
     torch.manual_seed(seed)
-    model = AutoCoppice(dim)
+    model = AutoWyly(dim)
     model.active_c[:] = True
     model.active_r[:] = True
     g = torch.Generator().manual_seed(seed)
@@ -235,7 +235,7 @@ def run_monolithic(dim, data, seed):
 
 def run_joint(dim, data, seed):
     torch.manual_seed(seed)
-    model = AutoCoppice(dim)
+    model = AutoWyly(dim)
     model.active_c[:] = True
     model.active_r[:] = True
     g = torch.Generator().manual_seed(seed)
@@ -268,7 +268,7 @@ def main():
     R, ids = d["r"].float(), d["kept_ids"]
     labels = dict(d["labels"])
     labels["rep_cap"] = (labels["local_repeat"].bool() & labels["cap"].bool()).long()
-    print(f"FULL autonomous Coppice, stream {STREAM}  R {tuple(R.shape)}")
+    print(f"FULL autonomous Wyly, stream {STREAM}  R {tuple(R.shape)}")
     print(f"start K={KINIT}/R={RINIT}; wake grows to {TARGET}; sleep=replay+consolidate+homeostasis\n")
     runners = {"autonomous": run_autonomous, "fixed-small": run_fixed,
                "monolithic": run_monolithic, "joint": run_joint}
@@ -286,7 +286,7 @@ def main():
         cap = f"{int(r['_nc'])}/{int(r['_nr'])}" if "_nc" in r else "-"
         print(f"{name:>12}" + "".join(f"{r[t]:>13.3f}" for t in STREAM) + f"{mean:>7.3f}{cap:>9}", flush=True)
     print("\nread: autonomous ~ joint ceiling with a SELF-ADAPTED nc/nr (grew from KINIT to fit the stream, "
-          "pruned waste) = self-organizing Coppice WORKS end-to-end; fixed-small should trail the "
+          "pruned waste) = self-organizing Wyly WORKS end-to-end; fixed-small should trail the "
           "harder/later tasks (under-provisioned); monolithic should FORGET early tasks (func/cap).")
 
 

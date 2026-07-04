@@ -8,7 +8,7 @@ So the ~0.78 might mean "it's there as a rule over concepts, and a linear probe 
 
 Test: for each concept, compare full-rank balanced ceiling of
   linear -- single hyperplane (r @ W)                         [the frontier baseline]
-  rule   -- K concept-hyperplanes + soft-conjunction RULES over them (the PIC/Coppice rule layer)
+  rule   -- K concept-hyperplanes + soft-conjunction RULES over them (the PIC/Wyly rule layer)
   mlp    -- 1 hidden layer (nonlinear upper bound)
 If for cross-token concepts rule >> linear (approaching mlp), the cross-token structure is RULE-STRUCTURED
 (multi-concept, compositional) -- recoverable by the rule form, NOT irreducibly distributed. For lexical,
