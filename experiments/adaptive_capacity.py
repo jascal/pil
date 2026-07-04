@@ -97,9 +97,9 @@ def task_loss(s, X, Y, tau=0.5):
     return sum(F.binary_cross_entropy_with_logits(lg[:, ti], Y[ti]) for ti in range(s.T)) / s.T
 
 
-def mdl(s, X, Y, lam=LAMBDA):
+def mdl(s, X, Y, lam_k=LAMBDA, lam_r=LAMBDA):
     with torch.no_grad():
-        return float(task_loss(s, X, Y)) + lam * (s.K + s.R)
+        return float(task_loss(s, X, Y)) + lam_k * s.K + lam_r * s.R      # per-type capacity price
 
 
 def train(s, X, Y, steps, lr=0.04):
@@ -207,8 +207,20 @@ def dead_rule(s, X):
 
 
 # ---- adaptive loop ----
+def collapse_similar(s, n_merges):
+    """Multi-merge: greedily fuse the n most-similar concept pairs in one jump (basin-escape --
+    a single pairwise merge can't leave a high-accuracy/low-parsimony optimum, several together can)."""
+    cur = s
+    for _ in range(n_merges):
+        if cur.K <= 2:
+            break
+        (a, b), _ = most_similar_concepts(cur)
+        cur = merge_concepts(cur, a, b)
+    return cur
+
+
 def propose(s, X, Y, n_split=3):
-    """Richer candidate set: split the top-n most-overloaded concepts + merge + add + prune."""
+    """split top-n overloaded concepts + single-merge + MULTI-merge + add-rule + prune-rule."""
     cands = []
     if s.K < MAX_K:
         res = concept_residual(s, X, Y)
@@ -217,6 +229,8 @@ def propose(s, X, Y, n_split=3):
     if s.K > 2:
         (a, b), _ = most_similar_concepts(s)
         cands.append(("merge", merge_concepts(s, a, b)))
+    if s.K > 4:
+        cands.append(("multi_merge", collapse_similar(s, 3)))            # basin-escape jump
     if s.R < MAX_R:
         cands.append(("add_rule", add_rule(s)))
     if s.R > 2:
@@ -224,26 +238,28 @@ def propose(s, X, Y, n_split=3):
     return cands
 
 
-def adapt(X, Y, K0, R0, T, phases=10, moves_per_phase=3, inner=350, seed=0,
-          lam_lo=0.005, lam_hi=0.04):
+def adapt(X, Y, K0, R0, T, phases=12, moves_per_phase=3, inner=350, seed=0,
+          lam_k_lo=0.004, lam_k_hi=0.06, lam_r=0.012):
     torch.manual_seed(seed)
     s = State(K0, R0, T)
     train(s, X, Y, 1200)
-    trace, moves = [(s.K, s.R, mdl(s, X, Y, lam_hi))], []
+    trace, moves = [(s.K, s.R, mdl(s, X, Y, lam_k_hi, lam_r))], []
     for phase in range(phases):
-        lam = lam_lo + (lam_hi - lam_lo) * (phase / max(phases - 1, 1))   # anneal cheap -> expensive
+        t = phase / max(phases - 1, 1)
+        # concept price: cheap for the first ~60% (grow freely), then ramp hard (force consolidation).
+        lam_k = lam_k_lo if t < 0.6 else lam_k_lo + (lam_k_hi - lam_k_lo) * ((t - 0.6) / 0.4)
         for _ in range(moves_per_phase):
-            cur = mdl(s, X, Y, lam)
+            cur = mdl(s, X, Y, lam_k, lam_r)
             best_move, best_state, best_mdl = None, None, cur
             for name, cand in propose(s, X, Y):
                 train(cand, X, Y, inner)
-                m = mdl(cand, X, Y, lam)
+                m = mdl(cand, X, Y, lam_k, lam_r)
                 if m < best_mdl - 1e-4:
                     best_move, best_state, best_mdl = name, cand, m
             if best_state is None:
-                break                                                    # no improving move at this lambda
+                break                                                    # no improving move
             s = best_state
-            moves.append(f"{best_move}@{lam:.3f}")
+            moves.append(f"{best_move}@k{lam_k:.3f}")
             trace.append((s.K, s.R, best_mdl))
     train(s, X, Y, 1000)
     return s, trace, moves
