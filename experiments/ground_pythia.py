@@ -21,9 +21,12 @@ import torch
 import torch.nn.functional as F
 
 SP = Path("/tmp/claude-1000/-home-allans-code/79593291-dade-4d02-a009-357bd1c48e92/scratchpad")
-SCALES = [("pythia-70m", "pythia70m_stories.pt"),
-          ("pythia-410m", "pythia410m_stories.pt"),
-          ("pythia-1b", "pythia1b_stories.pt")]
+LADDERS = {
+    "pythia": [("pythia-70m", "pythia70m_stories.pt"), ("pythia-410m", "pythia410m_stories.pt"),
+               ("pythia-1b", "pythia1b_stories.pt")],
+    "qwen2.5": [("qwen-0.5b", "qwen05b_stories.pt"), ("qwen-1.5b", "qwen15b_stories.pt"),
+                ("qwen-3b", "qwen3b_stories.pt"), ("qwen-7b", "qwen7b_stories.pt")],
+}
 
 
 def linear_probe(Xtr, ytr, Xte, yte, nclass, steps=600, lr=0.05):
@@ -87,21 +90,26 @@ def run(name, path):
 
 
 def main():
-    print("PYTHIA rung (real LLM, scale sweep) — function/content grounding, CLEAN deterministic CUR label")
-    print("ladder: toy 0.64 < stories 0.84-0.88 < threx/lisp 0.99. keep rising on a real LLM?\n")
-    ladder = []
-    for name, path in SCALES:
-        c = run(name, path)
-        if c is not None:
-            ladder.append((name, c))
-    if len(ladder) >= 2:
-        trend = " -> ".join(f"{n.split('-')[1]}:{c:.3f}" for n, c in ladder)
-        rising = ladder[-1][1] > ladder[0][1] + 0.02
-        print(f"\nCUR-ceiling scale trend: {trend}  ({'RISES' if rising else 'plateaus/falls'} with scale)")
-    print("\nread: if the clean (CUR) ceiling keeps rising / stays high across pythia scale, the linear-"
-          "representation hypothesis holds into the real-LLM regime -- grammar is linearly grounded and the "
-          "concept-as-hyperplane bridge scales. A plateau/fall would mark where real-LLM structure stops "
-          "being cleanly linear. (TGT stays entropy-confounded -- ignore its absolute level.)")
+    import sys
+    fams = sys.argv[1:] or list(LADDERS)
+    print("LLM grounding scale sweep — function/content, CLEAN deterministic CUR label")
+    print("baseline ladder: toy 0.64 < stories 0.84-0.88 < threx/lisp 0.99. is ~0.95 universal across "
+          "family & scale?\n")
+    for fam in fams:
+        ladder = []
+        for name, path in LADDERS[fam]:
+            c = run(name, path)
+            if c is not None:
+                ladder.append((name, c))
+        if len(ladder) >= 2:
+            trend = " -> ".join(f"{n.split('-')[-1]}:{c:.3f}" for n, c in ladder)
+            rising = ladder[-1][1] > ladder[0][1] + 0.02
+            print(f"  [{fam}] CUR-ceiling trend: {trend}  "
+                  f"({'RISES' if rising else 'plateaus/flat'} with scale)\n")
+    print("read: if the clean (CUR) ceiling stays ~0.95 across BOTH families and up to 7B, the "
+          "linear-representation grounding of grammar is a UNIVERSAL property of real LLMs (not "
+          "pythia-specific). A family/scale-dependent fall would localize where it breaks. "
+          "(TGT stays entropy-confounded -- ignore its absolute level.)")
 
 
 if __name__ == "__main__":
