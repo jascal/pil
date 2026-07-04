@@ -115,6 +115,7 @@ def rule_mask(model, groups):
 def evaluate(name, data, seed):
     d0 = data[TASKS[0]][0]
     dim = d0.shape[-1]
+    torch.manual_seed(seed)                                       # seed model init (concept hyperplanes)
     if name == "monolithic":                                      # one net, retrained per phase, NO freeze
         model = Coppice(dim, use_token_eq=True)
         for ph in ["A", "B", "C"]:
