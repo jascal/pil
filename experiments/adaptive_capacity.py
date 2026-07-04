@@ -97,9 +97,9 @@ def task_loss(s, X, Y, tau=0.5):
     return sum(F.binary_cross_entropy_with_logits(lg[:, ti], Y[ti]) for ti in range(s.T)) / s.T
 
 
-def mdl(s, X, Y):
+def mdl(s, X, Y, lam=LAMBDA):
     with torch.no_grad():
-        return float(task_loss(s, X, Y)) + LAMBDA * (s.K + s.R)
+        return float(task_loss(s, X, Y)) + lam * (s.K + s.R)
 
 
 def train(s, X, Y, steps, lr=0.04):
@@ -207,40 +207,44 @@ def dead_rule(s, X):
 
 
 # ---- adaptive loop ----
-def adapt(X, Y, K0, R0, T, phases=7, inner=500, seed=0):
+def propose(s, X, Y, n_split=3):
+    """Richer candidate set: split the top-n most-overloaded concepts + merge + add + prune."""
+    cands = []
+    if s.K < MAX_K:
+        res = concept_residual(s, X, Y)
+        for k in res.argsort(descending=True)[:n_split].tolist():
+            cands.append(("split", split_concept(s, k)))
+    if s.K > 2:
+        (a, b), _ = most_similar_concepts(s)
+        cands.append(("merge", merge_concepts(s, a, b)))
+    if s.R < MAX_R:
+        cands.append(("add_rule", add_rule(s)))
+    if s.R > 2:
+        cands.append(("prune_rule", prune_rule(s, dead_rule(s, X))))
+    return cands
+
+
+def adapt(X, Y, K0, R0, T, phases=10, moves_per_phase=3, inner=350, seed=0,
+          lam_lo=0.005, lam_hi=0.04):
     torch.manual_seed(seed)
     s = State(K0, R0, T)
     train(s, X, Y, 1200)
-    trace = [(s.K, s.R, mdl(s, X, Y))]
-    moves = []
-    for _ in range(phases):
-        cur = mdl(s, X, Y)
-        cands = []
-        # concept split (overloaded concept)
-        if s.K < MAX_K:
-            k = int(concept_residual(s, X, Y).argmax())
-            cands.append(("split", split_concept(s, k)))
-        # concept merge (redundant pair)
-        if s.K > 2:
-            (a, b), _ = most_similar_concepts(s)
-            cands.append(("merge", merge_concepts(s, a, b)))
-        # rule add / prune
-        if s.R < MAX_R:
-            cands.append(("add_rule", add_rule(s)))
-        if s.R > 2:
-            cands.append(("prune_rule", prune_rule(s, dead_rule(s, X))))
-        # evaluate each candidate after a short inner train; accept the best MDL improvement
-        best_move, best_state, best_mdl = None, None, cur
-        for name, cand in cands:
-            train(cand, X, Y, inner)
-            m = mdl(cand, X, Y)
-            if m < best_mdl - 1e-4:
-                best_move, best_state, best_mdl = name, cand, m
-        if best_state is None:
-            break
-        s = best_state
-        moves.append(best_move)
-        trace.append((s.K, s.R, best_mdl))
+    trace, moves = [(s.K, s.R, mdl(s, X, Y, lam_hi))], []
+    for phase in range(phases):
+        lam = lam_lo + (lam_hi - lam_lo) * (phase / max(phases - 1, 1))   # anneal cheap -> expensive
+        for _ in range(moves_per_phase):
+            cur = mdl(s, X, Y, lam)
+            best_move, best_state, best_mdl = None, None, cur
+            for name, cand in propose(s, X, Y):
+                train(cand, X, Y, inner)
+                m = mdl(cand, X, Y, lam)
+                if m < best_mdl - 1e-4:
+                    best_move, best_state, best_mdl = name, cand, m
+            if best_state is None:
+                break                                                    # no improving move at this lambda
+            s = best_state
+            moves.append(f"{best_move}@{lam:.3f}")
+            trace.append((s.K, s.R, best_mdl))
     train(s, X, Y, 1000)
     return s, trace, moves
 
