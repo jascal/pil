@@ -116,6 +116,53 @@ def evaluate(name, r, Y, seed):
         fit(bank, Rtr, Ytr, B_IDS, 3000, mask=mB)
         return acc(bank, Rte, Yte, A_IDS), acc(bank, Rte, Yte, B_IDS)
 
+    if name == "coppice+reuse":
+        # like coppice, but B-heads ALSO read the frozen A-concepts (forward transfer / reuse)
+        bank = Bank(d, K, len(Y))
+        mA = {"U": torch.zeros(K, d), "b": torch.zeros(K), "heads": torch.zeros(len(Y), K + 1)}
+        mA["U"][:KA] = 1
+        mA["b"][:KA] = 1
+        for t in A_IDS:
+            mA["heads"][t] = 1
+            mA["heads"][t, KA:K] = 0
+        fit(bank, Rtr, Ytr, A_IDS, 3000, mask=mA)
+        mB = {"U": torch.zeros(K, d), "b": torch.zeros(K), "heads": torch.zeros(len(Y), K + 1)}
+        mB["U"][KA:K] = 1
+        mB["b"][KA:K] = 1
+        for t in B_IDS:
+            mB["heads"][t] = 1                            # B heads read ALL concepts (frozen A + plastic B)
+        fit(bank, Rtr, Ytr, B_IDS, 3000, mask=mB)
+        return acc(bank, Rte, Yte, A_IDS), acc(bank, Rte, Yte, B_IDS)
+
+    if name == "packnet":
+        # train ALL K on A -> prune to top-KA important concepts (frozen) -> release rest -> learn B
+        bank = Bank(d, K, len(Y))
+        fit(bank, Rtr, Ytr, A_IDS, 3000)
+        imp = bank.heads.detach()[A_IDS][:, :K].abs().sum(0)     # concept importance for A
+        keep = imp.argsort(descending=True)[:KA]
+        frozen = torch.zeros(K, dtype=torch.bool)
+        frozen[keep] = True
+        kf = frozen.float()
+        with torch.no_grad():
+            for t in A_IDS:                              # A reads ONLY its kept (frozen) concepts
+                bank.heads[t, :K][~frozen] = 0.0
+        # PackNet fine-tune: re-tune A-heads on the KEPT (frozen) concepts to recover A after pruning
+        mFT = {"U": torch.zeros(K, d), "b": torch.zeros(K), "heads": torch.zeros(len(Y), K + 1)}
+        for t in A_IDS:
+            mFT["heads"][t, :K] = kf                     # only kept-concept A-head weights train
+            mFT["heads"][t, -1] = 1
+        fit(bank, Rtr, Ytr, A_IDS, 1500, mask=mFT)
+        with torch.no_grad():                            # NOW release the pruned concepts for B
+            bank.U[~frozen] = torch.randn(int((~frozen).sum()), d) * (1.0 / d ** 0.5)
+            bank.b[~frozen] = 0.0
+        rel = (~frozen).float()
+        mB = {"U": rel[:, None].expand(K, d).contiguous(), "b": rel,
+              "heads": torch.zeros(len(Y), K + 1)}
+        for t in B_IDS:
+            mB["heads"][t] = 1                            # B heads read ALL K (frozen A + released)
+        fit(bank, Rtr, Ytr, B_IDS, 3000, mask=mB)
+        return acc(bank, Rte, Yte, A_IDS), acc(bank, Rte, Yte, B_IDS)
+
     if name == "frozen":
         bank = Bank(d, K, len(Y))
         mf = {"U": torch.zeros(K, d), "b": torch.zeros(K), "heads": torch.ones(len(Y), K + 1)}
@@ -152,18 +199,22 @@ def main():
           f"(matched capacity K={KA + KB})\n")
     print(f"{'learner':>10}{'retain_A':>10}{'learn_B':>10}{'balanced':>10}")
     rows = {}
-    for name in ["frozen", "naive", "ewc", "coppice", "joint"]:
+    for name in ["frozen", "naive", "ewc", "packnet", "coppice", "coppice+reuse", "joint"]:
         res = [evaluate(name, r, Y, s) for s in (0, 1, 2, 3)]
         aA = sum(x[0] for x in res) / len(res)
         aB = sum(x[1] for x in res) / len(res)
         bal = sum(min(x[0], x[1]) for x in res) / len(res)
         rows[name] = (aA, aB, bal)
         print(f"{name:>10}{aA:>10.3f}{aB:>10.3f}{bal:>10.3f}", flush=True)
-    verdict = ("WIN" if rows["coppice"][2] >= rows["ewc"][2] - 0.005 else "LOSE")
-    print(f"\ncoppice balanced {rows['coppice'][2]:.3f} vs ewc {rows['ewc'][2]:.3f}  -> coppice {verdict}")
-    print("read: naive=forgetting floor; joint=ceiling; ewc=standard CL baseline. If coppice's frozen-core "
-          "consolidation >= ewc on the BALANCED metric at MATCHED capacity, that's the first normative win "
-          "(parity/better vs a real method + interpretable directions). If < ewc, an honest negative.")
+    best = max(rows, key=lambda k: rows[k][2])
+    cop = max(rows["coppice"][2], rows["coppice+reuse"][2])
+    print(f"\nbest balanced: {best} {rows[best][2]:.3f}  |  coppice(best) {cop:.3f}  "
+          f"packnet {rows['packnet'][2]:.3f}  ewc {rows['ewc'][2]:.3f}")
+    print("read: PACKNET is the fair strong baseline (also parameter-isolation: full-capacity A -> prune -> "
+          "release for B, forward transfer). If coppice ~ packnet, Coppice is AT PARITY with the best "
+          "method (its extra value is then interpretability, not raw CL). Beating packnet would need the "
+          "reuse/compositional structure to pay off -- unrelated surface concepts likely give parity. "
+          "coppice+reuse lets B read frozen A-concepts (the transfer packnet also has).")
 
 
 if __name__ == "__main__":
