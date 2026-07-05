@@ -232,5 +232,34 @@ Findings:
    could arbitrate today; induction/succession kinds need one scalar confidence field in the
    manifest. This is the strongest-evidence schema proposal the arc has produced.
 
-*(Produced 2026-07-05; cover-aware, learned-frame, online-tier and support-weighted follow-ups same
-day; see WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*
+## Follow-up 5: mined anchored frames — the library stops being hand-designed
+
+`WYLY_LIB=mined`: `MinedGates` discovers `{offset: token}` frames from the student's **residual
+errors under the arbitrated cover**, each sleep: singleton frames (offsets 2–8; an anchor's whole
+slot-table slice is accepted by its *error-recovery*, interaction-scored — not by marginals) and
+2-anchor **conjunction** frames mined on the errors the singletons still miss (CN2-style
+refinement). Frames are end-relative, so tables fit on window tails (no overlap inflation);
+accepted slices merge into one growing confidence-carrying store (online-tier semantics) that
+plugs directly into the support-weighted arbitration. Offsets, anchors and conjunctions all come
+from the data.
+
+| cell | ext+sw | **mined+sw** | mined admitted? | frames |
+|---|---|---|---|---|
+| wikitext 14m | 0.334 | **0.339** | yes (2nd rule) | 16 (incl. 1 conjunction) |
+| wikitext 70m | 0.322 | **0.329** | yes (2nd rule) | 5 |
+| wikitext 410m | 0.287 | 0.288 | yes | 4 |
+| wikitext 2.8b | 0.270 | 0.270 | judge declined | 3 mined |
+| code 70m / 410m | 0.604 / 0.584 | 0.605 / 0.585 | yes | 191 / 187 |
+| wt103 70m / 410m | 0.334 / 0.298 | **0.341** / 0.298 | yes (2nd rule) | 7 / 4 |
+
+Findings: the mined family is **the first to add on top of the support-weighted cover on natural
+text** (+0.005…+0.007 at 14m–70m scales; new arc bests on wikitext and wt103), it never harms (the
+judge declines it at 2.8b — correct restraint under thin recovery), and on code it mines ~190
+frames whose windows the induction cover already owns (+0.001 — mining correctly finds little left
+to take). The mining rate tracks the error pool honestly: a handful of frames per sleep on wiki
+(diffuse errors), dozens on code (structured errors). Anchor-granular admission is the
+val-variance fix applied at the source — whole tables never enter; only slices that demonstrably
+recover errors do.
+
+*(Produced 2026-07-05; cover-aware, learned-frame, online-tier, support-weighted and mined-frame
+follow-ups same day; see WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*

@@ -76,12 +76,13 @@ def main():
             cpy = copy_incidence(ids, teach)
             shown = False
             for lib in ["base", "ext", "ext+cov", "gates+cov", "ext+cov+ol", "gates+cov+ol",
-                        "ext+cov+ol+sw", "gates+cov+ol+sw"]:
+                        "ext+cov+ol+sw", "gates+cov+ol+sw", "mined+cov+ol+sw"]:
                 if not sfile(lib, tag, ds).exists():
                     continue
                 m = torch.load(sfile(lib, tag, ds), map_location="cpu")
                 pre = (f"{tag:>12}{gacc:>7.3f}{cpy:>7.1%}" if not shown else " " * 26)
-                lib = lib.replace("+cov+ol+sw", "+SW").replace("+cov+ol", "+c+ol")
+                lib = (lib.replace("mined+cov+ol+sw", "MINED+SW")
+                       .replace("+cov+ol+sw", "+SW").replace("+cov+ol", "+c+ol"))
                 shown = True
                 rules = ", ".join(r.split(" [")[0] for r in m["rules"])
                 print(f"{pre}{lib:>6}{m['full']:>8.3f}{m['full'] - m['norules']:>+8.3f}"

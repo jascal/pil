@@ -296,6 +296,103 @@ def val_fired_acc(fn, ids, yv, val):
     return float((a[f] == yv[val][f]).float().mean()) if int(f.sum()) else 0.0
 
 
+class MinedGates:
+    """the MINED anchored-frame family (design dir 3, second half): {offset: token} frames --
+    singleton and 2-anchor CONJUNCTIONS -- discovered from the student's residual errors under the
+    arbitrated cover, interaction-scored (a frame is accepted by the error-recovery of its whole
+    slot-table slice, not by marginals). Frames are end-relative, so tables fit on window TAILS
+    (no sliding-overlap inflation); accepted content merges into one growing confidence-carrying
+    store with online-tier semantics. The library stops being hand-designed here: offsets, anchors
+    and conjunctions all come from the data."""
+
+    def __init__(self, vocab, dev, offs=(2, 3, 4, 5, 6, 7, 8),
+                 pair_offs=((2, 3), (2, 4), (3, 4), (2, 5))):
+        self.B, self.dev = vocab + 1, dev
+        self.offs, self.pair_offs = list(offs), list(pair_offs)
+        self.mined1, self.mined2 = set(), set()
+        e = torch.empty(0, dtype=torch.long, device=dev)
+        self.t1 = KeyTable(e, e.clone(), torch.empty(0, device=dev))     # (o,a,last) singleton
+        self.t2 = KeyTable(e.clone(), e.clone(), torch.empty(0, device=dev))  # 2-anchor frames
+        self.n_frames = 0
+
+    def _merge(self, tab, keys, vals, confs):
+        k = torch.cat([tab.k, keys])
+        v = torch.cat([tab.v, vals])
+        c = torch.cat([tab.c, confs])
+        return KeyTable(k, v, c)
+
+    def mine(self, model, ids, yv, cls, fitset, g, log, cycle, sample_n=6000):
+        smp = fitset[torch.randint(len(fitset), (sample_n,), generator=g)]
+        _, pred = core_cover_sw(model, model.rules, ids, yv, cls, smp, return_pred=True)
+        err = smp[pred != yv[smp]]
+        if len(err) < 50:
+            return
+        tails, ytail = ids[fitset], yv[fitset]
+        new1 = new2 = 0
+        for o in self.offs:                                  # singleton frames {o: a}
+            tab, _ = best_per_key(tails[:, -o] * self.B + tails[:, -1], ytail, 3, 0.4)
+            v, c = tab.lookup_conf(ids[err][:, -o] * self.B + ids[err][:, -1])
+            good = (v == yv[err]).float()
+            ua, inv = ids[err][:, -o].unique(return_inverse=True)
+            rec = torch.zeros(len(ua), device=self.dev).index_add_(0, inv, good)
+            cnt = torch.zeros(len(ua), device=self.dev).index_add_(0, inv,
+                                                                   torch.ones_like(good))
+            for a in ua[(cnt >= 15) & (rec / cnt.clamp(min=1) >= 0.25)].tolist():
+                if (o, a) in self.mined1:
+                    continue
+                self.mined1.add((o, a))
+                sl = (tab.k // self.B) == a
+                self.t1 = self._merge(self.t1, (o * self.B + a) * self.B + tab.k[sl] % self.B,
+                                      tab.v[sl], tab.c[sl])
+                new1 += 1
+        v1, _ = self.lookup_conf_all(ids[err])               # residual errors after singletons
+        res = err[v1 != yv[err]]
+        if len(res) >= 50:
+            for o1, o2 in self.pair_offs:                    # 2-anchor conjunctions {o1:a1, o2:a2}
+                key_fit = ((tails[:, -o1] * self.B + tails[:, -o2]) * self.B + tails[:, -1])
+                tab, _ = best_per_key(key_fit, ytail, 3, 0.5)
+                ke = (ids[res][:, -o1] * self.B + ids[res][:, -o2]) * self.B + ids[res][:, -1]
+                v, c = tab.lookup_conf(ke)
+                good = (v == yv[res]).float()
+                pk = ids[res][:, -o1] * self.B + ids[res][:, -o2]
+                ua, inv = pk.unique(return_inverse=True)
+                rec = torch.zeros(len(ua), device=self.dev).index_add_(0, inv, good)
+                cnt = torch.zeros(len(ua), device=self.dev).index_add_(0, inv,
+                                                                       torch.ones_like(good))
+                oid = o1 * 16 + o2
+                for ab in ua[(cnt >= 10) & (rec / cnt.clamp(min=1) >= 0.3)].tolist():
+                    if (oid, ab) in self.mined2:
+                        continue
+                    self.mined2.add((oid, ab))
+                    sl = (tab.k // self.B) == ab
+                    self.t2 = self._merge(self.t2, (oid * self.B ** 2 + ab) * self.B
+                                          + tab.k[sl] % self.B, tab.v[sl], tab.c[sl])
+                    new2 += 1
+        self.n_frames = len(self.mined1) + len(self.mined2)
+        if new1 or new2:
+            log.append(f"    sleep {cycle}: MINED {new1} singleton + {new2} conjunction frames "
+                       f"(total {self.n_frames}; from {len(err)} errors)")
+
+    def lookup_conf_all(self, w):
+        best_v = torch.full((len(w),), -1, dtype=torch.long, device=w.device)
+        best_c = torch.full((len(w),), -1e9, device=w.device)
+        for o in self.offs:
+            v, c = self.t1.lookup_conf((o * self.B + w[:, -o]) * self.B + w[:, -1])
+            m = (v >= 0) & (c > best_c)
+            best_v, best_c = torch.where(m, v, best_v), torch.where(m, c, best_c)
+        for o1, o2 in self.pair_offs:
+            k = ((o1 * 16 + o2) * self.B ** 2 + w[:, -o1] * self.B + w[:, -o2]) * self.B + w[:, -1]
+            v, c = self.t2.lookup_conf(k)
+            m = (v >= 0) & (c > best_c)
+            best_v, best_c = torch.where(m, v, best_v), torch.where(m, c, best_c)
+        return best_v, best_c
+
+    def mirror(self):
+        def fn(ids):
+            return self.lookup_conf_all(ids)[0]
+        return fn
+
+
 def sleep_admit_v5(model, ids, y, val, cycle, candidates, log, thresh=0.002):
     """the judge, library-agnostic: temp-install each unadmitted candidate; admit the best payer."""
     base = v2.top1(model, ids, y, val)
@@ -434,6 +531,27 @@ def main():
             candidates.append((nm, mir_skip(tab, off)))
             register_conf(nm, tab, keyfn_offsets((off,), vocab))
         candidates.append(("repetition", mir_repetition))
+    if LIB == "mined":                                       # design dir 3 second half: mined frames
+        candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
+        for k in (2, 3):
+            for supp in (40,):
+                of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
+                online_frames.append(of)
+                nm = f"kgram k={k} (online s{supp})"
+                candidates.append((nm, of.mirror()))
+                CONF_FNS[nm] = (lambda ids, of=of:
+                                of.table.lookup_conf(of._suffix_key(ids, False)))
+        for off in (2, 3):
+            tab, nk = fit_skip(ids, yv, fit, off)
+            nm = f"skip o={off} [{nk}]"
+            candidates.append((nm, mir_skip(tab, off)))
+            register_conf(nm, tab, keyfn_offsets((off,), vocab))
+        candidates.append(("repetition", mir_repetition))
+        mined = MinedGates(vocab, DEV)
+        candidates.append(("mined frames (online)", mined.mirror()))
+        CONF_FNS["mined frames (online)"] = mined.lookup_conf_all
+    else:
+        mined = None
     gate_cands = []
     if LIB == "gates":                                       # learned-frame family (gate kind)
         candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
@@ -483,6 +601,8 @@ def main():
             model.sgd(v2.LR)
         for of in online_frames:
             of.refresh()                                     # re-gate the online tiers each sleep
+        if mined is not None:
+            mined.mine(model, ids, yv, cls, fit, g, log, ep)
         for name, fn in model.rules:                         # scalar confidences from val (sw cover)
             if name not in CONF_FNS:
                 RULE_CONF[name] = val_fired_acc(fn, ids, yv, val)
