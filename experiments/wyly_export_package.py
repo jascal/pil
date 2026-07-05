@@ -85,7 +85,7 @@ def build_manifest(counts, cls, uv, ts, minsupp, mindet, induction_rules=None, m
         rules.append({
             "id": rid, "kind": "ngram", "tier": "gated", "basis": "observational",
             "ctx": [prev], "out": out, "support": int(mx[t]), "determinism": round(det, 4),
-            "citation": [f"wyly-v2 online counts: {ts.token_str(prev)!r} -> "
+            "citation": [f"{model} online counts: {ts.token_str(prev)!r} -> "
                          f"{ts.token_str(out)!r} (n={int(mx[t])}/{int(tot[t])})"]})
         rid += 1
     n_ng = len(rules)
