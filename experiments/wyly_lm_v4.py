@@ -20,6 +20,7 @@ Run: cd pil && .venv/bin/python experiments/wyly_lm_v4.py   (after make_teacher 
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -33,9 +34,12 @@ from wyly_lm_v3 import WylyV3, mir_induction_L, sleep_admit
 
 REPO = Path(__file__).resolve().parent.parent
 DATA = REPO / "data" / "wyly_nexttoken_wikitext_L256.pt"
-TEACH = REPO / "data" / "wyly_teacher_pythia70m_L256.pt"
-PKG = REPO / "data" / "wyly_expert_package_v4"
-STATE = REPO / "data" / "wyly_v4_state.pt"
+_TAG = os.environ.get("WYLY_V4_TAG", "pythia70m")            # ladder runs: per-teacher artifacts
+TEACH = Path(os.environ.get("WYLY_TEACHER_FILE",
+                            REPO / "data" / f"wyly_teacher_{_TAG}_L256.pt"))
+PKG = REPO / "data" / (f"wyly_expert_package_v4_{_TAG}" if _TAG != "pythia70m"
+                       else "wyly_expert_package_v4")
+STATE = REPO / "data" / (f"wyly_v4_state_{_TAG}.pt" if _TAG != "pythia70m" else "wyly_v4_state.pt")
 DEV, V = v2.DEV, v2.V
 
 
@@ -101,7 +105,7 @@ def main():
                 "IMITATING pythia-70m decisions; admitted by the sleep judge")]
             admitted.append(rec)
         man = build_manifest(model.counts, cls, uv, ts, 1, 0.0, induction_rules=admitted,
-                             model="wyly-v4-imitates-pythia70m")
+                             model=f"wyly-v4-imitates-{_TAG}")
         (PKG / "manifest.json").write_text(json.dumps(man))
         timeline.append(len(admitted))
         with torch.no_grad():
