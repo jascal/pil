@@ -201,5 +201,36 @@ Reusable lessons: **de-duplicate (or calibrate support for) overlapping-window s
 the gates lesson generalized — *any* high-variance candidate re-admits under val noise whenever
 offered, so pre-gate strength must scale with table variance, not be uniform.
 
-*(Produced 2026-07-05; cover-aware, learned-frame and online-tier follow-ups same day; see
-WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*
+## Follow-up 4: support-weighted cover (design direction 2) — the arc's largest gains
+
+`WYLY_COVER=sw`: the fixed tier priority is replaced by **confidence arbitration** — every
+applicable rule fires and the most confident answer wins. Table rules (ngram/gate/skip/counts) use
+per-key Laplace-shrunk determinism `cnt/(tot+α)`, α=2 — computable from the support/determinism
+fields the manifest already ships; scalar kinds (induction, repetition) use their val
+fired-accuracy, refreshed each sleep (**the one field the schema would need to add**). The judge
+admits under the same arbitrated cover, so admission and realization stay aligned. Host-side and
+exact throughout.
+
+| cell | prior best (fixed order) | support-weighted |
+|---|---|---|
+| wikitext 14m / 70m / 410m / 2.8b | 0.287 / 0.282 / 0.251 / 0.238 | **0.334 / 0.322 / 0.287 / 0.270** |
+| code 70m / 410m (gates) | 0.376 / 0.398 | **0.606 / 0.584** |
+| wt103 70m / 410m | 0.292 / 0.266 | **0.334 / 0.298** |
+
+Findings:
+1. **The fixed-priority cover was the arc's dominant bottleneck**: arbitration adds +0.032…+0.047
+   on natural text and **doubles the certified core on code** (0.31 → 0.60): the 66–69%
+   copy-pattern windows are finally answered by the high-confidence induction rules instead of
+   being shadowed by count rows the order fired first.
+2. **A qualitative threshold**: on code the certified core (0.604–0.606) now *exceeds the soft
+   student that discovered the rules* (0.567–0.569) — and on natural text it reaches 93–96% of the
+   student. The certifiability tax is near zero or negative under arbitration.
+3. The judge's admissions change character under the arbitrated objective: induction L=2 becomes
+   the universal first admission, deep inductions (L=4/5) and even repetition get admitted where
+   confidence arbitration can place them safely.
+4. **Upstream case**: ngram/gate entries already carry support+determinism, so sgiandubh/serve_package
+   could arbitrate today; induction/succession kinds need one scalar confidence field in the
+   manifest. This is the strongest-evidence schema proposal the arc has produced.
+
+*(Produced 2026-07-05; cover-aware, learned-frame, online-tier and support-weighted follow-ups same
+day; see WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*

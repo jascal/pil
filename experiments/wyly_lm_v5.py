@@ -38,12 +38,14 @@ DS = os.environ.get("WYLY_DS", "wikitext")
 LIB = os.environ.get("WYLY_LIB", "ext")
 JUDGE = os.environ.get("WYLY_JUDGE", "soft")                 # soft = sec-8.6 baseline; cover = design dir 1
 ONLINE = os.environ.get("WYLY_ONLINE", "") == "1"            # design dir 5: online k-gram tiers
+SWCOVER = os.environ.get("WYLY_COVER", "") == "sw"           # design dir 2: support-weighted cover
+ALPHA = 2.0                                                  # Laplace shrinkage for confidence
 DATA = REPO / "data" / (f"wyly_nexttoken_{DS}_L256.pt" if DS != "wikitext"
                         else "wyly_nexttoken_wikitext_L256.pt")
 TEACH = REPO / "data" / (f"wyly_teacher_{TAG}_{DS}_L256.pt" if DS != "wikitext"
                          else f"wyly_teacher_{TAG}_L256.pt")
 STATE = REPO / "data" / (f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}"
-                         f"{'_ol' if ONLINE else ''}.pt")
+                         f"{'_ol' if ONLINE else ''}{'_sw' if SWCOVER else ''}.pt")
 ADMIT_F = REPO / "data" / f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}_admitted.json"
 DEV, V = v2.DEV, v2.V
 
@@ -65,11 +67,12 @@ def load_ds():
 
 
 class KeyTable:
-    """exact suffix/slot table as (sorted keys, values); mirror = searchsorted. Fit once on train."""
+    """exact suffix/slot table as (sorted keys, values[, confidences]); mirror = searchsorted."""
 
-    def __init__(self, keys, vals):
+    def __init__(self, keys, vals, conf=None):
         order = keys.argsort()
         self.k, self.v = keys[order], vals[order]
+        self.c = conf[order] if conf is not None else None
 
     def lookup(self, q):
         if len(self.k) == 0:
@@ -77,6 +80,16 @@ class KeyTable:
         i = torch.searchsorted(self.k, q).clamp(max=len(self.k) - 1)
         hit = self.k[i] == q
         return torch.where(hit, self.v[i], torch.full_like(q, -1))
+
+    def lookup_conf(self, q):
+        """(val, conf) -- conf = Laplace-shrunk determinism of the fired key; -inf on miss."""
+        if len(self.k) == 0 or self.c is None:
+            return torch.full_like(q, -1), torch.full((len(q),), -1e9, device=q.device)
+        i = torch.searchsorted(self.k, q).clamp(max=len(self.k) - 1)
+        hit = self.k[i] == q
+        val = torch.where(hit, self.v[i], torch.full_like(q, -1))
+        conf = torch.where(hit, self.c[i], torch.full((len(q),), -1e9, device=q.device))
+        return val, conf
 
 
 def best_per_key(key, val, minsupp, mindet):
@@ -90,7 +103,8 @@ def best_per_key(key, val, minsupp, mindet):
     first[1:] = kinv[order][1:] != kinv[order][:-1]
     sel = order[first]
     keep = (cnt[sel] >= minsupp) & (cnt[sel].float() / tot[kinv[sel]].clamp(min=1) >= mindet)
-    return KeyTable(pair[0][sel][keep], pair[1][sel][keep]), int(keep.sum())
+    conf = cnt[sel].float() / (tot[kinv[sel]] + ALPHA)
+    return KeyTable(pair[0][sel][keep], pair[1][sel][keep], conf[keep]), int(keep.sum())
 
 
 class OnlineFrame:
@@ -146,7 +160,8 @@ class OnlineFrame:
         sel = order[first]
         keep = (cnt[sel] >= self.minsupp) & (cnt[sel].float() / tot[kinv[sel]].clamp(min=1)
                                              >= self.mindet)
-        self.table = KeyTable(key[sel][keep], val[sel][keep])
+        conf = cnt[sel].float() / (tot[kinv[sel]] + ALPHA)
+        self.table = KeyTable(key[sel][keep], val[sel][keep], conf[keep])
 
     def mirror(self):
         def fn(ids):
@@ -209,9 +224,76 @@ def mir_skip(table, off):
     return fn
 
 
+CONF_FNS = {}                                            # name -> (ids)->(val, per-key conf)
+RULE_CONF = {}                                           # name -> scalar val fired-accuracy
+
+
+def register_conf(name, table, keyfn):
+    def cf(ids):
+        return table_ref[0].lookup_conf(keyfn(ids))
+    table_ref = [table]
+    CONF_FNS[name] = cf
+    return table_ref
+
+
+def keyfn_offsets(offs, vocab):
+    base = vocab + 1
+
+    def kf(ids):
+        q = torch.zeros(len(ids), dtype=torch.long, device=ids.device)
+        for o in offs:
+            q = q * base + ids[:, -o]
+        return q
+    return kf
+
+
 def mir_repetition(ids):
     same = ids[:, -1] == ids[:, -2]
     return torch.where(same, ids[:, -1], torch.full_like(ids[:, -1], -1))
+
+
+def core_cover_sw(model, rules, ids, yv, cls, idxs, extra_conf=None, return_pred=False):
+    """SUPPORT-WEIGHTED cover (design dir 2): every applicable rule fires; the answer with the
+    highest confidence wins. Table rules use per-key Laplace-shrunk determinism cnt/(tot+ALPHA);
+    the counts tier likewise; scalar rules (induction etc.) use their val fired-accuracy
+    (RULE_CONF, refreshed each sleep). Host-side and exact -- the arbitration uses only stats the
+    manifest already ships (+ one scalar confidence field for non-table kinds)."""
+    w = ids[idxs]
+    pred = torch.full_like(w[:, -1], -1)
+    conf = torch.full((len(w),), -1e9, device=w.device)
+
+    def consider(a, c):
+        nonlocal pred, conf
+        m = (a >= 0) & (c > conf)
+        pred = torch.where(m, a, pred)
+        conf = torch.where(m, c, conf)
+
+    ec = extra_conf or {}
+    for name, fn in rules:
+        if name in CONF_FNS:
+            a, c = CONF_FNS[name](w)
+        else:
+            a = fn(w)
+            c = torch.full((len(w),), float(ec.get(name, RULE_CONF.get(name, 0.0))),
+                           device=w.device)
+        consider(a, c)
+    t = w[:, -1]
+    row = model.counts[t]
+    mx, am = row.max(1)
+    tot = row.sum(1)
+    a = torch.where(mx >= 1, cls[am], torch.full_like(t, -1))
+    consider(a, mx.float() / (tot + ALPHA))
+    fired = pred >= 0
+    out = {"agree": float((pred == yv[idxs]).float().mean()),
+           "cover": float(fired.float().mean()),
+           "agree_fired": float((pred[fired] == yv[idxs][fired]).float().mean())}
+    return (out, pred) if return_pred else out
+
+
+def val_fired_acc(fn, ids, yv, val):
+    a = fn(ids[val])
+    f = a >= 0
+    return float((a[f] == yv[val][f]).float().mean()) if int(f.sum()) else 0.0
 
 
 def sleep_admit_v5(model, ids, y, val, cycle, candidates, log, thresh=0.002):
@@ -241,12 +323,16 @@ def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thres
     PACKAGE COVER on held-out val -- the objective the runtime actually realizes -- not by its vote
     in the soft mixture. Rules that merely displace an equally good lower tier score ~0 and are
     rejected; rules still install into the soft model as votes once admitted (training benefit)."""
-    base = core_cover(model, model.rules, ids, yv, cls, val)["agree"]
+    cover = core_cover_sw if SWCOVER else core_cover
+    base = cover(model, model.rules, ids, yv, cls, val)["agree"]
     best = (thresh, None)
     for name, fn in candidates:
         if any(n == name for n, _ in model.rules):
             continue
-        marg = core_cover(model, model.rules + [(name, fn)], ids, yv, cls, val)["agree"] - base
+        ec = ({name: val_fired_acc(fn, ids, yv, val)}
+              if SWCOVER and name not in CONF_FNS and name not in RULE_CONF else None)
+        kw = {"extra_conf": ec} if SWCOVER else {}
+        marg = cover(model, model.rules + [(name, fn)], ids, yv, cls, val, **kw)["agree"] - base
         log.append(f"    sleep {cycle}: candidate {name} COVER marginal {marg:+.4f}")
         t = 0.002 if name.startswith("gate") else thresh     # gate tables are high-variance
         if marg > t and marg > best[0]:
@@ -333,13 +419,20 @@ def main():
                 for supp in (40,):                           # s40 ~ 2 corpus occurrences under the
                     of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
                     online_frames.append(of)                 # ~21x window overlap; offering s2 too
-                    candidates.append((f"kgram k={k} (online s{supp})", of.mirror()))  # re-admits val-noise
+                    nm = f"kgram k={k} (online s{supp})"     # re-admits val-noise
+                    candidates.append((nm, of.mirror()))
+                    CONF_FNS[nm] = (lambda ids, of=of:
+                                    of.table.lookup_conf(of._suffix_key(ids, False)))
             else:
                 tab, nk = fit_kgram(ids, yv, fit, k, vocab)
-                candidates.append((f"kgram k={k} [{nk}]", mir_kgram(tab, k, vocab)))
+                nm = f"kgram k={k} [{nk}]"
+                candidates.append((nm, mir_kgram(tab, k, vocab)))
+                register_conf(nm, tab, keyfn_offsets(tuple(range(k, 0, -1)), vocab))
         for off in (2, 3):
             tab, nk = fit_skip(ids, yv, fit, off)
-            candidates.append((f"skip o={off} [{nk}]", mir_skip(tab, off)))
+            nm = f"skip o={off} [{nk}]"
+            candidates.append((nm, mir_skip(tab, off)))
+            register_conf(nm, tab, keyfn_offsets((off,), vocab))
         candidates.append(("repetition", mir_repetition))
     gate_cands = []
     if LIB == "gates":                                       # learned-frame family (gate kind)
@@ -349,16 +442,25 @@ def main():
                 for supp in (40,):
                     of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
                     online_frames.append(of)
-                    candidates.append((f"kgram k={k} (online s{supp})", of.mirror()))
+                    nm = f"kgram k={k} (online s{supp})"
+                    candidates.append((nm, of.mirror()))
+                    CONF_FNS[nm] = (lambda ids, of=of:
+                                    of.table.lookup_conf(of._suffix_key(ids, False)))
             else:
                 tab, nk = fit_kgram(ids, yv, fit, k, vocab)
-                candidates.append((f"kgram k={k} [{nk}]", mir_kgram(tab, k, vocab)))
+                nm = f"kgram k={k} [{nk}]"
+                candidates.append((nm, mir_kgram(tab, k, vocab)))
+                register_conf(nm, tab, keyfn_offsets(tuple(range(k, 0, -1)), vocab))
         for off in (2, 3):
             tab, nk = fit_skip(ids, yv, fit, off)
-            candidates.append((f"skip o={off} [{nk}]", mir_skip(tab, off)))
+            nm = f"skip o={off} [{nk}]"
+            candidates.append((nm, mir_skip(tab, off)))
+            register_conf(nm, tab, keyfn_offsets((off,), vocab))
         for offs in [(3, 1), (4, 1), (5, 1), (6, 1), (3, 2, 1), (4, 2, 1)]:
             tab, nk = fit_frame(ids, yv, fit, offs, vocab, minsupp=3, mindet=0.6)
-            gate_cands.append((f"gate {offs} [{nk}]", mir_frame(tab, offs, vocab)))
+            nm = f"gate {offs} [{nk}]"
+            gate_cands.append((nm, mir_frame(tab, offs, vocab)))
+            register_conf(nm, tab, keyfn_offsets(offs, vocab))
     print(f"candidate library ({len(candidates)}): {[n for n, _ in candidates]}")
     if gate_cands:
         print(f"gate grid ({len(gate_cands)}, proposer-selected at sleep): "
@@ -381,6 +483,9 @@ def main():
             model.sgd(v2.LR)
         for of in online_frames:
             of.refresh()                                     # re-gate the online tiers each sleep
+        for name, fn in model.rules:                         # scalar confidences from val (sw cover)
+            if name not in CONF_FNS:
+                RULE_CONF[name] = val_fired_acc(fn, ids, yv, val)
         cands = candidates
         if gate_cands:
             s_prop = fit[torch.randint(len(fit), (4000,), generator=g)]
@@ -400,11 +505,15 @@ def main():
     print(f"  copy-subset {cs_full:.3f} (ablated {cs_norules:.3f}, marginal "
           f"{cs_full - cs_norules:+.3f})")
     print(f"  admitted: {[r[0] for r in model.rules]}")
-    core = core_cover(model, model.rules, ids, yv, cls, te)
-    print(f"  certified core (package cover): agree {core['agree']:.3f} @ cover {core['cover']:.1%}"
-          f" (when-fired {core['agree_fired']:.3f})")
+    core_fixed = core_cover(model, model.rules, ids, yv, cls, te)
+    core_sw = core_cover_sw(model, model.rules, ids, yv, cls, te)
+    core = core_sw if SWCOVER else core_fixed
+    print(f"  certified core FIXED-ORDER: agree {core_fixed['agree']:.3f} @ "
+          f"{core_fixed['cover']:.1%} | SUPPORT-WEIGHTED: agree {core_sw['agree']:.3f} @ "
+          f"{core_sw['cover']:.1%}")
     torch.save({"full": full, "norules": norules, "cs_full": cs_full, "cs_norules": cs_norules,
-                "core": core, "rules": [r[0] for r in model.rules]}, STATE)
+                "core": core, "core_fixed": core_fixed, "core_sw": core_sw,
+                "rules": [r[0] for r in model.rules]}, STATE)
     ADMIT_F.write_text(json.dumps([r[0] for r in model.rules]))
 
 
