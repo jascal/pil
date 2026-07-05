@@ -47,11 +47,11 @@ pred(w, t) :- best(w, p), p1 = p + 1, tok(w, p1, t).
 """
 
 
-def souffle_pred(x: torch.Tensor, ell: int) -> dict[int, int]:
-    """run the induction Datalog program over windows x -> {window: predicted token}."""
+def souffle_pred(x: torch.Tensor, ell: int, prog: str = PROGRAM) -> dict[int, int]:
+    """run an induction-shaped Datalog program over windows x -> {window: predicted token}."""
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
-        (td / "prog.dl").write_text(PROGRAM.format(maxp=ell - 1))
+        (td / "prog.dl").write_text(prog.format(maxp=ell - 1))
         xc = x.cpu()
         with open(td / "tok.facts", "w") as f:
             for w in range(len(xc)):
