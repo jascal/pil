@@ -37,11 +37,13 @@ TAG = os.environ.get("WYLY_TAG", "pythia70m")
 DS = os.environ.get("WYLY_DS", "wikitext")
 LIB = os.environ.get("WYLY_LIB", "ext")
 JUDGE = os.environ.get("WYLY_JUDGE", "soft")                 # soft = sec-8.6 baseline; cover = design dir 1
+ONLINE = os.environ.get("WYLY_ONLINE", "") == "1"            # design dir 5: online k-gram tiers
 DATA = REPO / "data" / (f"wyly_nexttoken_{DS}_L256.pt" if DS != "wikitext"
                         else "wyly_nexttoken_wikitext_L256.pt")
 TEACH = REPO / "data" / (f"wyly_teacher_{TAG}_{DS}_L256.pt" if DS != "wikitext"
                          else f"wyly_teacher_{TAG}_L256.pt")
-STATE = REPO / "data" / f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}.pt"
+STATE = REPO / "data" / (f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}"
+                         f"{'_ol' if ONLINE else ''}.pt")
 ADMIT_F = REPO / "data" / f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}_admitted.json"
 DEV, V = v2.DEV, v2.V
 
@@ -89,6 +91,67 @@ def best_per_key(key, val, minsupp, mindet):
     sel = order[first]
     keep = (cnt[sel] >= minsupp) & (cnt[sel].float() / tot[kinv[sel]].clamp(min=1) >= mindet)
     return KeyTable(pair[0][sel][keep], pair[1][sel][keep]), int(keep.sum())
+
+
+class OnlineFrame:
+    """design direction 5: an ONLINE k-gram tier -- the same suffix-frame table as fit_frame, but
+    its exact pair counts merge in from every wake chunk (like the bigram counts buffer) and the
+    gated lookup table is refreshed at each sleep. The admitted rule is the TIER; its content grows
+    with the stream, so fit-once staleness (and the fit-once-vs-online confound) disappears."""
+
+    def __init__(self, offs, vocab, dev, minsupp=40, mindet=0.5):
+        # minsupp=40: sliding counts across stride-1-overlapping windows repeat each corpus pair
+        # ~21x, so 40 sliding counts ~ 2 real corpus occurrences (the fit-once tables' gate)
+        self.offs, self.base = offs, vocab + 1
+        self.minsupp, self.mindet = minsupp, mindet
+        self.pk = torch.empty(0, dtype=torch.long, device=dev)   # pairkey = suffixkey*base + next
+        self.pc = torch.empty(0, dtype=torch.long, device=dev)
+        self.table = KeyTable(self.pk.clone(), self.pk.clone())
+
+    def _suffix_key(self, ids, sliding):
+        if sliding:
+            maxo, ell = max(self.offs), ids.shape[1]
+            key = torch.zeros(len(ids) * (ell - maxo), dtype=torch.long, device=ids.device)
+            for o in self.offs:
+                key = key * self.base + ids[:, maxo - o:ell - o].reshape(-1)
+            return key
+        key = torch.zeros(len(ids), dtype=torch.long, device=ids.device)
+        for o in self.offs:
+            key = key * self.base + ids[:, -o]
+        return key
+
+    def update(self, w, ytail):
+        maxo = max(self.offs)
+        key = self._suffix_key(w, True)
+        nxt = w[:, maxo:].reshape(-1)
+        pair = torch.cat([key * self.base + nxt,
+                          self._suffix_key(w, False) * self.base + ytail])
+        pk, pc = pair.unique(return_counts=True)
+        allk = torch.cat([self.pk, pk])
+        allc = torch.cat([self.pc, pc])
+        self.pk, inv = allk.unique(return_inverse=True)
+        self.pc = torch.zeros(len(self.pk), dtype=torch.long,
+                              device=w.device).index_add_(0, inv, allc)
+
+    def refresh(self):
+        if not len(self.pk):
+            return
+        key, val, cnt = self.pk // self.base, self.pk % self.base, self.pc
+        uk, kinv = key.unique(return_inverse=True)
+        tot = torch.zeros(len(uk), device=key.device).index_add_(0, kinv, cnt.float())
+        comp = kinv * (int(cnt.max()) + 1) + cnt
+        order = comp.argsort(descending=True)
+        first = torch.ones(len(order), dtype=torch.bool, device=key.device)
+        first[1:] = kinv[order][1:] != kinv[order][:-1]
+        sel = order[first]
+        keep = (cnt[sel] >= self.minsupp) & (cnt[sel].float() / tot[kinv[sel]].clamp(min=1)
+                                             >= self.mindet)
+        self.table = KeyTable(key[sel][keep], val[sel][keep])
+
+    def mirror(self):
+        def fn(ids):
+            return self.table.lookup(self._suffix_key(ids, False))
+        return fn
 
 
 def fit_frame(ids, yv, tr, offs, vocab, stride=12, minsupp=2, mindet=0.5):
@@ -261,12 +324,19 @@ def main():
     g = torch.Generator().manual_seed(0)
     val = tr[torch.randperm(len(tr), generator=g)[:v2.NVAL]]
     fit = tr[~torch.isin(tr, val)]                           # tables are fit on FIT ONLY -- fitting on
+    online_frames = []
     candidates = [(f"induction L={lm}", mir_induction_L(lm)) for lm in (1, 2, 3)]
     if LIB == "ext":                                         # tr (which contains val) leaks the val
         candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
         for k in (2, 3):                                     # windows' own suffix pairs into the
-            tab, nk = fit_kgram(ids, yv, fit, k, vocab)      # judge's val marginals
-            candidates.append((f"kgram k={k} [{nk}]", mir_kgram(tab, k, vocab)))
+            if ONLINE:                                       # judge's val marginals
+                for supp in (40,):                           # s40 ~ 2 corpus occurrences under the
+                    of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
+                    online_frames.append(of)                 # ~21x window overlap; offering s2 too
+                    candidates.append((f"kgram k={k} (online s{supp})", of.mirror()))  # re-admits val-noise
+            else:
+                tab, nk = fit_kgram(ids, yv, fit, k, vocab)
+                candidates.append((f"kgram k={k} [{nk}]", mir_kgram(tab, k, vocab)))
         for off in (2, 3):
             tab, nk = fit_skip(ids, yv, fit, off)
             candidates.append((f"skip o={off} [{nk}]", mir_skip(tab, off)))
@@ -275,8 +345,14 @@ def main():
     if LIB == "gates":                                       # learned-frame family (gate kind)
         candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
         for k in (2, 3):
-            tab, nk = fit_kgram(ids, yv, fit, k, vocab)
-            candidates.append((f"kgram k={k} [{nk}]", mir_kgram(tab, k, vocab)))
+            if ONLINE:
+                for supp in (40,):
+                    of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
+                    online_frames.append(of)
+                    candidates.append((f"kgram k={k} (online s{supp})", of.mirror()))
+            else:
+                tab, nk = fit_kgram(ids, yv, fit, k, vocab)
+                candidates.append((f"kgram k={k} [{nk}]", mir_kgram(tab, k, vocab)))
         for off in (2, 3):
             tab, nk = fit_skip(ids, yv, fit, off)
             candidates.append((f"skip o={off} [{nk}]", mir_skip(tab, off)))
@@ -296,11 +372,15 @@ def main():
     print(f"\n{'episode':>8}{'teacher-agree':>15}{'copy-agree':>12}{'tier':>6}")
     for ep, ch in enumerate(torch.chunk(fit, v2.EPISODES)):
         model.update_counts(ids[ch], y[ch], model.lut)
+        for of in online_frames:
+            of.update(ids[ch], yv[ch])
         for _ in range(v2.WAKE_STEPS):
             bi = ch[torch.randint(len(ch), (v2.BATCH,), generator=g)]
             model.zero_grad(set_to_none=True)
             F.cross_entropy(model(ids[bi]), y[bi]).backward()
             model.sgd(v2.LR)
+        for of in online_frames:
+            of.refresh()                                     # re-gate the online tiers each sleep
         cands = candidates
         if gate_cands:
             s_prop = fit[torch.randint(len(fit), (4000,), generator=g)]

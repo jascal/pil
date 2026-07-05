@@ -38,8 +38,12 @@ def tfile(tag, ds):
 
 
 def sfile(lib, tag, ds):
-    suf = "_cov" if lib.endswith("+cov") else ""
-    lb = lib[:-4] if lib.endswith("+cov") else lib
+    suf = ""
+    lb = lib
+    if lb.endswith("+ol"):
+        suf, lb = "_ol", lb[:-3]
+    if lb.endswith("+cov"):
+        suf, lb = "_cov" + suf, lb[:-4]
     return REPO / "data" / f"wyly_v5_{lb}_{tag}_{ds}{suf}.pt"
 
 
@@ -69,11 +73,12 @@ def main():
             gacc = float((teach == gold).float().mean())
             cpy = copy_incidence(ids, teach)
             shown = False
-            for lib in ["base", "ext", "ext+cov", "gates+cov"]:
+            for lib in ["base", "ext", "ext+cov", "gates+cov", "ext+cov+ol", "gates+cov+ol"]:
                 if not sfile(lib, tag, ds).exists():
                     continue
                 m = torch.load(sfile(lib, tag, ds), map_location="cpu")
                 pre = (f"{tag:>12}{gacc:>7.3f}{cpy:>7.1%}" if not shown else " " * 26)
+                lib = lib.replace("+cov+ol", "+c+ol")
                 shown = True
                 rules = ", ".join(r.split(" [")[0] for r in m["rules"])
                 print(f"{pre}{lib:>6}{m['full']:>8.3f}{m['full'] - m['norules']:>+8.3f}"

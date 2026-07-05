@@ -175,5 +175,31 @@ signal the absence of exploitable frames). Two reusable lessons for any future f
 table support before the judge ever sees a candidate, and give high-variance families their own
 admission threshold.
 
-*(Produced 2026-07-05; cover-aware + learned-frame follow-ups same day; see
+## Follow-up 3: online k-gram tiers (design direction 5)
+
+`WYLY_ONLINE=1`: the k=2,3 tables are now **online tiers** exactly like the bigram counts buffer —
+`OnlineFrame` merges exact pair counts from every wake chunk and refreshes its gated lookup at each
+sleep; the admitted rule is the *tier*, its content grows with the stream. Three calibration
+iterations, each a full 10-cell matrix (logs `v5_online_run{1,2,3}` + `_final_s40`):
+
+1. **Naive (supp≥2)** closed the 14m gap as predicted (0.279 → 0.285) and lifted code, but dipped
+   wiki: stride-1 window overlap repeats each corpus pair ~21×, so supp≥2 is effectively **no
+   gate** — the old fit-once stride-12 subsample had been acting as accidental dedup.
+2. **Calibrated (supp≥40 ≈ 2 real corpus occurrences)** delivers **the first natural-text certified
+   gains of the whole library arc**: wikitext 70m 0.282 (base 0.276), 410m 0.251 (base 0.245),
+   wt103 **0.292 / 0.266** (+0.009 each over base); 14m 0.287.
+3. **Dual-support (offer s2 and s40, judge picks)** re-admits the noisy s2 tables next to s40 and
+   the val-variance lesson repeats (wiki drops back) — high-variance candidates leak through
+   whenever offered, independent of what else is available. One bonus: gates + s2-kgram on
+   code/410m briefly reached **0.398 (arc best)**.
+
+Final config: **s40-only** online tiers. Final matrix rows (`ext+c+ol`): wikitext
+0.287/0.282/0.251/0.237 (14m–2.8b), wt103 0.292/0.266, code 0.363/0.371 (ext) and 0.375/0.388
+(gates — code prefers looser gates; the s2 sweep is one knob away when wanted). The fit-once
+confound is dissolved: every certified tier now updates from the same stream as the counts.
+Reusable lessons: **de-duplicate (or calibrate support for) overlapping-window statistics**, and
+the gates lesson generalized — *any* high-variance candidate re-admits under val noise whenever
+offered, so pre-gate strength must scale with table variance, not be uniform.
+
+*(Produced 2026-07-05; cover-aware, learned-frame and online-tier follow-ups same day; see
 WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*
