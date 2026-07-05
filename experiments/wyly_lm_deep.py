@@ -13,13 +13,14 @@ Run: cd pil && .venv/bin/python experiments/wyly_lm_deep.py
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import torch
 import torch.nn.functional as F
 
-SP = Path("/tmp/claude-1000/-home-allans-code/79593291-dade-4d02-a009-357bd1c48e92/scratchpad")
-DATA = SP / "layers_pythia70m.pt"
+DATA = Path(os.environ.get(  # canonical dataset -- see experiments/extract_nexttoken.py
+    "WYLY_DATA", Path(__file__).resolve().parent.parent / "data" / "wyly_nexttoken_pythia70m.pt"))
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
 K0, CTX, V = 192, 4, 2048                         # token concepts, positions read, output vocab
 RMAX, RINIT, RGROW = 384, 128, 64                 # per-layer rule pool
