@@ -87,7 +87,11 @@ class WylyV2(torch.nn.Module):
         self.register_buffer("born", torch.full((RMAX,), -1, dtype=torch.long))
         self.wc = torch.nn.Parameter(torch.tensor(1.0))                 # path mixers
         self.wr = torch.nn.Parameter(torch.tensor(0.1))
+        self.wi = torch.nn.Parameter(torch.tensor(1.0))
         self.bias = torch.nn.Parameter(torch.zeros(ncls))
+        lut = torch.full((vocab,), -1, dtype=torch.long)
+        lut[cls] = torch.arange(ncls)
+        self.register_buffer("lut", lut)
 
     def base(self, ids):
         c = self.C[ids]
@@ -109,11 +113,26 @@ class WylyV2(torch.nn.Module):
             q, _ = lyr(mpos, q, hard=hard)
         return q @ self.C[self.cls].T                        # tied decode over class rows
 
-    def forward(self, ids, use_rel=True, use_counts=True, use_conj=True, hard=False):
+    def induction(self, ids):
+        """the CERTIFIED rule (wyly_rel_certify.py), installed STRUCTURALLY -- no gradient, exact:
+        hit(p) :- tok(p)==tok(last), p<L-1; best = max hit; vote the successor tok(best+1)."""
+        with torch.no_grad():
+            m = ids[:, :-1] == ids[:, -1:]
+            has = m.any(1)
+            mp = (m.float() * torch.arange(1, ids.shape[1], device=ids.device)).argmax(1)
+            c = self.lut[ids[torch.arange(len(ids), device=ids.device), mp + 1]]
+            ok = has & (c >= 0)
+            add = torch.zeros(len(ids), self.counts.shape[1], device=ids.device)
+            add[torch.where(ok)[0], c[ok]] = 1.0
+            return add
+
+    def forward(self, ids, use_rel=True, use_counts=True, use_conj=True, use_ind=True, hard=False):
         f = self.base(ids)
         out = f @ self.W + self.bias
         if use_counts:
             out = out + self.wc * torch.log1p(self.counts[ids[:, -1]])
+        if use_ind:
+            out = out + self.wi * self.induction(ids)
         if use_rel:
             out = out + self.wr * self.relational(ids, hard=hard)
         if use_conj and self.active.any():
@@ -251,19 +270,23 @@ def main():
     norel = top1(model, ids, y, te, use_rel=False)
     nocnt = top1(model, ids, y, te, use_counts=False)
     noconj = top1(model, ids, y, te, use_conj=False)
+    noind = top1(model, ids, y, te, use_ind=False)
     hard = top1(model, ids, y, te, hard=True)
     cs_full, cs_norel = top1(model, ids, y, cs), top1(model, ids, y, cs, use_rel=False)
-    cs_hard = top1(model, ids, y, cs, hard=True)
+    cs_noind = top1(model, ids, y, cs, use_ind=False)
     print(f"\n{'arm':>34}{'top-1':>9}")
     for nm, a in [("FULL (assembled)", full), ("- relational", norel), ("- counts", nocnt),
-                  ("- conjunctions", noconj), ("FULL, hard-route", hard),
-                  ("copy-subset FULL", cs_full), ("copy-subset - relational", cs_norel),
-                  ("copy-subset hard-route", cs_hard)]:
+                  ("- conjunctions", noconj), ("- certified induction rule", noind),
+                  ("FULL, hard-route", hard), ("copy-subset FULL", cs_full),
+                  ("copy-subset - relational", cs_norel),
+                  ("copy-subset - certified rule", cs_noind)]:
         print(f"{nm:>34}{a:>9.3f}")
     print(f"\nLADDER: (a) full {full:.3f} vs Adam-bigram {floor:.3f} -> "
           f"{'CLEARED' if full > floor else 'not cleared'} ({full - floor:+.3f})")
     print(f"        (b) relational marginal {full - norel:+.3f} overall, "
           f"{cs_full - cs_norel:+.3f} on the copy subset (threshold +0.02)")
+    print(f"        (b') certified-rule marginal {full - noind:+.3f} overall, "
+          f"{cs_full - cs_noind:+.3f} on the copy subset (learn -> certify -> INSTALL)")
     print("        (c) pythia-70m full-context decode reference: 0.189 (orientation only)")
     out = DATA.parent / "wyly_v2_state.pt"
     torch.save(model.state_dict(), out)                      # for wyly_rel_certify.py
