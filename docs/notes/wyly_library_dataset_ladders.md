@@ -127,4 +127,22 @@ wikitext ext-vs-base certified core across the pythia ladder:
    sizes); serving them as separate sgiandubh spokes under claymore, with the hub routing by
    abstention, is the deployment-shaped version of this matrix.
 
-*(Produced 2026-07-05; see WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6 for the arc context.)*
+## Follow-up: cover-aware admission, implemented (design direction 1)
+
+`WYLY_JUDGE=cover` in `wyly_lm_v5.py`: the sleep judge scores each candidate by its marginal to the
+**package cover** on held-out val — the objective the runtime realizes — instead of its vote in the
+soft mixture. Two defects surfaced by the first re-run and fixed: (i) a **val leak** — the fit-once
+k-gram/skip tables were fit on the train region *including* the val slice, inflating table rules'
+val marginals for both judges (tables now fit on the fit-set only); (ii) **greedy threshold
+myopia** — per-rule cover slices in a tiered cover are individually small, so the 0.002 threshold
+rejected collectively-valuable tiers (threshold now 5e-4 for the cover judge).
+
+Leak-fixed results (8 cells; `ladder2_cov.log`): the cover judge **matches or beats
+max(base, ext-soft) in 6/8 cells with half the trusted tier** (2–3 rules vs 5–7): code/70m 0.369
+(> soft 0.362, myopia fixed), code/410m 0.379 (≈ 0.381), wt103/70m 0.285 (> both arms),
+wikitext/2.8b 0.238 (best of any arm). Residual gap only at the smallest scales (wikitext 14m
+0.279 vs base 0.285) — the fit-once table quality bound, not the admission rule. Verdict: the
+displacement problem is repaired at its source — admission and realization now optimize the same
+objective, and the certified tier gets leaner and better simultaneously.
+
+*(Produced 2026-07-05; cover-aware follow-up same day; see WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*

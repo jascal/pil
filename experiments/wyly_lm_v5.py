@@ -36,12 +36,13 @@ REPO = Path(__file__).resolve().parent.parent
 TAG = os.environ.get("WYLY_TAG", "pythia70m")
 DS = os.environ.get("WYLY_DS", "wikitext")
 LIB = os.environ.get("WYLY_LIB", "ext")
+JUDGE = os.environ.get("WYLY_JUDGE", "soft")                 # soft = sec-8.6 baseline; cover = design dir 1
 DATA = REPO / "data" / (f"wyly_nexttoken_{DS}_L256.pt" if DS != "wikitext"
                         else "wyly_nexttoken_wikitext_L256.pt")
 TEACH = REPO / "data" / (f"wyly_teacher_{TAG}_{DS}_L256.pt" if DS != "wikitext"
                          else f"wyly_teacher_{TAG}_L256.pt")
-STATE = REPO / "data" / f"wyly_v5_{LIB}_{TAG}_{DS}.pt"
-ADMIT_F = REPO / "data" / f"wyly_v5_{LIB}_{TAG}_{DS}_admitted.json"
+STATE = REPO / "data" / f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}.pt"
+ADMIT_F = REPO / "data" / f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}_admitted.json"
 DEV, V = v2.DEV, v2.V
 
 
@@ -154,6 +155,28 @@ def sleep_admit_v5(model, ids, y, val, cycle, candidates, log, thresh=0.002):
     return None
 
 
+def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thresh=5e-4):
+    """COVER-AWARE admission (design direction 1): a candidate is scored by its marginal to the
+    PACKAGE COVER on held-out val -- the objective the runtime actually realizes -- not by its vote
+    in the soft mixture. Rules that merely displace an equally good lower tier score ~0 and are
+    rejected; rules still install into the soft model as votes once admitted (training benefit)."""
+    base = core_cover(model, model.rules, ids, yv, cls, val)["agree"]
+    best = (thresh, None)
+    for name, fn in candidates:
+        if any(n == name for n, _ in model.rules):
+            continue
+        marg = core_cover(model, model.rules + [(name, fn)], ids, yv, cls, val)["agree"] - base
+        log.append(f"    sleep {cycle}: candidate {name} COVER marginal {marg:+.4f}")
+        if marg > best[0]:
+            best = (marg, (name, fn))
+    if best[1]:
+        name, fn = best[1]
+        model.install(name, fn)
+        log.append(f"    sleep {cycle}: ADMITTED {name} (cover {best[0]:+.4f})")
+        return name
+    return None
+
+
 def core_cover(model, rules, ids, yv, cls, idxs):
     """the PACKAGE cover with the admitted library, runtime order: trusted gates (skip) -> ngrams
     longest-suffix (kgram k desc, then the online counts as k=1) -> induction L desc -> abstain."""
@@ -192,17 +215,20 @@ def main():
     yv = cls[y]
     vocab, ell = len(uv), ids.shape[1]
     cs = v2.copy_subset(ids, y, cls, te)
-    print(f"Wyly-LM v5 [{LIB}] -- teacher {TAG}, dataset {DS}, L={ell}, vocab {vocab}, {DEV}; "
+    print(f"Wyly-LM v5 [{LIB}/{JUDGE}] -- teacher {TAG}, dataset {DS}, L={ell}, vocab {vocab}, {DEV}; "
           f"copy-subset {len(cs)}/{len(te)} ({len(cs) / len(te):.0%})")
 
+    g = torch.Generator().manual_seed(0)
+    val = tr[torch.randperm(len(tr), generator=g)[:v2.NVAL]]
+    fit = tr[~torch.isin(tr, val)]                           # tables are fit on FIT ONLY -- fitting on
     candidates = [(f"induction L={lm}", mir_induction_L(lm)) for lm in (1, 2, 3)]
-    if LIB == "ext":
+    if LIB == "ext":                                         # tr (which contains val) leaks the val
         candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
-        for k in (2, 3):
-            tab, nk = fit_kgram(ids, yv, tr, k, vocab)
+        for k in (2, 3):                                     # windows' own suffix pairs into the
+            tab, nk = fit_kgram(ids, yv, fit, k, vocab)      # judge's val marginals
             candidates.append((f"kgram k={k} [{nk}]", mir_kgram(tab, k, vocab)))
         for off in (2, 3):
-            tab, nk = fit_skip(ids, yv, tr, off)
+            tab, nk = fit_skip(ids, yv, fit, off)
             candidates.append((f"skip o={off} [{nk}]", mir_skip(tab, off)))
         candidates.append(("repetition", mir_repetition))
     print(f"candidate library ({len(candidates)}): {[n for n, _ in candidates]}")
@@ -211,9 +237,6 @@ def main():
     ground = ground / ground.shape[1] ** 0.5
     torch.manual_seed(0)
     model = WylyV3(ground, cls.cpu(), ell).to(DEV)
-    g = torch.Generator().manual_seed(0)
-    val = tr[torch.randperm(len(tr), generator=g)[:v2.NVAL]]
-    fit = tr[~torch.isin(tr, val)]
     log = []
     print(f"\n{'episode':>8}{'teacher-agree':>15}{'copy-agree':>12}{'tier':>6}")
     for ep, ch in enumerate(torch.chunk(fit, v2.EPISODES)):
@@ -223,14 +246,17 @@ def main():
             model.zero_grad(set_to_none=True)
             F.cross_entropy(model(ids[bi]), y[bi]).backward()
             model.sgd(v2.LR)
-        sleep_admit_v5(model, ids, y, val, ep, candidates, log)
+        if JUDGE == "cover":
+            sleep_admit_cover(model, ids, yv, cls, y, val, ep, candidates, log)
+        else:
+            sleep_admit_v5(model, ids, y, val, ep, candidates, log)
         print(f"{ep:>8}{v2.top1(model, ids, y, te):>15.3f}{v2.top1(model, ids, y, cs):>12.3f}"
               f"{len(model.rules):>6}", flush=True)
     print("\n" + "\n".join(log))
     full = v2.top1(model, ids, y, te)
     norules = v2.top1(model, ids, y, te, use_rules=False)
     cs_full, cs_norules = v2.top1(model, ids, y, cs), v2.top1(model, ids, y, cs, use_rules=False)
-    print(f"\nv5[{LIB}] {TAG}/{DS}: teacher-agreement {full:.3f} (ablated {norules:.3f}, "
+    print(f"\nv5[{LIB}/{JUDGE}] {TAG}/{DS}: teacher-agreement {full:.3f} (ablated {norules:.3f}, "
           f"marginal {full - norules:+.3f})")
     print(f"  copy-subset {cs_full:.3f} (ablated {cs_norules:.3f}, marginal "
           f"{cs_full - cs_norules:+.3f})")

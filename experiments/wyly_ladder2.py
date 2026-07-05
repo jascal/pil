@@ -38,7 +38,9 @@ def tfile(tag, ds):
 
 
 def sfile(lib, tag, ds):
-    return REPO / "data" / f"wyly_v5_{lib}_{tag}_{ds}.pt"
+    suf = "_cov" if lib == "ext+cov" else ""
+    lb = "ext" if lib == "ext+cov" else lib
+    return REPO / "data" / f"wyly_v5_{lb}_{tag}_{ds}{suf}.pt"
 
 
 def copy_incidence(ids, teach, bs=8192):
@@ -67,7 +69,7 @@ def main():
             gacc = float((teach == gold).float().mean())
             cpy = copy_incidence(ids, teach)
             shown = False
-            for lib in ["base", "ext"]:
+            for lib in ["base", "ext", "ext+cov"]:
                 if not sfile(lib, tag, ds).exists():
                     continue
                 m = torch.load(sfile(lib, tag, ds), map_location="cpu")
@@ -80,13 +82,15 @@ def main():
                 print(f"{tag:>12}{gacc:>7.3f}{cpy:>7.1%}{'s8.5':>6}{'':>8}{'':>8}"
                       f"{BASE85[tag]:>7.3f}{'':>8}  [induction 1,2,3 -- v4 run]")
         print()
-    print("wikitext ext-vs-base certified core across the pythia ladder:")
-    print(f"{'teacher':>12}{'base(s8.5)':>11}{'ext':>7}{'delta':>8}")
+    print("wikitext certified core across the pythia ladder, by judge:")
+    print(f"{'teacher':>12}{'base(s8.5)':>11}{'ext-soft':>9}{'ext-COVER':>10}{'cov-best':>9}")
     for tag in TEACHERS:
-        f = sfile("ext", tag, "wikitext")
+        f, fc = sfile("ext", tag, "wikitext"), sfile("ext+cov", tag, "wikitext")
         if f.exists() and tag in BASE85:
             c = torch.load(f, map_location="cpu")["core"]["agree"]
-            print(f"{tag:>12}{BASE85[tag]:>11.3f}{c:>7.3f}{c - BASE85[tag]:>+8.3f}")
+            cc = (torch.load(fc, map_location="cpu")["core"]["agree"] if fc.exists() else float("nan"))
+            best = max(BASE85[tag], c)
+            print(f"{tag:>12}{BASE85[tag]:>11.3f}{c:>9.3f}{cc:>10.3f}{cc - best:>+9.3f}")
 
 
 if __name__ == "__main__":
