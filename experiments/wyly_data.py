@@ -32,6 +32,26 @@ def resolve_path() -> Path:
     return p
 
 
+def load_windows_tied(v: int = 4096, device: str | None = None, path: Path | None = None):
+    """v2 loader: targets live in the SAME compact vocab as window tokens (tied decode needs the
+    target's concept row). -> (ids (N,L), y (N,) class ids, cls (ncls,) class->compact-vocab map,
+    uv (vocab,) compact->original pythia ids, tr, te) -- temporal split, corpus-ordered windows."""
+    d = torch.load(path or resolve_path(), map_location="cpu")
+    ids, target = d["kept_ids"], d["target"]
+    keep = torch.isin(target, torch.bincount(target).argsort(descending=True)[:v])
+    ids, target = ids[keep], target[keep]
+    n, ell = ids.shape
+    flat = torch.cat([ids.reshape(-1), target])
+    uv, inv = flat.unique(return_inverse=True)
+    ids, yv = inv[:n * ell].reshape(n, ell), inv[n * ell:]
+    cls, y = yv.unique(return_inverse=True)
+    if device:
+        ids, y, cls = ids.to(device), y.to(device), cls.to(device)
+    tr = torch.arange(int(0.85 * n), device=ids.device)
+    te = torch.arange(int(0.85 * n), n, device=ids.device)
+    return ids, y, cls, uv, tr, te
+
+
 def load_windows(v: int = 2048, device: str | None = None):
     """-> (ids (N,L) compact-vocab windows, y (N,) class ids, vocab, tr, te) -- temporal split."""
     d = torch.load(resolve_path(), map_location="cpu")

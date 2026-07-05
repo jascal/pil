@@ -44,9 +44,10 @@ def from_text(path: Path, tokenizer: Path, window: int, n: int | None) -> dict:
         raise SystemExit(f"corpus too short: {len(ids)} tokens < window {window}+1")
     windows = ids.unfold(0, window + 1, 1)  # stride-1 windows of L+1
     if n is not None and len(windows) > n:
-        windows = windows[torch.randperm(len(windows), generator=torch.Generator().manual_seed(0))[:n]]
+        pick = torch.randperm(len(windows), generator=torch.Generator().manual_seed(0))[:n]
+        windows = windows[pick.sort().values]   # keep CORPUS ORDER so a temporal split has no
     return {"kept_ids": windows[:, :window].contiguous(), "target": windows[:, window].contiguous(),
-            "L": window}
+            "L": window}                        # train/test window overlap beyond the boundary
 
 
 def main():
