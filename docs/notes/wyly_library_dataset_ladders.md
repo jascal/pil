@@ -283,5 +283,27 @@ The eq/copy relational rules are now package-expressible end to end:
 What remains unexpressible: the battery's 2-hop program (chained search — would need a `khop`
 kind) and the mined-frame store as first-class gate rules (mechanical, just an emitter loop).
 
-*(Produced 2026-07-05; cover-aware, learned-frame, online-tier, support-weighted, mined-frame and
-relation-kind follow-ups same day; see WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*
+## Follow-up 7: per-dataset experts under claymore (design direction 6) — deployed
+
+The matrix, deployment-shaped (`experiments/wyly_claymore_demo.py`; sgiandubh `66254d7`): the
+wikitext and code packages — both emitted by the self-compiling learner with confidence-carrying
+rules — run as **sgiandubh HTTP spokes** (`--rosetta-package` now serves `/v1/chat/completions`;
+abstention = `kind:"abstain"`) federated under the **claymore hub**:
+
+- the wiki probe fires the wiki expert (code abstains) — hub answers with full provenance;
+- a code probe whose last token wikitext never saw fires the code expert (wiki abstains);
+- gibberish (two never-seen tokens) makes every spoke abstain — **the hub refuses in code**.
+
+Spoke confidences are the support-weighted cover's per-answer values, fed straight into claymore's
+ranking. Two deployment lessons: the hub's word-level relevance gate never overlaps subword
+citations (BPE splits identifiers) — next-token spokes route purely by abstention, and a
+subword-aware gate is claymore future work; and doubled-token "gibberish" *legitimately* fires the
+relation rule — repeated-token continuation is real next-token behavior, so out-of-scope probes
+must be non-repeating never-seen tokens.
+
+With this, **all six design directions are closed**: cover-aware admission (1), support-weighted
+arbitration (2), learned frames — selection and generation (3), the relation schema kind (4),
+online tiers (5), and federated per-dataset serving (6).
+
+*(Produced 2026-07-05; all six design-direction follow-ups same day; see
+WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*
