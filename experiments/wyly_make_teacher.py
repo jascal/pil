@@ -54,6 +54,7 @@ def main():
     ap.add_argument("--dtype", choices=["fp32", "fp16"], default="fp32")
     ap.add_argument("--batch", type=int, default=128)
     ap.add_argument("--anchor", action="store_true")
+    ap.add_argument("--ds", default="wikitext", help="dataset tag (wyly_nexttoken_<ds>_L256.pt)")
     a = ap.parse_args()
     if a.anchor:
         anchor()
@@ -61,7 +62,9 @@ def main():
     dt = torch.float16 if a.dtype == "fp16" else torch.float32
     m = AutoModelForCausalLM.from_pretrained(f"EleutherAI/{a.model}", local_files_only=True,
                                              torch_dtype=dt).cuda().eval()
-    dd = torch.load(REPO / "data" / "wyly_nexttoken_wikitext_L256.pt", map_location="cpu")
+    dfile = ("wyly_nexttoken_wikitext_L256.pt" if a.ds == "wikitext"
+             else f"wyly_nexttoken_{a.ds}_L256.pt")
+    dd = torch.load(REPO / "data" / dfile, map_location="cpu")
     ids, target = dd["kept_ids"], dd["target"]
     dec = torch.empty(len(ids), dtype=torch.long)
     with torch.no_grad():
@@ -70,7 +73,9 @@ def main():
             dec[i:i + a.batch] = m(b, logits_to_keep=1).logits[:, -1].float().argmax(1).cpu()
             if i % (a.batch * 100) == 0:
                 print(f"[{time.time() - T0:5.0f}s] {a.model} {i}/{len(ids)}", flush=True)
-    out = REPO / "data" / f"wyly_teacher_{a.model.replace('-', '')}_L256.pt"
+    mt = a.model.replace("-", "")
+    out = REPO / "data" / (f"wyly_teacher_{mt}_L256.pt" if a.ds == "wikitext"
+                           else f"wyly_teacher_{mt}_{a.ds}_L256.pt")
     torch.save({"teacher": dec, "L": int(dd["L"]), "model": a.model, "dtype": a.dtype}, out)
     print(f"[{time.time() - T0:5.0f}s] {a.model}: gold top-1 {float((dec == target).float().mean()):.3f}"
           f" -> {out.name}", flush=True)

@@ -34,12 +34,30 @@ def from_layers(path: Path) -> dict:
     return {"kept_ids": d["kept_ids"].long(), "target": d["target"].long(), "L": int(d["L"])}
 
 
+def _encode_chunked(ts, text: str, chunk: int = 200_000) -> list[int]:
+    """encode in chunks cut just after a newline NOT followed by another newline (keeps space-run
+    added tokens and multi-newline pretokens intact). pil.tokens' added-token splitter recurses per
+    occurrence, and code text has an indentation run on every line -- chunking bounds the depth."""
+    sys.setrecursionlimit(60_000)
+    ids, i = [], 0
+    while i < len(text):
+        j = min(i + chunk, len(text))
+        if j < len(text):
+            k = text.rfind("\n", i, j)
+            while k > i and k + 1 < len(text) and text[k + 1] == "\n":
+                k = text.rfind("\n", i, k)
+            j = k + 1 if k > i else j
+        ids.extend(ts.encode(text[i:j]))
+        i = j
+    return ids
+
+
 def from_text(path: Path, tokenizer: Path, window: int, n: int | None) -> dict:
     sys.path.insert(0, str(REPO))
     from pil.tokens import TokenSpace
 
     ts = TokenSpace.from_file(tokenizer)
-    ids = torch.tensor(ts.encode(path.read_text()), dtype=torch.long)
+    ids = torch.tensor(_encode_chunked(ts, path.read_text()), dtype=torch.long)
     if len(ids) < window + 1:
         raise SystemExit(f"corpus too short: {len(ids)} tokens < window {window}+1")
     windows = ids.unfold(0, window + 1, 1)  # stride-1 windows of L+1
