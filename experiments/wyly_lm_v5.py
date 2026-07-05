@@ -672,7 +672,8 @@ def main():
                                 "eq": [[i, j]], "copy": k, "confidence": conf, "citation": cite})
             else:
                 skipped.append(name)
-        pkg = REPO / "data" / "wyly_expert_package_v5"
+        pkg = REPO / "data" / ("wyly_expert_package_v5" if DS == "wikitext"
+                              else f"wyly_expert_package_v5_{DS}")
         pkg.mkdir(parents=True, exist_ok=True)
         man = build_manifest(model.counts, cls, uv, ts, 1, 0.0, induction_rules=trusted,
                              model=f"wyly-v5-{LIB}-{TAG}-{DS}")
