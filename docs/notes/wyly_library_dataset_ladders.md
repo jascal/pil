@@ -261,5 +261,27 @@ to take). The mining rate tracks the error pool honestly: a handful of frames pe
 val-variance fix applied at the source — whole tables never enter; only slices that demonstrably
 recover errors do.
 
-*(Produced 2026-07-05; cover-aware, learned-frame, online-tier, support-weighted and mined-frame
-follow-ups same day; see WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*
+## Follow-up 6: the `relation` schema kind (design direction 4) — cross-repo
+
+The eq/copy relational rules are now package-expressible end to end:
+
+- **Schema** (rosetta `fe3fb86`): `relation` = `eq:[[i,j],...]` guard + `copy:k` action — fires iff
+  `ctx[-i]==ctx[-j]` for every pair, then answers `ctx[-k]`; routed OOD after the n-gram tier,
+  above succession/induction (most specific first). The optional **`confidence`** field
+  (held-out fired-accuracy) is documented for all trusted non-table kinds — the one field
+  follow-up 4's arbitration needs.
+- **Runtimes**: rosetta `py/serve_package.py` (`fe3fb86` + parity fix `932ac4a`) and sgiandubh
+  `rosetta_package.h` (`8debfc5`), verified in **exact parity** on a pil-emitted package.
+- **Producer** (pil): v5 replaces the lone repetition candidate with a relation grid
+  (eq(1,2)c1 / eq(1,3)c1 / eq(2,3)c2); `WYLY_EMIT=1` emits the package with confidence-carrying
+  trusted rules. On wikitext/70m the judge admitted `relation eq(1,2)c1` with **val
+  fired-accuracy 0.9444** — repetition is 94% accurate when it fires.
+- **Live test**: a doubled unseen-as-prev token probe misses the n-gram tier and fires the
+  relation on *both* runtimes with the same answer and the citation naming the admitting judge,
+  teacher, dataset and confidence.
+
+What remains unexpressible: the battery's 2-hop program (chained search — would need a `khop`
+kind) and the mined-frame store as first-class gate rules (mechanical, just an emitter loop).
+
+*(Produced 2026-07-05; cover-aware, learned-frame, online-tier, support-weighted, mined-frame and
+relation-kind follow-ups same day; see WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*

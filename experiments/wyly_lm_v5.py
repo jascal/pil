@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 
 import torch
@@ -39,6 +40,7 @@ LIB = os.environ.get("WYLY_LIB", "ext")
 JUDGE = os.environ.get("WYLY_JUDGE", "soft")                 # soft = sec-8.6 baseline; cover = design dir 1
 ONLINE = os.environ.get("WYLY_ONLINE", "") == "1"            # design dir 5: online k-gram tiers
 SWCOVER = os.environ.get("WYLY_COVER", "") == "sw"           # design dir 2: support-weighted cover
+EMIT = os.environ.get("WYLY_EMIT", "") == "1"                # emit the rosetta package (relation kind)
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
 DATA = REPO / "data" / (f"wyly_nexttoken_{DS}_L256.pt" if DS != "wikitext"
                         else "wyly_nexttoken_wikitext_L256.pt")
@@ -250,6 +252,17 @@ def keyfn_offsets(offs, vocab):
 def mir_repetition(ids):
     same = ids[:, -1] == ids[:, -2]
     return torch.where(same, ids[:, -1], torch.full_like(ids[:, -1], -1))
+
+
+def mir_relation(i, j, k):
+    """the RELATION kind's mirror (schema: eq-guard + copy): ctx[-i]==ctx[-j] -> ctx[-k]."""
+    def fn(ids):
+        same = ids[:, -i] == ids[:, -j]
+        return torch.where(same, ids[:, -k], torch.full_like(ids[:, -1], -1))
+    return fn
+
+
+RELATION_GRID = [(1, 2, 1), (1, 3, 1), (2, 3, 2)]
 
 
 def core_cover_sw(model, rules, ids, yv, cls, idxs, extra_conf=None, return_pred=False):
@@ -546,7 +559,8 @@ def main():
             nm = f"skip o={off} [{nk}]"
             candidates.append((nm, mir_skip(tab, off)))
             register_conf(nm, tab, keyfn_offsets((off,), vocab))
-        candidates.append(("repetition", mir_repetition))
+        for i, j, k in RELATION_GRID:
+            candidates.append((f"relation eq({i},{j})c{k}", mir_relation(i, j, k)))
         mined = MinedGates(vocab, DEV)
         candidates.append(("mined frames (online)", mined.mirror()))
         CONF_FNS["mined frames (online)"] = mined.lookup_conf_all
@@ -634,6 +648,38 @@ def main():
     torch.save({"full": full, "norules": norules, "cs_full": cs_full, "cs_norules": cs_norules,
                 "core": core, "core_fixed": core_fixed, "core_sw": core_sw,
                 "rules": [r[0] for r in model.rules]}, STATE)
+    if EMIT:
+        import re
+        import shutil
+
+        from wyly_export_package import build_manifest
+        sys.path.insert(0, str(REPO))
+        from pil.tokens import TokenSpace
+        tok = REPO.parent / "rosetta" / "models" / "pythia70m" / "bundle.tokenizer.json"
+        ts = TokenSpace.from_file(tok)
+        trusted, skipped = [], []
+        for name, _fn in model.rules:
+            conf = round(RULE_CONF.get(name, 0.0), 4)
+            cite = [f"admitted by the sleep judge ({LIB}/{JUDGE}{'/sw' if SWCOVER else ''}), "
+                    f"teacher {TAG}, dataset {DS}; val fired-accuracy {conf}"]
+            if name.startswith("induction L="):
+                trusted.append({"kind": "induction", "tier": "trusted", "basis": "causal",
+                                "L": int(name.split("L=")[1]), "confidence": conf,
+                                "citation": cite})
+            elif name.startswith("relation"):
+                i, j, k = map(int, re.match(r"relation eq\((\d+),(\d+)\)c(\d+)", name).groups())
+                trusted.append({"kind": "relation", "tier": "trusted", "basis": "causal",
+                                "eq": [[i, j]], "copy": k, "confidence": conf, "citation": cite})
+            else:
+                skipped.append(name)
+        pkg = REPO / "data" / "wyly_expert_package_v5"
+        pkg.mkdir(parents=True, exist_ok=True)
+        man = build_manifest(model.counts, cls, uv, ts, 1, 0.0, induction_rules=trusted,
+                             model=f"wyly-v5-{LIB}-{TAG}-{DS}")
+        (pkg / "manifest.json").write_text(json.dumps(man))
+        shutil.copy(tok, pkg / "bundle.tokenizer.json")
+        print(f"  package -> {pkg} ({len(trusted)} trusted rules; table-kind rules not emitted: "
+              f"{skipped})")
     ADMIT_F.write_text(json.dumps([r[0] for r in model.rules]))
 
 
