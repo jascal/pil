@@ -218,7 +218,15 @@ each sleep compiles the task the wake sketched --- including watching the 2-hop 
 compile). Final accuracy is $1.000/1.000/1.000$ with the heads freshly reset three times; a
 baseline with the identical optimization budget minus compile/install/reset finishes at
 $0.010/0.002/0.007$ (Fig.~\ref{fig:curriculum}). A certified rule cannot be forgotten because it
-is not weights.
+is not weights --- and this is now a machine-checked theorem, not an argument: the C-series
+companion (\code{i-orca} \code{examples/concept\_grounding}, Isabelle kernel) proves the
+preempting cover's covered-domain behavior independent of the soft function, hence identical at
+any two instants of any training trajectory, with agreement sets on certified subsets exactly
+preserved (\code{retention\_by\_compilation}, \code{certified\_accuracy\_invariant}); with
+pairwise-disjoint guards the firing rule is sovereign and installation order is irrelevant
+(\code{cover\_order\_irrelevant}) --- precisely the obligation the curriculum discharges with
+disjoint token ranges. Zero forgetting is a property of the install semantics, not of training
+dynamics \tagp{proved, over the stated cover structure}.
 
 \begin{figure}[h]
 \centering
@@ -319,7 +327,12 @@ determinism $c/(t+\alpha)$ (fields the serving manifest already ships) and scala
 held-out fired-accuracy (one new field) --- is worth more than every rule family combined
 (Fig.~\ref{fig:library}): $+0.032$--$0.047$ on natural text and a \emph{doubling} on code
 ($0.31 \to 0.60$), where the certified core then \emph{exceeds the soft student that discovered
-the rules} ($0.604 > 0.569$) \tagp{empirical}. Mined frames are then the only family that still
+the rules} ($0.604 > 0.569$) \tagp{empirical}. The arbitration guarantee is also now formal: with per-cell
+\emph{calibrated} confidences, argmax arbitration dominates every policy --- every fixed tier
+priority included --- and an $\varepsilon$-miscalibrated arbiter is within
+$2\varepsilon\cdot(\text{total weight})$ of optimal (\code{argmax\_policy\_optimal},
+\code{miscalibration\_bound}; kernel-checked) \tagp{proved, over the stated finite cells}.
+Mined frames are then the only family that still
 adds on natural text ($+0.005$--$0.007$, arc bests), admitting a handful of frames per sleep on
 diffuse wiki errors and dozens on structured code errors --- and correctly declining where
 recovery is thin.
@@ -359,7 +372,11 @@ scaling ladder stops at 2.8B (VRAM). Certification is over \emph{stated domains}
 tag never travels past its test set. Wake-SGD-only multi-hop learning remains open (sleep-Adam is
 the design's answer; the purist question stands), and the runtimes' shipped cover is still
 fixed-priority --- the arbitration gains are measured in the learner and proposed to the schema,
-not yet realized in serving.
+not yet realized in serving. Calibration, finally, is a \emph{formal} requirement rather than an
+observation: C10's dominance premise is per-cell confidence calibration on the evaluation
+measure, and its $2\varepsilon$ envelope is exactly what low-support confidence inflation --- the
+val-variance episodes --- consumes; the support pre-gates and per-family judge thresholds are the
+mechanisms that keep $\varepsilon$ small.
 
 \section{Conclusion}
 

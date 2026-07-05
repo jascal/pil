@@ -18,3 +18,4 @@ live in the workspace `WYLY_LM_ENDGAME_REVIEW_FABLE_artifacts/` directory.
 | Mined frames | +0.005..+0.007 natural text; 191/187 frames on code; declined at 2.8b | `bbfb050` | `v5mined_*.log` |
 | Relation kind | judge admits at 0.9444 fired-accuracy; runtime parity | pil `36121c2`; rosetta `fe3fb86`/`932ac4a`; sgiandubh `8debfc5` | `v5_relation_emit.log` |
 | Federation | wiki→wiki, code→code, gibberish→refuse | pil `5676527`; sgiandubh `66254d7` | `claymore_demo.log` |
+| §5 retention theorem (C9), §8 arbitration theorem (C10) | kernel-checked: `retention_by_compilation`, `certified_accuracy_invariant`, `cover_order_irrelevant`, `argmax_policy_optimal`, `miscalibration_bound` | i-orca `91ba50d` (merged `45480eb`, PR #24) | `examples/concept_grounding/{Retention,Arbitration}.thy`; `isabelle build … ConceptGrounding` green, Isabelle2025-2 |

@@ -142,7 +142,15 @@ Curriculum (induction → marker → khop2, one model, no replay): each sleep co
 sketched — including watching the 2-hop circuit *form* across extended sleeps (0.806 → 0.960 →
 0.995, then compile). Final: **1.000/1.000/1.000** with heads reset three times; the
 matched-budget no-compile baseline: **0.010/0.002/0.007** (Fig. `curriculum.pdf`). A certified
-rule cannot be forgotten because it is not weights.
+rule cannot be forgotten because it is not weights — and this is now a machine-checked theorem:
+the C-series companion (i-orca `examples/concept_grounding`, Isabelle kernel) proves the
+preempting cover's covered-domain behavior independent of the soft function (hence identical at
+any two instants of any training trajectory), agreement sets on certified subsets exactly
+preserved (`retention_by_compilation`, `certified_accuracy_invariant`), and — with
+pairwise-disjoint guards — the firing rule sovereign and installation order irrelevant
+(`cover_order_irrelevant`): the obligation the curriculum discharges with disjoint token ranges.
+Zero forgetting is a property of the install semantics, not of training dynamics
+**[proved, over the stated cover structure]**.
 
 ## 6. Real Text
 
@@ -200,7 +208,10 @@ highest confidence wins; per-key Laplace-shrunk determinism `c/(t+α)` for table
 manifest already ships), held-out fired-accuracy for scalar kinds (one new field) — is worth more
 than every family combined: +0.032–0.047 on natural text and a **doubling on code** (0.31→0.60),
 where the certified core **exceeds the soft student that discovered the rules** (0.604 > 0.569)
-[empirical]. Mined frames are then the only family still adding on natural text (+0.005–0.007,
+[empirical]. The arbitration guarantee is also now formal: with per-cell *calibrated*
+confidences, argmax arbitration dominates every policy — every fixed tier priority included —
+and an ε-miscalibrated arbiter is within 2ε·(total weight) of optimal (`argmax_policy_optimal`,
+`miscalibration_bound`; kernel-checked) **[proved, over the stated finite cells]**. Mined frames are then the only family still adding on natural text (+0.005–0.007,
 arc bests), and correctly decline where recovery is thin. (Fig. `library.pdf`.)
 
 ## 9. Deployment
@@ -223,7 +234,10 @@ seeds; fp16 teacher decisions above 410M; the code corpus is one project; the la
 (VRAM). Certification is over *stated domains* — proved never travels past its test set.
 Wake-SGD-only multi-hop remains open; the runtimes' shipped cover is still fixed-priority — the
 arbitration gains are measured in the learner and proposed to the schema, not yet realized in
-serving.
+serving. Calibration is now a *formal* requirement rather than an observation: C10's dominance
+premise is per-cell calibration on the evaluation measure, and its 2ε envelope is exactly what
+low-support confidence inflation (the val-variance episodes) consumes — support pre-gates and
+per-family judge thresholds are what keep ε small.
 
 ## 11. Conclusion
 
