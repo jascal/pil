@@ -4,8 +4,11 @@ Per the design: replace the ad-hoc masks (active/prot/use + prune/merge) with ON
 field omega per concept and per rule (and per task head). The whole lifecycle is positions on that one axis:
     omega = 0            reserve (inactive, available to grow into)
     0 < omega < THETA    DROP: incidence too low -> reclaim to reserve   (the user's lower threshold)
-    THETA < omega        active/plastic: gradient flows, scaled by protection prot(omega)=1/(1+BETA*omega)
-    omega -> large       FROZEN: param pinned to its consolidated value    (the binary freeze = special case)
+    THETA < omega        active/plastic: gradient flows; protection is the EWC ANCHOR below, NOT grad-scaling
+    omega -> large       FROZEN: anchor pins param to its consolidated value  (the binary freeze = special case)
+NB: gradient-scaling by prot(omega)=1/(1+beta*omega) is provably INERT under sign-normalized optimizers like
+Adam (i-orca C8 sign_updates_ignore_scaling) -- so protection is done ONLY by the quadratic anchor, never by
+scaling the gradient. (An earlier prot()/BETA is removed to avoid attributing protection to an inert knob.)
 CONSOLIDATION = RAISE incidence importance (omega += usage), not flip a freeze bit. Disuse -> omega decays ->
 falls below THETA -> dropped. The binary system is the step-function limit (LAMBDA, CONS -> inf).
 omega is the graded incidence weight; THETA is the gamma-margin of the PIC turnstile. eq_atom stays a fixed
@@ -25,15 +28,10 @@ SP = Path("/tmp/claude-1000/-home-allans-code/79593291-dade-4d02-a009-357bd1c48e
 KMAX, RMAX, TAU = 64, 96, 0.6
 KINIT, RINIT, KGROW, RGROW = 6, 8, 5, 7
 TARGET, MAXTASK = 0.88, 12
-BETA = 3.0          # protection sharpness: prot(w)=1/(1+BETA*w); BETA->inf recovers the binary freeze
 CONS_C, CONS_R, CONS_H = 8.0, 8.0, 40.0   # incidence gained on consolidation (usage-weighted)
 DECAY = 0.15        # per-sleep importance leak (disuse -> fades)
 THETA, SEED = 0.15, 0.45                   # drop threshold; importance a freshly-grown unit is born with
 LAMBDA = 3.0        # EWC incidence-anchor strength: penalty = LAMBDA * imp * (param - consolidated)^2
-
-
-def prot(w):
-    return 1.0 / (1.0 + BETA * w)
 
 
 class Wyly(torch.nn.Module):
@@ -230,7 +228,7 @@ def main():
     r, ids = d["r"].float(), d["kept_ids"]
     stream = ["func", "cap", "local_repeat", "rep_func", "rep_cap"]
     print("Wyly with UNIFIED graded-incidence field (binary lifecycle = special case)")
-    print(f"BETA={BETA} CONS=({CONS_C},{CONS_R},{CONS_H}) DECAY={DECAY} THETA={THETA} SEED={SEED}\n")
+    print(f"CONS=({CONS_C},{CONS_R},{CONS_H}) DECAY={DECAY} THETA={THETA} SEED={SEED} LAMBDA={LAMBDA}\n")
     accs, caps, drops = [], [], []
     for s in (0, 1, 2):
         data = {t: balanced_task(r, ids, labels[t], s) for t in stream}

@@ -32,3 +32,6 @@ runs/
 *.blg
 *.out
 *.synctex.gz
+
+# wyly-lm dataset (regenerate: experiments/extract_nexttoken.py)
+data/
