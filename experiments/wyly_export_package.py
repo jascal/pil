@@ -67,7 +67,13 @@ def cover_eval(ids, yv, cls, counts, minsupp, mindet, idxs):
     return top1, dict(ng=fired_ng, ind=fired_ind, abst=abstain, acc_ng=acc_ng, acc_ind=acc_ind)
 
 
-def build_manifest(counts, cls, uv, ts, minsupp, mindet):
+DEFAULT_INDUCTION = [{
+    "kind": "induction", "tier": "trusted", "basis": "causal", "L": 1,
+    "citation": ["learned by plain SGD (pil wyly_rel_battery), hardened + Soufflé-certified "
+                 "on its domain (pil wyly_rel_harden), installed in wyly_lm_v2"]}]
+
+
+def build_manifest(counts, cls, uv, ts, minsupp, mindet, induction_rules=None, model="wyly-v2-learned"):
     rules, rid = [], 0
     mx, am = counts.max(1)
     tot = counts.sum(1)
@@ -82,12 +88,12 @@ def build_manifest(counts, cls, uv, ts, minsupp, mindet):
             "citation": [f"wyly-v2 online counts: {ts.token_str(prev)!r} -> "
                          f"{ts.token_str(out)!r} (n={int(mx[t])}/{int(tot[t])})"]})
         rid += 1
-    rules.append({
-        "id": rid, "kind": "induction", "tier": "trusted", "basis": "causal", "L": 1,
-        "citation": ["learned by plain SGD (pil wyly_rel_battery), hardened + Soufflé-certified "
-                     "on its domain (pil wyly_rel_harden), installed in wyly_lm_v2"]})
-    return {"model": "wyly-v2-learned", "W": 1, "trusted_idioms": 0,
-            "gated_ngrams": len(rules) - 1, "induction_ood": 1,
+    n_ng = len(rules)
+    for r in (DEFAULT_INDUCTION if induction_rules is None else induction_rules):
+        rules.append({"id": rid, **r})
+        rid += 1
+    return {"model": model, "W": 1, "trusted_idioms": 0,
+            "gated_ngrams": n_ng, "induction_ood": len(rules) - n_ng,
             "minsupp": int(minsupp), "mindet": float(mindet), "n_rules": len(rules),
             "rules": rules}
 
