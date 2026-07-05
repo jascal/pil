@@ -145,4 +145,35 @@ wikitext/2.8b 0.238 (best of any arm). Residual gap only at the smallest scales 
 displacement problem is repaired at its source — admission and realization now optimize the same
 objective, and the certified tier gets leaner and better simultaneously.
 
-*(Produced 2026-07-05; cover-aware follow-up same day; see WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*
+## Follow-up 2: the learned frame proposer over the `gate` kind (design direction 3)
+
+`WYLY_LIB=gates`: `fit_frame` generalizes the suffix tables to arbitrary offset frames (the `gate`
+kind's shape); a grid of gapped frames — (3,1), (4,1), (5,1), (6,1), (3,2,1), (4,2,1) — is pre-fit
+on the fit-set, and at each sleep the **proposer ranks the unadmitted gates by error-recovery on
+the current cover's mistakes** (learned, data-driven selection) and forwards only the top two to
+the cover judge. The library selection is no longer hand-ordered.
+
+First run surfaced **val-variance admission noise**: gate tables at support≥2 carry ~300k
+low-support entries; several passed the 5e-4 val cover-marginal by chance and *hurt* the test core
+(wikitext/2.8b −0.015). Calibration — support≥3/det≥0.6 pre-gates (tables shrink 10×, 297k → 28k)
+plus a family-specific admission threshold (0.002 for gates) — repaired every damaged cell and kept
+the gains:
+
+| cell | ext+cov | gates+cov (calibrated) |
+|---|---|---|
+| code / 70m | 0.369 | **0.375** |
+| code / 410m | 0.379 | **0.389** (best certified core of the arc) |
+| wt103 / 70m | 0.285 | 0.285 (no gates admitted — correct abstention) |
+| wt103 / 410m | 0.259 | 0.256 |
+| wikitext / 410m | 0.246 | 0.246 |
+| wikitext / 2.8b | 0.238 | 0.235 |
+
+Verdict: learned frames pay **where the domain has frame structure** (code: +0.010, proposer
+stably ranks the (·,2,1) conjunction frames highest, judge admits 3–5 gates), and with calibrated
+admission they are neutral within noise elsewhere (the proposer's flat rankings on wiki correctly
+signal the absence of exploitable frames). Two reusable lessons for any future family: pre-gate
+table support before the judge ever sees a candidate, and give high-variance families their own
+admission threshold.
+
+*(Produced 2026-07-05; cover-aware + learned-frame follow-ups same day; see
+WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*

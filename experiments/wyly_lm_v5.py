@@ -91,19 +91,37 @@ def best_per_key(key, val, minsupp, mindet):
     return KeyTable(pair[0][sel][keep], pair[1][sel][keep]), int(keep.sum())
 
 
-def fit_kgram(ids, yv, tr, k, vocab, stride=12, minsupp=2, mindet=0.5):
-    """(last-k suffix) -> most frequent TEACHER decision, from train windows (adjacency + target)."""
+def fit_frame(ids, yv, tr, offs, vocab, stride=12, minsupp=2, mindet=0.5):
+    """tokens at OFFSETS (1-based from the end, e.g. (5,1) = a gapped frame) -> most frequent
+    TEACHER decision; fit from within-window sliding positions + the window tail. offs=(k..1)
+    contiguous reproduces the k-gram; anything else is a `gate`-kind frame."""
     w = ids[tr[::stride]]
     ell = w.shape[1]
     base = vocab + 1
-    key = torch.zeros_like(w[:, 0:ell - k].reshape(-1))
-    for i in range(k):
-        key = key * base + w[:, i:ell - k + i].reshape(-1)
-    nxt = w[:, k:].reshape(-1)
+    maxo = max(offs)
+    key = torch.zeros((len(w) * (ell - maxo),), dtype=torch.long, device=ids.device)
+    for o in offs:
+        key = key * base + w[:, maxo - o:ell - o].reshape(-1)
+    nxt = w[:, maxo:].reshape(-1)
     tail = torch.zeros(len(tr), dtype=torch.long, device=ids.device)
-    for i in range(k):
-        tail = tail * base + ids[tr][:, -k + i]
+    for o in offs:
+        tail = tail * base + ids[tr][:, -o]
     return best_per_key(torch.cat([key, tail]), torch.cat([nxt, yv[tr]]), minsupp, mindet)
+
+
+def mir_frame(table, offs, vocab):
+    base = vocab + 1
+
+    def fn(ids):
+        q = torch.zeros(len(ids), dtype=torch.long, device=ids.device)
+        for o in offs:
+            q = q * base + ids[:, -o]
+        return table.lookup(q)
+    return fn
+
+
+def fit_kgram(ids, yv, tr, k, vocab, stride=12, minsupp=2, mindet=0.5):
+    return fit_frame(ids, yv, tr, tuple(range(k, 0, -1)), vocab, stride, minsupp, mindet)
 
 
 def mir_kgram(table, k, vocab):
@@ -167,7 +185,8 @@ def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thres
             continue
         marg = core_cover(model, model.rules + [(name, fn)], ids, yv, cls, val)["agree"] - base
         log.append(f"    sleep {cycle}: candidate {name} COVER marginal {marg:+.4f}")
-        if marg > best[0]:
+        t = 0.002 if name.startswith("gate") else thresh     # gate tables are high-variance
+        if marg > t and marg > best[0]:
             best = (marg, (name, fn))
     if best[1]:
         name, fn = best[1]
@@ -177,7 +196,7 @@ def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thres
     return None
 
 
-def core_cover(model, rules, ids, yv, cls, idxs):
+def core_cover(model, rules, ids, yv, cls, idxs, return_pred=False):
     """the PACKAGE cover with the admitted library, runtime order: trusted gates (skip) -> ngrams
     longest-suffix (kgram k desc, then the online counts as k=1) -> induction L desc -> abstain."""
     w = ids[idxs]
@@ -189,7 +208,7 @@ def core_cover(model, rules, ids, yv, cls, idxs):
         pred = torch.where((pred == -1) & (a >= 0), a, pred)
 
     for name, fn in rules:
-        if name.startswith("skip"):
+        if name.startswith("gate") or name.startswith("skip"):   # TRUSTED tier first
             take(fn)
     for k in (3, 2):
         for name, fn in rules:
@@ -205,9 +224,30 @@ def core_cover(model, rules, ids, yv, cls, idxs):
             if name == f"induction L={lm}":
                 take(fn)
     fired = pred >= 0
-    return {"agree": float((pred == yv[idxs]).float().mean()),
-            "cover": float(fired.float().mean()),
-            "agree_fired": float((pred[fired] == yv[idxs][fired]).float().mean())}
+    out = {"agree": float((pred == yv[idxs]).float().mean()),
+           "cover": float(fired.float().mean()),
+           "agree_fired": float((pred[fired] == yv[idxs][fired]).float().mean())}
+    return (out, pred) if return_pred else out
+
+
+def propose_gates(model, gate_cands, ids, yv, cls, sample, log, cycle, top=2):
+    """the LEARNED FRAME PROPOSER: rank unadmitted gate candidates by how much of the CURRENT
+    cover's error set they would correct (interaction-scored selection from data, not enumeration
+    order); only the top picks go to the judge."""
+    _, pred = core_cover(model, model.rules, ids, yv, cls, sample, return_pred=True)
+    err = pred != yv[sample]
+    scored = []
+    for name, fn in gate_cands:
+        if any(n == name for n, _ in model.rules):
+            continue
+        a = fn(ids[sample])
+        rec = float(((a == yv[sample]) & err).float().mean())
+        scored.append((rec, name, fn))
+    scored.sort(reverse=True)
+    if scored:
+        log.append(f"    sleep {cycle}: proposer ranks " +
+                   ", ".join(f"{n.split(' [')[0]}={r:.4f}" for r, n, _ in scored[:4]))
+    return [(n, f) for _, n, f in scored[:top]]
 
 
 def main():
@@ -231,7 +271,22 @@ def main():
             tab, nk = fit_skip(ids, yv, fit, off)
             candidates.append((f"skip o={off} [{nk}]", mir_skip(tab, off)))
         candidates.append(("repetition", mir_repetition))
+    gate_cands = []
+    if LIB == "gates":                                       # learned-frame family (gate kind)
+        candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
+        for k in (2, 3):
+            tab, nk = fit_kgram(ids, yv, fit, k, vocab)
+            candidates.append((f"kgram k={k} [{nk}]", mir_kgram(tab, k, vocab)))
+        for off in (2, 3):
+            tab, nk = fit_skip(ids, yv, fit, off)
+            candidates.append((f"skip o={off} [{nk}]", mir_skip(tab, off)))
+        for offs in [(3, 1), (4, 1), (5, 1), (6, 1), (3, 2, 1), (4, 2, 1)]:
+            tab, nk = fit_frame(ids, yv, fit, offs, vocab, minsupp=3, mindet=0.6)
+            gate_cands.append((f"gate {offs} [{nk}]", mir_frame(tab, offs, vocab)))
     print(f"candidate library ({len(candidates)}): {[n for n, _ in candidates]}")
+    if gate_cands:
+        print(f"gate grid ({len(gate_cands)}, proposer-selected at sleep): "
+              f"{[n for n, _ in gate_cands]}")
 
     ground = grounded_init(uv).to(DEV)
     ground = ground / ground.shape[1] ** 0.5
@@ -246,10 +301,14 @@ def main():
             model.zero_grad(set_to_none=True)
             F.cross_entropy(model(ids[bi]), y[bi]).backward()
             model.sgd(v2.LR)
+        cands = candidates
+        if gate_cands:
+            s_prop = fit[torch.randint(len(fit), (4000,), generator=g)]
+            cands = candidates + propose_gates(model, gate_cands, ids, yv, cls, s_prop, log, ep)
         if JUDGE == "cover":
-            sleep_admit_cover(model, ids, yv, cls, y, val, ep, candidates, log)
+            sleep_admit_cover(model, ids, yv, cls, y, val, ep, cands, log)
         else:
-            sleep_admit_v5(model, ids, y, val, ep, candidates, log)
+            sleep_admit_v5(model, ids, y, val, ep, cands, log)
         print(f"{ep:>8}{v2.top1(model, ids, y, te):>15.3f}{v2.top1(model, ids, y, cs):>12.3f}"
               f"{len(model.rules):>6}", flush=True)
     print("\n" + "\n".join(log))
