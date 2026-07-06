@@ -305,5 +305,20 @@ With this, **all six design directions are closed**: cover-aware admission (1), 
 arbitration (2), learned frames — selection and generation (3), the relation schema kind (4),
 online tiers (5), and federated per-dataset serving (6).
 
-*(Produced 2026-07-05; all six design-direction follow-ups same day; see
-WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*
+## Follow-up 8: the theorem realized in serving — exact parity
+
+The measured-vs-realized gap is closed (pil `1550e90`, rosetta `3bb2a8d`, sgiandubh `dba9102`).
+The v5 emitter ships **every admitted family** with the confidences the learner arbitrates with
+(kgram tiers → confidence-carrying ngrams; skip/mined frames → gate rules with per-key `confs`;
+scalar kinds → `confidence`; counts with `mx/(tot+α)`), the manifest declares
+`cover: support-weighted`, and both runtimes implement the argmax arbitration whose dominance is
+the kernel-checked C10. The keystone (`wyly_serve_eval.py`): replaying **all** held-out windows
+through the runtime gives **0.605 @ 99.8%** (code) and **0.329 @ 99.1%** (wikitext) — gap
+**+0.0000** vs the learner's saved `core_sw` on both datasets; the C++ spoke matches the Python
+runtime 200/200 spot windows over HTTP. The parity harness caught a real bug on the way (the
+Python induction parse dropped its confidence — it arbitrated at 0.0), and the federation demo
+now answers the code probe via a **mined frame at confidence 0.865** (was counts at 0.077 under
+fixed priority): arbitration picks the specialist, live.
+
+*(Produced 2026-07-05; all six design-direction follow-ups + the serving realization same day;
+see WYLY_LM_ENDGAME_REVIEW_FABLE.md §8.6.)*

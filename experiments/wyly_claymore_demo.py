@@ -62,7 +62,8 @@ def probes():
     prevs = {}
     for name, pkg in [("wiki", WIKI), ("code", CODE)]:
         man = json.loads((pkg / "manifest.json").read_text())
-        prevs[name] = {r["ctx"][0] for r in man["rules"] if r.get("kind") == "ngram"}
+        prevs[name] = {r["ctx"][0] for r in man["rules"]
+                       if r.get("kind") == "ngram" and len(r["ctx"]) == 1}
     out = {}
     for name, dfile, avoid in [("wiki", "wyly_nexttoken_wikitext_L256.pt", "code"),
                                ("code", "wyly_nexttoken_code_L256.pt", "wiki")]:

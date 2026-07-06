@@ -234,7 +234,11 @@ seeds; fp16 teacher decisions above 410M; the code corpus is one project; the la
 (VRAM). Certification is over *stated domains* — proved never travels past its test set.
 Wake-SGD-only multi-hop remains open; the runtimes' shipped cover is still fixed-priority — the
 arbitration gains are measured in the learner and proposed to the schema, not yet realized in
-serving. Calibration is now a *formal* requirement rather than an observation: C10's dominance
+serving — **now closed**: both runtimes implement the support-weighted cover, the emitter ships
+every admitted family with its arbitration confidences, and replaying all held-out windows
+through the served runtime reproduces the learner-measured core *exactly* (0.605 code / 0.329
+wikitext, gap +0.0000; C++/Python parity 200/200). Calibration is now a *formal* requirement
+rather than an observation: C10's dominance
 premise is per-cell calibration on the evaluation measure, and its 2ε envelope is exactly what
 low-support confidence inflation (the val-variance episodes) consumes — support pre-gates and
 per-family judge thresholds are what keep ε small.
