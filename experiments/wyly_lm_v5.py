@@ -42,6 +42,7 @@ ONLINE = os.environ.get("WYLY_ONLINE", "") == "1"            # design dir 5: onl
 SWCOVER = os.environ.get("WYLY_COVER", "") == "sw"           # design dir 2: support-weighted cover
 EMIT = os.environ.get("WYLY_EMIT", "") == "1"                # emit the rosetta package (relation kind)
 CONCEPTS = os.environ.get("WYLY_CONCEPTS", "") == "1"        # concept induction + class frames
+POINTER = os.environ.get("WYLY_POINTER", "") == "1"          # pointer rules (build-order 2)
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
 DATA = REPO / "data" / (f"wyly_nexttoken_{DS}_L256.pt" if DS != "wikitext"
                         else "wyly_nexttoken_wikitext_L256.pt")
@@ -279,6 +280,78 @@ def pooled_counts(counts, cmap, vocab):
     tot = pooled.sum(1)
     conf = mx.float() / (tot + ALPHA)
     return am, conf, mx
+
+
+class PointerRule:
+    """The POINTER kind (build-order 2): generalized copy. Score every in-window source position p
+    by discrete match features -- exact-suffix length l (longest k with ids[p-k:p] == tail k) and
+    CONCEPT-suffix length lc (same under cmap: the channel verb-final word order needs -- the
+    source clause matches by class even when inflection differs) -- and predict ids[p], the
+    successor of the best match, argmax lexicographic (l, lc, recency). Induction L is the
+    lc-blind, fixed-l special case. Confidence is a per-(l,lc)-CELL val fired-accuracy, refreshed
+    each sleep and support-gated -- the sw cover arbitrates each answer at its cell's measured
+    reliability (C10's calibration premise, applied cell-wise)."""
+
+    def __init__(self, vocab, dev, lmax=6, cmap_ref=None):
+        self.lmax, self.dev = lmax, dev
+        self.cmap_ref = cmap_ref                             # [cmap] holder (concept space) or None
+        self.cells = {}                                      # (l, lc) -> conf
+
+    def _feats(self, ids):
+        """per window: (pred, l*, lc*) of the argmax source position; pred -1 where nothing fires
+        (l == 0 and lc < 2). Positions p in [1, n-1] predict ids[:, p]."""
+        n = ids.shape[1]
+        amap = self.cmap_ref[0] if self.cmap_ref is not None else None
+        cds = amap[ids] if amap is not None else ids
+        npos = n - 1
+        el = torch.zeros(len(ids), npos, dtype=torch.long, device=ids.device)
+        ec = torch.zeros_like(el)
+        okl = torch.ones(len(ids), npos, dtype=torch.bool, device=ids.device)
+        okc = okl.clone()
+        for k in range(1, self.lmax + 1):
+            # source positions p = 1..n-1; compare ids[:, p-k] vs ids[:, n-k]; p-k >= 0 required
+            cmp_l = torch.zeros(len(ids), npos, dtype=torch.bool, device=ids.device)
+            cmp_c = cmp_l.clone()
+            cmp_l[:, k - 1:] = ids[:, :n - k] == ids[:, n - k:n - k + 1]
+            cmp_c[:, k - 1:] = cds[:, :n - k] == cds[:, n - k:n - k + 1]
+            okl &= cmp_l
+            okc &= cmp_c
+            el += okl.long()
+            ec += okc.long()
+        fire = (el >= 1) | (ec >= 2)
+        score = (el * (self.lmax + 2) + ec) * (npos + 1) + torch.arange(
+            npos, device=ids.device)
+        score = torch.where(fire, score, torch.full_like(score, -1))
+        best = score.argmax(1)
+        rows = torch.arange(len(ids), device=ids.device)
+        has = score[rows, best] >= 0
+        pred = torch.where(has, ids[rows, best + 1], torch.full_like(best, -1))
+        return pred, el[rows, best], ec[rows, best], has
+
+    def refresh(self, ids, yv, val, minsupp=30):
+        pred, l, lc, has = self._feats(ids[val])
+        good = (pred == yv[val]) & has
+        self.cells = {}
+        for li in range(self.lmax + 1):
+            for ci in range(self.lmax + 1):
+                m = has & (l == li) & (lc == ci)
+                nn = int(m.sum())
+                if nn >= minsupp:
+                    self.cells[(li, ci)] = float(good[m].float().mean())
+
+    def lookup_conf(self, ids):
+        pred, l, lc, has = self._feats(ids)
+        conf = torch.full((len(ids),), -1e9, device=ids.device)
+        for (li, ci), c in self.cells.items():
+            conf = torch.where(has & (l == li) & (lc == ci),
+                               torch.full_like(conf, c), conf)
+        pred = torch.where(conf > -1e9, pred, torch.full_like(pred, -1))
+        return pred, conf
+
+    def mirror(self):
+        def fn(ids):
+            return self.lookup_conf(ids)[0]
+        return fn
 
 
 CONF_FNS = {}                                            # name -> (ids)->(val, per-key conf)
@@ -747,6 +820,13 @@ def main():
             CONF_FNS["mined cframes (online)"] = minedc.lookup_conf_all
         else:
             cspace = minedc = None
+        if POINTER:
+            pointer = PointerRule(vocab, DEV,
+                                  cmap_ref=[cspace.cmap] if cspace is not None else None)
+            candidates.append(("pointer (l,lc cells)", pointer.mirror()))
+            CONF_FNS["pointer (l,lc cells)"] = pointer.lookup_conf
+        else:
+            pointer = None
     else:
         mined = None
     gate_cands = []
@@ -809,6 +889,14 @@ def main():
             mined.mine(model, ids, yv, cls, fit, g, log, ep)
             if CONCEPTS and minedc is not None:
                 minedc.mine(model, ids, yv, cls, fit, g, log, ep)
+        if POINTER and pointer is not None:
+            if pointer.cmap_ref is not None and cspace is not None:
+                pointer.cmap_ref[0] = cspace.cmap
+            pointer.refresh(ids, yv, val)
+            if ep in (0, 7):
+                cells = sorted(pointer.cells.items())
+                log.append(f"    sleep {ep}: POINTER {len(pointer.cells)} cells: "
+                           + ", ".join(f"l={a},lc={b}:{c:.2f}" for (a, b), c in cells))
         for name, fn in model.rules:                         # scalar confidences from val (sw cover)
             if name not in CONF_FNS:
                 RULE_CONF[name] = val_fired_acc(fn, ids, yv, val)
