@@ -87,6 +87,40 @@ feat(w, v) :- tok(w, _, _), c = count : { hit(w, _) }, v = c % 2.
 .output feat
 """
 
+P_SUBJ = """
+.decl tok(w:number, p:number, t:number)
+.input tok
+.decl member(t:number)
+.input member
+.decl hit(w:number, p:number)
+hit(w, p) :- tok(w, p, t), member(t).
+.decl base(w:number, m:number)
+base(w, m) :- hit(w, _), m = max p : { hit(w, p) }.
+.decl feat(w:number, t:number)
+feat(w, t) :- base(w, p), p1 = p - 1, p1 >= 0, tok(w, p1, t).
+.output feat
+"""
+
+P_CLAIMECHO = """
+.decl tok(w:number, p:number, t:number)
+.input tok
+.decl member(t:number)
+.input member
+.decl hit(w:number, p:number)
+hit(w, p) :- tok(w, p, t), member(t).
+.decl base(w:number, m:number)
+base(w, m) :- hit(w, _), m = max p : { hit(w, p) }.
+.decl subj(w:number, m:number)
+subj(w, m) :- base(w, p), m = p - 1, m >= 0.
+.decl prevhit(w:number, q:number)
+prevhit(w, q) :- subj(w, p), tok(w, p, t), tok(w, q, t), q < p.
+.decl prev(w:number, m:number)
+prev(w, m) :- prevhit(w, _), m = max q : { prevhit(w, q) }.
+.decl feat(w:number, t:number)
+feat(w, t) :- prev(w, q), q1 = q + 1, tok(w, q1, t).
+.output feat
+"""
+
 P_DEPTH = """
 .decl tok(w:number, p:number, t:number)
 .input tok
@@ -170,6 +204,13 @@ def main():
     tpar = v5.member_parity_feature(w, cap_set)
     ok &= check("member-parity (DISCOURSE: quotation scope)", tpar.cpu().tolist(),
                 run_souffle(P_PARITY, {"tok": tokf, "member": mem}))
+    tsubj = v5.at_pos(w, v5.recent_member_pos(w, cap_set), succ=-1)
+    ok &= check("recent-member succ=-1 (CLAIMANT role)", tsubj.cpu().tolist(),
+                run_souffle(P_SUBJ, {"tok": tokf, "member": mem}))
+    tce = v5.at_pos(w, v5.prev_occ_pos(
+        w, (v5.recent_member_pos(w, cap_set) - 1).clamp(min=-1)), succ=1)
+    ok &= check("prev-occ of_shift=-1 succ=1 (CLAIM ECHO)", tce.cpu().tolist(),
+                run_souffle(P_CLAIMECHO, {"tok": tokf, "member": mem}))
     opl, cll = v5.bracket_sets(uv, ts)
     is_open = torch.zeros(vocab, dtype=torch.bool, device=ids.device)
     is_close = torch.zeros(vocab, dtype=torch.bool, device=ids.device)

@@ -557,6 +557,21 @@ def fit_dgate_feature(ids, yv, tr, featfn, vocab, minsupp=3, mindet=0.5):
     return tab, nk
 
 
+def fit_dgate2(ids, yv, tr, featfnA, featfnB, vocab, minsupp=3, mindet=0.5):
+    """PAIR dgate fitter: key = (featureA, featureB) jointly -- the rhetorical span-pair /
+    claim-evidence signature. Fires only where BOTH features exist."""
+    B = vocab + 2
+    w = ids[tr]
+    fa, fb = featfnA(w), featfnB(w)
+    m = (fa >= 0) & (fb >= 0)
+    if int(m.sum()) < 20:
+        e = torch.empty(0, dtype=torch.long, device=ids.device)
+        return KeyTable(e, e.clone(), torch.empty(0, device=ids.device)), 0
+    key = (fa[m] + 1) * B + fb[m]
+    tab, nk = best_per_key(key, yv[tr][m], minsupp, mindet)
+    return tab, nk
+
+
 def fit_mate(ids, yv, tr, is_open, is_close, vocab, minsupp=3, mindet=0.5):
     """gate keyed on (mate, last): when the innermost unclosed opener is X and the last token is
     Y, the teacher's decision -- the rule that knows WHICH closer (or continuation) fits."""
@@ -1123,8 +1138,11 @@ def emit_full(model, cls, uv, ts, vocab):
                     derived_defs.append({"id": base_id, "kind": "recent-member",
                                          "members": [int(uv[i]) for i in torch.where(
                                              params["of_members"])[0].tolist()]})
-                    derived_defs.append({"id": fid, "kind": "prev-occ", "of": base_id,
-                                         "succ": params.get("succ", 0)})
+                    dd2 = {"id": fid, "kind": "prev-occ", "of": base_id,
+                           "succ": params.get("succ", 0)}
+                    if params.get("of_shift"):
+                        dd2["of_shift"] = params["of_shift"]
+                    derived_defs.append(dd2)
                     params = {}
                 dd = {"id": fid, "kind": kindname}
                 for pk, pv in params.items():
@@ -1146,6 +1164,27 @@ def emit_full(model, cls, uv, ts, vocab):
                      "feature": fid, "table": table, "confs": confs,
                      "citation": [f"{src} {name}: derived {kindname} gate "
                                   "(extractor family certified, wyly_derived_certify)"]})
+            elif info[0] == "dgate2":
+                (_pairname, params), tab_, B2_ = info[1], info[2], info[3]
+                base_id = f"feat{len(derived_defs)}s"
+                head_id = f"feat{len(derived_defs)}h"
+                prev_id = f"feat{len(derived_defs)}p"
+                mems = [int(uv[i]) for i in torch.where(params["members"])[0].tolist()]
+                derived_defs.append({"id": base_id, "kind": "recent-member", "members": mems})
+                derived_defs.append({"id": head_id, "kind": "recent-member", "members": mems,
+                                     "succ": 1})
+                derived_defs.append({"id": prev_id, "kind": "prev-occ", "of": base_id,
+                                     "succ": 1})
+                table, confs = {}, {}
+                for key, v, c in zip(tab_.k.tolist(), tab_.v.tolist(), tab_.c.tolist(),
+                                     strict=True):
+                    fa, fb = key // B2_ - 1, key % B2_
+                    ck = f"{int(uv[fa])}:{int(uv[fb])}"
+                    table[ck] = int(uv[v])
+                    confs[ck] = round(c, 4)
+                add({"kind": "dgate2", "tier": "gated", "basis": "observational",
+                     "featureA": prev_id, "featureB": head_id, "table": table, "confs": confs,
+                     "citation": [f"{src} {name}: rhetorical span-pair (prev-head, cur-head)"]})
             elif info[0] == "mined":
                 mined = info[1]
                 by_frame = {}
@@ -1383,6 +1422,49 @@ def main():
                 add_dgate("quoteparity gate",
                           lambda w, ms=quot_set: member_parity_feature(w, ms),
                           ("member-parity", {"members": quot_set}))
+            if int(sent_set.sum()) >= 1:                     # DEEP DISCOURSE: rhetorical spans
+                def senthead_pos(w, ms=sent_set):
+                    return recent_member_pos(w, ms)
+
+                add_dgate("senthead gate",
+                          lambda w: at_pos(w, senthead_pos(w), succ=1),
+                          ("recent-member", {"members": sent_set, "succ": 1}))
+                add_dgate("prevsent-head gate",
+                          lambda w: at_pos(w, prev_occ_pos(w, senthead_pos(w)), succ=1),
+                          ("prev-occ", {"of_members": sent_set, "succ": 1}))
+
+                def pair_key(w):                             # span-PAIR: (prev-head, cur-head)
+                    return (at_pos(w, prev_occ_pos(w, senthead_pos(w)), succ=1),
+                            at_pos(w, senthead_pos(w), succ=1))
+
+                ptab, pnk = fit_dgate2(ids, yv, fit,
+                                       lambda w: pair_key(w)[0], lambda w: pair_key(w)[1],
+                                       vocab)
+                if pnk >= 20:
+                    nmp = f"sentpair gate [{pnk}]"
+                    B2p = vocab + 2
+
+                    def pconf(w, ptab=ptab, B2p=B2p):
+                        fa, fb = pair_key(w)
+                        m_ = (fa >= 0) & (fb >= 0)
+                        v_, c_ = ptab.lookup_conf((fa + 1) * B2p + fb)
+                        return (torch.where(m_, v_, torch.full_like(v_, -1)),
+                                torch.where(m_, c_, torch.full_like(c_, -1e9)))
+
+                    candidates.append((nmp, lambda w, pconf=pconf: pconf(w)[0]))
+                    CONF_FNS[nmp] = pconf
+                    RULE_SIZE[nmp] = lambda pnk=pnk: pnk
+                    EMIT_INFO[nmp] = ("dgate2", ("sent-pair", {"members": sent_set}), ptab, B2p)
+                    print(f"CX: {nmp}")
+            if int(attr_set.sum()) >= 5:                     # CLAIM/EVIDENCE: the claimant roles
+                add_dgate("attrib-subj gate",
+                          lambda w, ms=attr_set: at_pos(w, recent_member_pos(w, ms), succ=-1),
+                          ("recent-member", {"members": attr_set, "succ": -1}))
+                add_dgate("claim-echo gate",
+                          lambda w, ms=attr_set: at_pos(
+                              w, prev_occ_pos(w, (recent_member_pos(w, ms) - 1).clamp(min=-1)),
+                              succ=1),
+                          ("prev-occ", {"of_members": attr_set, "of_shift": -1, "succ": 1}))
             if int(cap_set.sum()) >= 20:
                 add_dgate("cap-echo gate",
                           lambda w, cs=cap_set: at_pos(
