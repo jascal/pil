@@ -304,3 +304,39 @@ postmortem  0.390  0.429    0.311    0.334   107.4%   quoteparity, prevsent-head
 Confounds: postmortem is 5.5 MB and 4 sources (small-corpus + genre-homogeneity inflate together
 — though the *direction* matches soc20's support finding); Gutenberg medicine/history are
 pre-1930 registers; tempo sets were English+German only.
+
+## The constraint/planning wing: the residual IS the constraint semantics (19 corpora)
+
+Four generated, seed-reproducible constraint domains (`wyly_gen_planning.py`): **chess** (13,869
+legal games — every continuation move-legal by construction), **sudoku** (23,461 CSP
+puzzle→solution grids; a 30-token vocabulary that required a tiny-vocab pad in the PCA
+grounding), **sched** (2,567 weeks of no-conflict hospital rosters), **robot** (36,903 gridworld
+BFS-optimal path traces).
+
+```
+   corpus   gzip   gold  copy%  student  core_sw  crystal   notable admissions
+    sched  0.076  0.839  97.7%    0.917    0.877    95.6%   pointer first
+    robot  0.176  0.396  99.3%    0.617    0.587    95.1%   pointer; THREE-rule library
+   sudoku  0.269  0.307  99.9%    0.544    0.520    95.6%   pointer, sincedot = grid position
+    chess  0.377  0.429  85.9%    0.623    0.597    95.7%   induction, CAP-ECHO ON PIECES
+```
+
+1. **A tight 95.1–95.7% band across four unrelated constraint notations** — the wing's finding.
+   The template/notation layer crystallizes completely (copy% runs 86–99.9%; pointers dominate
+   every library); the missing ~4.5% is uniform and is exactly the **constraint semantics** —
+   legality, no-double-booking, path optimality — computations no current register performs.
+   The first rule register that *computes* a constraint (a legality checker as a derived
+   feature) would claim it.
+2. **The gzip axis is now dead for crystallization** (ρ −0.18 at n=19; it still predicts the
+   absolute core, −0.78): sched is the most compressible corpus in the study (0.076) yet sits at
+   95.6%, while postmortem at 0.390 hits 107.4%. Across 19 corpora the domains cluster by
+   structure **type**: template genres (code, proofs, investigations) >100%; constraint
+   notations ≈95.5%; morphology-rich prose 96–99.7%; analytical/abstraction prose 91–95%.
+3. **The registers keep explaining themselves**: cap-echo fires on chess *piece letters* (the
+   entity echo reads N/B/R/Q/K); sincedot becomes *grid position* on sudoku; robot's entire core
+   is a three-rule library (pointer + mined frames + one concept set) at 95% — planning traces
+   are almost pure copy structure.
+4. **OOD caveats named**: sched/robot formats are synthetic (outside the Pile) — yet sched's
+   gold is 0.839, the highest in the study: templating dominates familiarity. Sudoku's gold
+   0.307 shows the constraint content itself is opaque to the teacher; the student *beats* the
+   teacher's own next-token predictability by copying grid structure.

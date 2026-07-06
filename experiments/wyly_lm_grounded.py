@@ -49,9 +49,13 @@ def grounded_init(uv: torch.Tensor) -> torch.Tensor:
     """z-scored top-K0 PCA coordinates of the teacher embedding = named-ish concept axes."""
     e = pythia_embed(uv)
     e = e - e.mean(0)
-    _, _, vt = torch.pca_lowrank(e, q=K0, niter=4)
-    c = e @ vt[:, :K0]
-    return (c - c.mean(0)) / c.std(0).clamp_min(1e-6)
+    q = min(K0, min(e.shape) - 1)                        # tiny vocabs (sudoku: 30 tokens) get
+    _, _, vt = torch.pca_lowrank(e, q=q, niter=4)        # fewer real axes, zero-padded to K0
+    c = e @ vt[:, :q]
+    c = (c - c.mean(0)) / c.std(0).clamp_min(1e-6)
+    if q < K0:
+        c = torch.cat([c, torch.zeros(len(c), K0 - q)], 1)
+    return c
 
 
 def main():
