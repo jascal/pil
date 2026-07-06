@@ -9,7 +9,7 @@ first results reshape it.
 |---|---|---|
 | window (fold-stable) | 6 | **0.753** |
 | query-only, first-token | **1** (collapse) | 0.739 |
-| query+window BLEND, chain-scored | 5 | 0.751 |
+| query+window BLEND (first-token*) | 5 | 0.751 |
 | blend + **STRATA** (user-proposed) | 5 + **4 stratum-2** | 0.751* |
 
 *the emitted package does not yet carry stratum 2 — see below.
@@ -33,3 +33,31 @@ first results reshape it.
 4. **Honest residuals**: mass (0.017) is structural (chain-vs-corpus tokenization divergence),
    unmoved by any judge; stratum-2 rules are in-learner only — the package schema needs a
    `stratum` field + runtime fall-through (the relation-kind playbook) before serving sees them.
+
+## Correction and the bAbI verdict
+
+**Correction**: the elements "blend" run above scored queries by FIRST TOKEN only — the
+chain-scoring edit had silently rolled back (an edit script asserting mid-way rolls back ALL its
+in-memory edits; verify with grep after any multi-part edit). The blend alone fixed the
+collapse. Chain scoring landed with the bAbI work below.
+
+**bAbI, 1000 valid-split chain-scored judge queries + strata, package on 1000 unseen test:**
+
+| config | package |
+|---|---|
+| window-judged (previous best) | 0.527 |
+| + strata qualified on WINDOW fired-acc | **0.222** |
+| + strata qualified on QUERY fired-acc | **0.527** |
+
+The 0.222 crash is the sharpest strata lesson: window fired-accuracy admitted the stale
+pointer (0.71 on windows) to stratum 2, and the fall-through zone — low stratum-1 confidence on
+unseen stories — is exactly where it is wrong. **The fall-through pool must be calibrated on
+the deployment distribution** (C10's optimality premise, applied per stratum). Query-qualified,
+the pointer is correctly excluded (query fired-acc < 0.5), stratum 2 keeps kgram k=10 (0.56),
+and the package returns to parity.
+
+**The movement rules got their fair hearing and lost it fairly**: with 1000 deployment-shaped
+chain-scored queries in the judge, pointer/moveloc still don't clear admission — their query
+value is genuinely insufficient as built. The bAbI residual (0.527 vs Qwen 0.782) is now
+attributed to the RULE LIBRARY, not the judge. Strata are servable end to end (schema stratum
+field; rosetta PR #40, sgiandubh PR #25).
