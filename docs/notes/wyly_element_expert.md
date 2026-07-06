@@ -57,3 +57,14 @@ Provenance: teacher `wyly_teacher_qwen3b_elements_L256.pt` (gold 0.688 on corpus
 51,826 rules (ngrams + 252 gates + 4 dgates); logs `v5_elements*.log`, `bench_*.log` in the
 review artifacts dir. Next (queued): the three-arm third-party evaluation — bAbI +
 MMLU-college-chemistry through claymore tools mode (hub-LLM + this expert as the evaluated unit).
+
+## Addendum: the mass residual, refined
+
+Wider mined-frame offsets (2–14) and kgrams to k=12 did NOT recover mass (0.017 unchanged).
+Two refinements: (1) error-driven mining is blind to benchmark-only failures — in training
+windows the digit continuations are well-covered, so no mass errors exist to mine from; (2) the
+probe shows a confidence-1.0 gate emitting a lone space after "approximately", diverting the
+generation chain into a degenerate digit-by-digit tokenization path that never matches the
+corpus's single-token ' 197' continuation — a **chain-vs-corpus tokenization divergence**, not
+pure key reach. Named residual (2.8% of the benchmark); the fix would be a chain-time constraint
+to prefer corpus-consistent tokenizations.
