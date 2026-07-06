@@ -222,3 +222,25 @@ int8, batch 1, 1.9 h; gold top-1 0.497, quantization caveat named):
 - full modern stack: core_sw **0.268 @ 99.0%** vs student 0.260 — **crystallization 103% at the
   largest teacher yet**. The roles library doesn't just survive scale; the certified core
   exceeds its own student at 6.9B.
+
+## Deep-discourse roles: the SPAN register works; the pairing register doesn't (yet)
+
+Rhetorical-span and claim/evidence roles, all composed from certified primitives (nine role
+programs now Soufflé-PROVED, incl. the claimant `succ=-1` and the claim-echo
+`of_shift=-1 → prev-occ → succ=1` chains) plus one new kind (`dgate2`: gates on two features
+jointly — the span-pair):
+
+- **The span roles win.** `prevsent-head` ("what did the *previous* sentence start with") was
+  admitted on wikitext at **+0.0097 — the largest single dgate marginal of the campaign** —
+  taking wikitext to a **new arc best 0.346**; and it finally moved sociology
+  (0.345 → **0.351**, crystallization 91.0 → 91.9%, the first real soc gain in three attempts,
+  alongside connectives). `senthead` was admitted on psychology (+0.0037).
+- **The pairing roles don't (yet).** `sentpair` (dgate2), `attrib-subj` (the claimant) and
+  `claim-echo` were built, certified, offered — and declined everywhere. Tagged honestly: the
+  claim/evidence *pairing* hypothesis is unsupported at 70m on these corpora; sentence-head
+  SPANS carry the recoverable discourse signal. phil_de took none of the deep gates (−0.008,
+  run variance).
+
+The abstraction ledger after three discourse goals: psy 92.3→93.9%, soc 90.9→**91.9%**, wiki at
+**99.7%** with its best core yet. The tail shrinks by real, admitted, certified rules — a point
+a sleep at a time.
