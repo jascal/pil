@@ -48,6 +48,7 @@ GROW = os.environ.get("WYLY_GROW", "") == "1"                # append-only conce
 CX = os.environ.get("WYLY_CX", "") == "1"                    # concept extensions: cluster-scoped
 DX = os.environ.get("WYLY_DX", "") == "1"                    # detection extensions: MDL judge +
 MDL_LAM = float(os.environ.get("WYLY_MDL_LAM", "1e-8"))     # key-level retreat + anti-unification
+FOLDS = int(os.environ.get("WYLY_FOLDS", "0"))               # multi-fold admission (0 = off)
 RULE_SIZE = {}                                               # name -> callable -> table entries
 CONCEPTS_CMAP = [None]                                       # cmap holder for package emission
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
@@ -59,7 +60,8 @@ STATE = REPO / "data" / (f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' e
                          f"{'_ol' if ONLINE else ''}{'_sw' if SWCOVER else ''}"
                          f"{'_cn' if CONCEPTS else ''}{'_pt' if POINTER else ''}"
                          f"{'_tp' if TPOINTER else ''}{'_dx' if DX else ''}"
-                         f"{'_cx' if CX else ''}{'_gr' if GROW else ''}.pt")
+                         f"{'_cx' if CX else ''}{'_gr' if GROW else ''}"
+                         f"{'_f' + str(FOLDS) if FOLDS else ''}.pt")
 ADMIT_F = REPO / "data" / f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}_admitted.json"
 DEV, V = v2.DEV, v2.V
 
@@ -459,6 +461,46 @@ def mate_feature(ids, is_open, is_close):
                        torch.full_like(best, -1))
 
 
+def recent_member_feature(ids, member, unique=False):
+    """derived extractors: the most recent token in a declared member SET -- optionally the most
+    recent member occurring EXACTLY ONCE in the window (the distinguished-referent role). Exact,
+    vectorized, host-side; Datalog-certifiable (count + max aggregate)."""
+    m = member[ids]
+    if unique:
+        srt, _ = ids.sort(1)
+        first = torch.ones_like(srt, dtype=torch.bool)
+        first[:, 1:] = srt[:, 1:] != srt[:, :-1]
+        last_ = torch.ones_like(srt, dtype=torch.bool)
+        last_[:, :-1] = srt[:, :-1] != srt[:, 1:]
+        once_sorted = first & last_
+        rank = ids.argsort(dim=1, stable=True).argsort(dim=1, stable=True)
+        once = once_sorted.gather(1, rank)
+        m = m & once
+    pos = torch.arange(ids.shape[1], device=ids.device)
+    best = torch.where(m, pos, torch.full_like(pos, -1).expand_as(m)).max(1).values
+    rows = torch.arange(len(ids), device=ids.device)
+    return torch.where(best >= 0, ids[rows, best.clamp(min=0)], torch.full_like(best, -1))
+
+
+def depth_feature(ids, is_open, is_close, cap=8):
+    """derived extractor (build-order 4, the balance counter): the current bracket DEPTH, clamped
+    to [0, cap] -- stack-shaped context no frame can express, now one prefix sum."""
+    sign = is_open[ids].long() - is_close[ids].long()
+    d = sign.cumsum(1)[:, -1].clamp(min=0, max=cap)
+    return d
+
+
+def fit_dgate_feature(ids, yv, tr, featfn, vocab, minsupp=3, mindet=0.5):
+    """generic (feature, last) dgate fitter (fit_mate generalized to any extractor)."""
+    B = vocab + 2
+    w = ids[tr]
+    f = featfn(w)
+    m = f >= 0
+    key = (f[m] + 1) * B + w[m][:, -1]
+    tab, nk = best_per_key(key, yv[tr][m], minsupp, mindet)
+    return tab, nk
+
+
 def fit_mate(ids, yv, tr, is_open, is_close, vocab, minsupp=3, mindet=0.5):
     """gate keyed on (mate, last): when the innermost unclosed opener is X and the last token is
     Y, the teacher's decision -- the rule that knows WHICH closer (or continuation) fits."""
@@ -852,7 +894,8 @@ def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thres
     in the soft mixture. Rules that merely displace an equally good lower tier score ~0 and are
     rejected; rules still install into the soft model as votes once admitted (training benefit)."""
     cover = core_cover_sw if SWCOVER else core_cover
-    base = cover(model, model.rules, ids, yv, cls, val)["agree"]
+    folds = ([val[i::FOLDS] for i in range(FOLDS)] if FOLDS else [val])
+    bases = [cover(model, model.rules, ids, yv, cls, f)["agree"] for f in folds]
     best = (thresh, None)
     for name, fn in candidates:
         if any(n == name for n, _ in model.rules):
@@ -860,13 +903,18 @@ def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thres
         ec = ({name: val_fired_acc(fn, ids, yv, val)}
               if SWCOVER and name not in CONF_FNS and name not in RULE_CONF else None)
         kw = {"extra_conf": ec} if SWCOVER else {}
-        marg = cover(model, model.rules + [(name, fn)], ids, yv, cls, val, **kw)["agree"] - base
+        t = 0.002 if name.startswith("gate") else thresh     # gate tables are high-variance
+        margs = [cover(model, model.rules + [(name, fn)], ids, yv, cls, f, **kw)["agree"] - b
+                 for f, b in zip(folds, bases, strict=True)]
+        marg = sum(margs) / len(margs)
+        clears = sum(mm > t for mm in margs)
         pen = MDL_LAM * RULE_SIZE[name]() if DX and name in RULE_SIZE else 0.0
-        score = marg - pen                                   # 11: MDL -- marginal per table bit;
+        score = marg - pen                                   # 11: MDL -- marginal per table bit
         log.append(f"    sleep {cycle}: candidate {name} COVER marginal {marg:+.4f}"
-                   + (f" (MDL -{pen:.4f})" if pen else ""))  # 1e-8/entry: a 50k-entry table must
-        t = 0.002 if name.startswith("gate") else thresh     # beat DOUBLE the base threshold
-        if score > t and score > best[0]:
+                   + (f" [{clears}/{len(folds)} folds]" if FOLDS else "")
+                   + (f" (MDL -{pen:.4f})" if pen else ""))
+        ok = score > t and (not FOLDS or clears * 2 > len(folds))  # mean over t AND majority of
+        if ok and score > best[0]:                           # folds clears -- variance-stable
             best = (score, (name, fn))
     if best[1]:
         name, fn = best[1]
@@ -1011,6 +1059,28 @@ def emit_full(model, cls, uv, ts, vocab):
                      "lmax": ptr.lmax,
                      "cells": {f"{a}:{b}": round(c, 4) for (a, b), c in ptr.cells.items()},
                      "citation": [f"{src} pointer: per-(l,lc)-cell val fired-accuracy"]})
+            elif info[0] == "dfeat":
+                (kindname, params), tab_, B2_ = info[1], info[2], info[3]
+                fid = f"feat{len(derived_defs)}"
+                dd = {"id": fid, "kind": kindname}
+                for pk, pv in params.items():
+                    if pk in ("members", "openers", "closers"):
+                        dd[pk] = [int(uv[i]) for i in torch.where(pv)[0].tolist()]
+                    else:
+                        dd[pk] = pv
+                derived_defs.append(dd)
+                tokfeat = kindname.startswith("recent")
+                table, confs = {}, {}
+                for key, v, c in zip(tab_.k.tolist(), tab_.v.tolist(), tab_.c.tolist(),
+                                     strict=True):
+                    f, last = key // B2_ - 1, key % B2_
+                    ck = f"{int(uv[f]) if tokfeat else f}:{int(uv[last])}"
+                    table[ck] = int(uv[v])
+                    confs[ck] = round(c, 4)
+                add({"kind": "dgate", "tier": "gated", "basis": "observational",
+                     "feature": fid, "table": table, "confs": confs,
+                     "citation": [f"{src} {name}: derived {kindname} gate "
+                                  "(extractor family certified, wyly_derived_certify)"]})
             elif info[0] == "mined":
                 mined = info[1]
                 by_frame = {}
@@ -1173,7 +1243,48 @@ def main():
                 is_open[torch.tensor(opl, device=DEV)] = True
             if cll:
                 is_close[torch.tensor(cll, device=DEV)] = True
+            def add_dgate(nm_base, featfn, spec):
+                tab_, nk_ = fit_dgate_feature(ids, yv, fit, featfn, vocab)
+                if nk_ < 20:
+                    return
+                nm_ = f"{nm_base} [{nk_}]"
+                B2_ = vocab + 2
+
+                def dconf(w, tab_=tab_, B2_=B2_, featfn=featfn):
+                    f_ = featfn(w)
+                    v_, c_ = tab_.lookup_conf((f_ + 1) * B2_ + w[:, -1])
+                    miss = f_ < 0
+                    return (torch.where(miss, torch.full_like(v_, -1), v_),
+                            torch.where(miss, torch.full_like(c_, -1e9), c_))
+
+                candidates.append((nm_, lambda w, dconf=dconf: dconf(w)[0]))
+                CONF_FNS[nm_] = dconf
+                RULE_SIZE[nm_] = lambda nk_=nk_: nk_
+                EMIT_INFO[nm_] = ("dfeat", spec, tab_, B2_)
+                print(f"CX: {nm_}")
+
+            cap_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+            claus_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+            SUBS = {"dass", "weil", "ob", "wenn", "da", "obwohl", "damit", "denn",
+                    "sondern", "als", "wie", "nachdem", "bevor", "sobald", "falls"}
+            for i in range(vocab):
+                d = _ts.token_str(int(uv[i])).strip()
+                if len(d) > 1 and d[0].isupper() and d.isalpha():
+                    cap_set[i] = True
+                if d.lower() in SUBS:
+                    claus_set[i] = True
+            if int(cap_set.sum()) >= 20:
+                add_dgate("runiq gate",
+                          lambda w, cs=cap_set: recent_member_feature(w, cs, unique=True),
+                          ("recent-unique", {"members": cap_set}))
+            if int(claus_set.sum()) >= 5:
+                add_dgate("clause gate",
+                          lambda w, cs=claus_set: recent_member_feature(w, cs),
+                          ("recent-member", {"members": claus_set}))
             if opl and cll:
+                add_dgate("depth gate",
+                          lambda w, o=is_open, c=is_close: depth_feature(w, o, c),
+                          ("bracket-depth", {"openers": is_open, "closers": is_close, "cap": 8}))
                 mtab, mnk = fit_mate(ids, yv, fit, is_open, is_close, vocab)
                 nm = f"mate gate [{mnk}]"
                 B2 = vocab + 2
