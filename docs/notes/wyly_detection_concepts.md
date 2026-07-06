@@ -32,3 +32,28 @@ growth into the *soft* space (13/14) doesn't pay; growth into the *rule* space �
 predicates (15) and cluster-scoped frames (9) — sets new bests on the two corpora that had
 plateaued differently (isabelle via structure, wikitext via scope). The path past the prose
 plateau continues to run through rules-over-derived-features, not more memory.
+
+## 15-full: shipped — the two-layer package is real
+
+The package schema now speaks both layers (rosetta PR #33, sgiandubh PR #16, pil this branch):
+
+- **`derived`**: feature extractors shipped extensionally (bracket-mate: openers/closers as token
+  sets, feature = innermost unclosed opener). The extractor's semantics is **Soufflé-certified**
+  against the tensor mirror (`wyly_mate_certify.py`: recursive prefix-depth + stratified negation
+  + max aggregate ≡ prefix-cummin tensor, **256/256 PROVED** on isabelle windows).
+- **`dgate`**: rules gating on (derived feature, last token) — guards that are computed ROLES.
+  Nesting semantics unit-tested in both runtimes (inner opener wins; closed pair abstains; outer
+  becomes innermost after close).
+- **`pointer`** kind + **`concepts`** map: the two deferred emissions, completing package
+  fidelity for the modern library.
+- **End-to-end**: the isabelle package (5,525 rules: pointer + 2 induction + 88 gates + 5,434
+  ngrams + 189 concept groups) serves at **exact parity with the arc best — 0.586 @ 99.9%**
+  (12k windows, python; C++ spoke 200/200 over HTTP).
+
+Named honestly: the mate gate's admission is variance-fragile (+0.0010–0.0013 against a 5e-4
+threshold, racing other candidates per sleep — admitted in the recorded B-ablation run, edged out
+in the emit re-run by GPU-atomics nondeterminism), so this isabelle manifest carries the pointer
+and concept layers but no dgate; the dgate path is verified by certificate + unit test. Multi-run
+admission (admit if it wins any of k seeds) is the obvious stabilizer. Also fixed here: the
+STATE-suffix chain bug (stack runs were overwriting the base-suffix state file; all reported
+ablation numbers came from run logs and are unaffected).
