@@ -47,6 +47,27 @@ Pile-adjacent domains for pythia. Teachers built in ~3 min each on the 8 GB card
    tier is structurally load-bearing there, consistent with the mined-frame counts admitted per
    sleep (dozens on code-like corpora, singletons on prose).
 
+## Follow-up: concept induction + class frames (build order 12+1)
+
+Table-driven **concept induction** (`ConceptSpace`, refreshed each sleep: count rows with support
+≥ 30 and cosine ≥ 0.85 union-find into concepts; cmap → representative) feeding two new judge
+candidates under `WYLY_CONCEPTS=1`: a **pooled concept-counts tier** (counts index-added over
+cmap; per-key Laplace confidence — the exact row wins where it has support, the pool wins on rare
+members) and **mined cframes** (the mined-frame machinery with anchors passed through cmap —
+class-anchored frames, discovered not designed). Full 8-corpus ablation vs the baselines above:
+
+- **German, the named target, moved: core_sw 0.510 → 0.525, crystallization 93.1% → 95.1%** —
+  closing about half its gap to the prose neighbors. The judge admitted `mined cframes` **on
+  German only**; German's ConceptSpace merged 2,296 classes by the last sleep (the most of any
+  corpus) — the morphology-fragmentation hypothesis confirmed as roughly half the story.
+- `concept counts (pooled)` was admitted **on isabelle only** (+0.001) — pooling pays where
+  reference-and-reuse dominates.
+- Every other corpus flat within ±0.001, both families correctly declined by the judge: no
+  regressions, no noise admissions.
+- **The residual German gap (~95% vs ~96–97% expected) now points at word order** — verb-final
+  Nebensätze put the predictive evidence beyond any fixed-offset frame; that is the pointer-rule
+  item on the build order, not a concept problem.
+
 ## Confounds (named)
 
 Single seed per cell; corpus register differs from Pile representation per domain (CFR is
