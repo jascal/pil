@@ -137,3 +137,32 @@ under-credits morphological structure (the de inversion).
 logs in the review artifacts dir. Extends the ladders report and the paper's §7/§8 domain claim:
 "more crystallizable the more structured the domain" is now an 8-point measured curve, not a
 2-point contrast.)*
+
+## The refreshed matrix: the threshold dissolves (complete stack, 2026-07-06)
+
+Re-run of all 8 corpora under the full stack (concepts + pointers + transform + detection +
+derived roles incl. composition + learned member sets + 3-fold admission):
+
+```
+    corpus   gzip   gold  copy%  student  core_sw  crystal    (orig core -> now)
+      code  0.251  0.692  91.9%    0.584    0.611   104.7%    0.605 -> 0.611
+  isabelle  0.271  0.502  93.9%    0.578    0.588   101.7%    0.570 -> 0.588
+        py  0.309  0.571  84.6%    0.463    0.501   108.1%    0.504 -> 0.501
+     legal  0.326  0.422  80.1%    0.478    0.487   102.0%    0.479 -> 0.487
+        de  0.350  0.417  63.0%    0.554    0.539    97.3%    0.510 -> 0.539  (+0.029)
+      math  0.356  0.401  72.8%    0.395    0.381    96.4%    0.355 -> 0.381  (+0.026)
+     wt103  0.400  0.316  73.1%    0.357    0.350    98.0%    0.341 -> 0.350
+  wikitext  0.402  0.311  71.9%    0.343    0.342    99.5%    0.329 -> 0.342
+
+  Spearman vs gzip: crystallization -0.67, core -0.93, gold -0.98 (stable axis)
+```
+
+**Five new arc bests** (wikitext, wt103, math, legal, code). The original study's sharp
+crystallization threshold at gzip ≈ 0.33 (>100% below, 91–96% above) has become a gentle slope:
+**every corpus now crystallizes at 96–108%**. The prose/formal crystallization gap was largely a
+RULE-VOCABULARY artifact, not a domain constant — closed by rules over derived roles (mate,
+depth, clause, referent, composed roles) and learned member sets, not by more memory. The
+biggest movers are exactly the two worst crystallizers of the original study: German +0.029
+(morphology → concepts; Nebensätze → clause/clause-succ roles) and math +0.026 (referent +
+learned-set roles). What remains open: the absolute ceiling still tracks structure (core ρ −0.93
+unchanged) — roles close the *ratio* gap, and the teacher's own predictability bounds the rest.

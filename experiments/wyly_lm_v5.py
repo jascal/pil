@@ -461,10 +461,8 @@ def mate_feature(ids, is_open, is_close):
                        torch.full_like(best, -1))
 
 
-def recent_member_feature(ids, member, unique=False):
-    """derived extractors: the most recent token in a declared member SET -- optionally the most
-    recent member occurring EXACTLY ONCE in the window (the distinguished-referent role). Exact,
-    vectorized, host-side; Datalog-certifiable (count + max aggregate)."""
+def recent_member_pos(ids, member, unique=False):
+    """position of the most recent member (optionally unique-occurrence); -1 if none."""
     m = member[ids]
     if unique:
         srt, _ = ids.sort(1)
@@ -477,9 +475,33 @@ def recent_member_feature(ids, member, unique=False):
         once = once_sorted.gather(1, rank)
         m = m & once
     pos = torch.arange(ids.shape[1], device=ids.device)
-    best = torch.where(m, pos, torch.full_like(pos, -1).expand_as(m)).max(1).values
+    return torch.where(m, pos, torch.full_like(pos, -1).expand_as(m)).max(1).values
+
+
+def mate_pos(ids, is_open, is_close):
+    """position of the innermost unclosed opener; -1 if none."""
+    sign = is_open[ids].long() - is_close[ids].long()
+    pref = sign.cumsum(1)
+    revmin = pref.flip(1).cummin(1).values.flip(1)
+    cand = is_open[ids] & (revmin >= pref)
+    pos = torch.arange(ids.shape[1], device=ids.device)
+    return torch.where(cand, pos, torch.full_like(pos, -1).expand_as(cand)).max(1).values
+
+
+def at_pos(ids, pos, succ=0):
+    """ROLE COMPOSITION: the token at (position + succ) -- features of features ("the token
+    after the mate", "the token after the clause opener"). -1 where the position is absent or
+    the shift runs off the window."""
+    p = pos + succ
+    ok = (pos >= 0) & (p >= 0) & (p < ids.shape[1])
     rows = torch.arange(len(ids), device=ids.device)
-    return torch.where(best >= 0, ids[rows, best.clamp(min=0)], torch.full_like(best, -1))
+    return torch.where(ok, ids[rows, p.clamp(min=0, max=ids.shape[1] - 1)],
+                       torch.full_like(pos, -1))
+
+
+def recent_member_feature(ids, member, unique=False):
+    """the most recent member token (optionally unique-occurrence) -- at_pos of the pos variant."""
+    return at_pos(ids, recent_member_pos(ids, member, unique=unique))
 
 
 def depth_feature(ids, is_open, is_close, cap=8):
@@ -1281,7 +1303,14 @@ def main():
                 add_dgate("clause gate",
                           lambda w, cs=claus_set: recent_member_feature(w, cs),
                           ("recent-member", {"members": claus_set}))
+            if int(claus_set.sum()) >= 5:
+                add_dgate("clause-succ gate",
+                          lambda w, cs=claus_set: at_pos(w, recent_member_pos(w, cs), succ=1),
+                          ("recent-member", {"members": claus_set, "succ": 1}))
             if opl and cll:
+                add_dgate("mate-succ gate",
+                          lambda w, o=is_open, c=is_close: at_pos(w, mate_pos(w, o, c), succ=1),
+                          ("bracket-mate", {"openers": is_open, "closers": is_close, "succ": 1}))
                 add_dgate("depth gate",
                           lambda w, o=is_open, c=is_close: depth_feature(w, o, c),
                           ("bracket-depth", {"openers": is_open, "closers": is_close, "cap": 8}))
@@ -1374,6 +1403,36 @@ def main():
                 if nk:
                     log.append(f"    sleep {ep}: GROW +{nk} compound concepts "
                                f"(total {len(model.grow_keys)})")
+            if CX and CONCEPTS and cspace is not None and ep >= 1:
+                cm = cspace.cmap                             # LEARNED member sets: top concept
+                reps, cnts = cm.unique(return_counts=True)   # groups offered as recent-member
+                for rep in reps[cnts.argsort(descending=True)[:6]].tolist():  # gates (sets
+                    nm2 = f"cmember [{rep}]"                 # DISCOVERED, not seeded)
+                    if any(nm2 in n for n, _ in model.rules) or nm2 in CONF_FNS:
+                        continue
+                    grp = torch.where(cm == rep)[0]
+                    if len(grp) < 3:
+                        continue
+                    mset = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+                    mset[grp] = True
+                    tab2, nk2 = fit_dgate_feature(
+                        ids, yv, fit, lambda w, ms=mset: recent_member_feature(w, ms), vocab)
+                    if nk2 < 20:
+                        continue
+                    B2_ = vocab + 2
+
+                    def cconf(w, tab2=tab2, B2_=B2_, mset=mset):
+                        f_ = recent_member_feature(w, mset)
+                        v_, c_ = tab2.lookup_conf((f_ + 1) * B2_ + w[:, -1])
+                        miss = f_ < 0
+                        return (torch.where(miss, torch.full_like(v_, -1), v_),
+                                torch.where(miss, torch.full_like(c_, -1e9), c_))
+
+                    candidates.append((nm2, lambda w, cconf=cconf: cconf(w)[0]))
+                    CONF_FNS[nm2] = cconf
+                    RULE_SIZE[nm2] = lambda nk2=nk2: nk2
+                    EMIT_INFO[nm2] = ("dfeat", ("recent-member", {"members": mset}), tab2,
+                                      B2_)
             if CX and CONCEPTS:                              # 9: cluster-scoped anchor mining
                 mined.mine_clustered(model, ids, yv, cls, fit, ground, g, log, ep)
             if DX:                                           # 8: rules retreat to where they are

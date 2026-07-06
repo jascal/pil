@@ -77,3 +77,16 @@ threshold AND a majority of folds clearing it.
   and the mate gate is now **consistently rejected** rather than coin-flip admitted: the folds
   identified its earlier single-run admission as val-variance, exactly the failure mode C10's
   miscalibration bound prices.
+
+## Follow-up: role composition + learned member sets
+
+- **Composition (`succ`)**: extractors now locate positions; `succ: k` reads the token at
+  position+k ("the token after the mate/clause opener"). Certified with the composed variant
+  (192/192). **The composed clause-succ gate [1256] beat the plain clause gate on German** —
+  the token *after* the subordinator (the subject) is the better conditioning role.
+- **Learned member sets (`cmember`)**: top concept groups offered per-sleep as recent-member
+  gates — the sets are discovered, not seeded. **Admitted on six of eight corpora** (isabelle
+  took four). The seeded sets (subordinators, capitalization) are now just priors; the learner
+  grows its own roles.
+- Full-stack matrix: five new arc bests; the domain-structure threshold dissolves (see
+  wyly_domain_structure.md).
