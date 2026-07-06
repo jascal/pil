@@ -121,6 +121,34 @@ feat(w, t) :- prev(w, q), q1 = q + 1, tok(w, q1, t).
 .output feat
 """
 
+P_DSTATE = """
+.decl tok(w:number, p:number, t:number)
+.input tok
+.decl member(t:number)
+.input member
+.decl qmember(t:number)
+.input qmember
+.decl hit(w:number, p:number)
+hit(w, p) :- tok(w, p, t), member(t).
+.decl base(w:number, m:number)
+base(w, m) :- hit(w, _), m = max p : { hit(w, p) }.
+.decl since(w:number, v:number)
+since(w, v) :- base(w, m), d = (NPOS - 1) - m, d <= 33, v = d.
+since(w, 33) :- base(w, m), (NPOS - 1) - m > 33.
+since(w, 34) :- tok(w, _, _), !hit(w, _).
+.decl bucket(w:number, v:number)
+bucket(w, 0) :- since(w, s), s <= 2.
+bucket(w, 1) :- since(w, s), s > 2, s <= 6.
+bucket(w, 2) :- since(w, s), s > 6, s <= 14.
+bucket(w, 3) :- since(w, s), s > 14, s <= 32.
+bucket(w, 4) :- since(w, s), s > 32.
+.decl qhit(w:number, p:number)
+qhit(w, p) :- tok(w, p, t), qmember(t).
+.decl feat(w:number, v:number)
+feat(w, v) :- bucket(w, b), tok(w, _, _), c = count : { qhit(w, _) }, v = b * 2 + c % 2.
+.output feat
+"""
+
 P_DEPTH = """
 .decl tok(w:number, p:number, t:number)
 .input tok
@@ -211,6 +239,13 @@ def main():
         w, (v5.recent_member_pos(w, cap_set) - 1).clamp(min=-1)), succ=1)
     ok &= check("prev-occ of_shift=-1 succ=1 (CLAIM ECHO)", tce.cpu().tolist(),
                 run_souffle(P_CLAIMECHO, {"tok": tokf, "member": mem}))
+    qm = [(int(i),) for i in torch.where(cap_set)[0].tolist()[:40]]
+    qset = torch.zeros(vocab, dtype=torch.bool, device=ids.device)
+    qset[torch.tensor([q[0] for q in qm], device=ids.device)] = True
+    tds = v5.dstate_feature(w, cap_set, qset)
+    ok &= check("dstate (RHETORICAL STATE: bucket x parity)", tds.cpu().tolist(),
+                run_souffle(P_DSTATE.replace("NPOS", str(w.shape[1])),
+                            {"tok": tokf, "member": mem, "qmember": qm}))
     opl, cll = v5.bracket_sets(uv, ts)
     is_open = torch.zeros(vocab, dtype=torch.bool, device=ids.device)
     is_close = torch.zeros(vocab, dtype=torch.bool, device=ids.device)

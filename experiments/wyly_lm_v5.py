@@ -535,6 +535,21 @@ def member_parity_feature(ids, member):
     return member[ids].long().sum(1) % 2
 
 
+DSTATE_EDGES = (2, 6, 14, 32)
+
+
+def dstate_feature(ids, sent_member, quote_member):
+    """RHETORICAL-STATE role (multiple surface roles combined): bucketed position-in-sentence
+    (edges 2/6/14/32, +none) x quotation parity -> ~10 discrete states. Low cardinality by
+    construction -- the lesson from sentpair's decline: pair registers need a low-card side."""
+    since = since_member_feature(ids, sent_member, cap=33)
+    bucket = torch.zeros_like(since)
+    for e in DSTATE_EDGES:
+        bucket += (since > e).long()
+    par = member_parity_feature(ids, quote_member)
+    return bucket * 2 + par
+
+
 def depth_feature(ids, is_open, is_close, cap=8):
     """derived extractor (build-order 4, the balance counter): the current bracket DEPTH, clamped
     to [0, cap] -- stack-shaped context no frame can express, now one prefix sum."""
@@ -1146,7 +1161,7 @@ def emit_full(model, cls, uv, ts, vocab):
                     params = {}
                 dd = {"id": fid, "kind": kindname}
                 for pk, pv in params.items():
-                    if pk in ("members", "openers", "closers"):
+                    if pk in ("members", "openers", "closers", "quote_members"):
                         dd[pk] = [int(uv[i]) for i in torch.where(pv)[0].tolist()]
                     else:
                         dd[pk] = pv
@@ -1456,6 +1471,42 @@ def main():
                     RULE_SIZE[nmp] = lambda pnk=pnk: pnk
                     EMIT_INFO[nmp] = ("dgate2", ("sent-pair", {"members": sent_set}), ptab, B2p)
                     print(f"CX: {nmp}")
+            if int(sent_set.sum()) >= 1 and int(quot_set.sum()) >= 1:
+                add_dgate("dstate gate",
+                          lambda w: dstate_feature(w, sent_set, quot_set),
+                          ("dstate", {"members": sent_set, "quote_members": quot_set}))
+
+                def dst(w):
+                    return dstate_feature(w, sent_set, quot_set)
+
+                def shead(w):
+                    return at_pos(w, recent_member_pos(w, sent_set), succ=1)
+
+                def pshead(w):
+                    return at_pos(w, prev_occ_pos(w, recent_member_pos(w, sent_set)), succ=1)
+
+                for nm2, fa, fb in [
+                        ("dstate*head", dst, shead),
+                        ("conn*head", (lambda w: recent_member_feature(w, conn_set)), shead),
+                        ("conn*prevhead",
+                         (lambda w: recent_member_feature(w, conn_set)), pshead)]:
+                    t2, n2 = fit_dgate2(ids, yv, fit, fa, fb, vocab)
+                    if n2 < 20:
+                        continue
+                    nmf = f"{nm2} gate [{n2}]"
+                    B2q = vocab + 2
+
+                    def qconf(w, t2=t2, B2q=B2q, fa=fa, fb=fb):
+                        va, vb = fa(w), fb(w)
+                        m_ = (va >= 0) & (vb >= 0)
+                        v_, c_ = t2.lookup_conf((va + 1) * B2q + vb)
+                        return (torch.where(m_, v_, torch.full_like(v_, -1)),
+                                torch.where(m_, c_, torch.full_like(c_, -1e9)))
+
+                    candidates.append((nmf, lambda w, qconf=qconf: qconf(w)[0]))
+                    CONF_FNS[nmf] = qconf
+                    RULE_SIZE[nmf] = lambda n2=n2: n2
+                    print(f"CX: {nmf}")
             if int(attr_set.sum()) >= 5:                     # CLAIM/EVIDENCE: the claimant roles
                 add_dgate("attrib-subj gate",
                           lambda w, ms=attr_set: at_pos(w, recent_member_pos(w, ms), succ=-1),

@@ -244,3 +244,28 @@ jointly — the span-pair):
 The abstraction ledger after three discourse goals: psy 92.3→93.9%, soc 90.9→**91.9%**, wiki at
 **99.7%** with its best core yet. The tail shrinks by real, admitted, certified rules — a point
 a sleep at a time.
+
+## Closing the abstraction tail: corpus does it — and unlocks the pairing register
+
+Two attacks, cleanly attributed (psy20/soc20 = 16 MB multi-source Gutenberg topic corpora, 29
+books each — which also removes the single-source confound; psy_en/soc_en re-run with the new
+registers isolates the register effect):
+
+- **The relation registers with multiple surface roles** (`dstate` — bucketed
+  position-in-sentence × quotation parity, ~10 states — plus `dgate2` combos conn×head,
+  dstate×head, conn×prevhead) were built, certified (TEN role programs now, all Soufflé-PROVED),
+  offered — and **declined everywhere**. On the small corpora the register-only runs moved
+  −0.005/flat. Tagged: multi-role relation gating is unsupported at 70m even with low-cardinality
+  sides.
+- **Corpus size closes the tail.** soc20: crystallization **90.9% → 97.5%** (core 0.350 vs
+  student 0.359) — sociology rejoins the prose band (wt103 98.0%, wiki 99.7%). psy20: **→
+  94.1%** (from 92.3–93.9). Same-difficulty teachers (gold 0.331/0.352 ≈ the small-corpus
+  golds), 29 sources each — the effect is support, not source memorization.
+- **And more corpus unlocked the claim/evidence machinery**: `attrib-subj` — the claimant role,
+  declined on every small corpus — was **admitted on soc20** (84 keys), alongside prevsent-head.
+  The pairing register wasn't wrong; it was support-starved.
+
+**The abstraction ledger, final for this campaign**: psy 92.3 → **94.1%**, soc 90.9 → **97.5%**.
+The 'abstraction breaks the band' finding survives in weakened form: at matched (16 MB) corpus
+scale, psychology remains the hardest domain in the study — the residual is real but small, and
+every point of it was closed by admitted, certified structure.
