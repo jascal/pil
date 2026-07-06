@@ -51,7 +51,7 @@ def anchor():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="pythia-70m")
-    ap.add_argument("--dtype", choices=["fp32", "fp16"], default="fp32")
+    ap.add_argument("--dtype", choices=["fp32", "fp16", "int8"], default="fp32")
     ap.add_argument("--batch", type=int, default=128)
     ap.add_argument("--anchor", action="store_true")
     ap.add_argument("--ds", default="wikitext", help="dataset tag (wyly_nexttoken_<ds>_L256.pt)")
@@ -59,9 +59,13 @@ def main():
     if a.anchor:
         anchor()
     from transformers import AutoModelForCausalLM
-    dt = torch.float16 if a.dtype == "fp16" else torch.float32
-    m = AutoModelForCausalLM.from_pretrained(f"EleutherAI/{a.model}", local_files_only=True,
-                                             torch_dtype=dt).cuda().eval()
+    if a.dtype == "int8":                                # 8-bit path: pythia-6.9b on an 8GB card
+        m = AutoModelForCausalLM.from_pretrained(f"EleutherAI/{a.model}", local_files_only=True,
+                                                 load_in_8bit=True, device_map="cuda:0").eval()
+    else:
+        dt = torch.float16 if a.dtype == "fp16" else torch.float32
+        m = AutoModelForCausalLM.from_pretrained(f"EleutherAI/{a.model}", local_files_only=True,
+                                                 torch_dtype=dt).cuda().eval()
     dfile = ("wyly_nexttoken_wikitext_L256.pt" if a.ds == "wikitext"
              else f"wyly_nexttoken_{a.ds}_L256.pt")
     dd = torch.load(REPO / "data" / dfile, map_location="cpu")

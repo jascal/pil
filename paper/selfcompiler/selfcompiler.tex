@@ -361,6 +361,47 @@ rule. Two deployment lessons: word-level relevance gates never overlap subword c
 splits identifiers), and doubled-token ``gibberish'' \emph{legitimately} fires the repetition rule
 --- repeated-token continuation is real next-token behavior.
 
+\section{The Second Campaign: Roles, Not Memory}
+\label{sec:campaign2}
+
+A follow-on campaign asked \emph{why} crystallization varies by domain, and then removed the
+variation. An eight-corpus study at the 70M rung (formal proofs, two programming languages,
+legal, German, LaTeX math, two prose controls; structure measured as the gzip ratio of the
+detokenized stream) first found a sharp threshold: below gzip $\approx 0.33$ the certified core
+\emph{exceeded} its own student (102--107\%); above it, prose stalled at 91--96\%
+\tagp{empirical} --- with teacher predictability tracking compressibility at $\rho=-0.98$.
+
+The campaign then attacked the gap with structure, never memory: \textbf{concept induction}
+(tokens interchangeable in the certified tier merge; German morphology reconsolidates),
+\textbf{pointer rules} (generalized copy scored by exact- and concept-suffix match, per-cell
+calibrated --- C10 applied cell-wise), and --- decisively --- \textbf{derived roles}: the package
+became a two-layer program (\code{derived} extractors + \code{dgate} rules) whose every
+extractor is Souffl\'e-certified against its tensor mirror (innermost unclosed opener,
+most-recent-unique referent, clause openers, the bracket-depth counter, and \emph{composed}
+roles --- the token after the mate, the entity's previous continuation --- 192--256/192--256 per
+kind, \tagp{proved, stated domains}). Admission moved to disjoint validation folds (mean over
+threshold and a majority of folds), which both reproduced admission sets across reruns and
+consistently rejected a variance-fragile rule that single-run judging had coin-flipped.
+
+The result (Fig.~\ref{fig:campaign2}): \textbf{the threshold dissolved}. Every corpus now
+crystallizes at 96--108\% (wikitext at 99.5\% --- the certified core \emph{is} the student);
+five arc bests fell in the final matrix, and the two worst crystallizers moved most (German
+$+0.029$: subordinator-conditioned roles --- the composed \emph{clause-successor} gate --- are
+precisely the verb-final word-order channel; math $+0.026$: referent roles and \emph{learned}
+member sets, with the judge admitting concept-group roles on six of eight corpora). The
+prose/formal crystallization gap was a rule-vocabulary artifact, not a domain constant. What
+structure still governs is the absolute ceiling (core vs.\ gzip: $\rho=-0.93$, unchanged):
+roles close the \emph{ratio}; the teacher's own predictability bounds the rest \tagp{empirical}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{figures/campaign2.pdf}
+\caption{The second campaign: crystallization before (memorization library) and after (derived
+roles + learned member sets), per corpus. The gzip-threshold cliff of the domain study becomes a
+uniform 96--108\% band. \tagp{empirical}}
+\label{fig:campaign2}
+\end{figure}
+
 \section{Confounds and Limitations}
 \label{sec:confounds}
 
