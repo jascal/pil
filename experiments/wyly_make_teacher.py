@@ -52,21 +52,23 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="pythia-70m")
     ap.add_argument("--dtype", choices=["fp32", "fp16", "int8"], default="fp32")
+    ap.add_argument("--tag", default=None, help="filename tag override (for non-EleutherAI ids)")
     ap.add_argument("--batch", type=int, default=128)
     ap.add_argument("--anchor", action="store_true")
     ap.add_argument("--ds", default="wikitext", help="dataset tag (wyly_nexttoken_<ds>_L256.pt)")
     a = ap.parse_args()
+    MID = a.model if "/" in a.model else f"EleutherAI/{a.model}"
     if a.anchor:
         anchor()
     from transformers import AutoModelForCausalLM
     if a.dtype == "int8":                                # 8-bit path: pythia-6.9b on an 8GB card
         from transformers import BitsAndBytesConfig
         m = AutoModelForCausalLM.from_pretrained(
-            f"EleutherAI/{a.model}", local_files_only=True, device_map="cuda:0",
+            MID, local_files_only=True, device_map="cuda:0",
             quantization_config=BitsAndBytesConfig(load_in_8bit=True)).eval()
     else:
         dt = torch.float16 if a.dtype == "fp16" else torch.float32
-        m = AutoModelForCausalLM.from_pretrained(f"EleutherAI/{a.model}", local_files_only=True,
+        m = AutoModelForCausalLM.from_pretrained(MID, local_files_only=True,
                                                  torch_dtype=dt).cuda().eval()
     dfile = ("wyly_nexttoken_wikitext_L256.pt" if a.ds == "wikitext"
              else f"wyly_nexttoken_{a.ds}_L256.pt")
@@ -79,7 +81,7 @@ def main():
             dec[i:i + a.batch] = m(b, logits_to_keep=1).logits[:, -1].float().argmax(1).cpu()
             if i % (a.batch * 100) == 0:
                 print(f"[{time.time() - T0:5.0f}s] {a.model} {i}/{len(ids)}", flush=True)
-    mt = a.model.replace("-", "")
+    mt = a.tag if a.tag else (a.model.replace("-", ""))
     out = REPO / "data" / (f"wyly_teacher_{mt}_L256.pt" if a.ds == "wikitext"
                            else f"wyly_teacher_{mt}_{a.ds}_L256.pt")
     torch.save({"teacher": dec, "L": int(dd["L"]), "model": a.model, "dtype": a.dtype}, out)

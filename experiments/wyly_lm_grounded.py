@@ -46,8 +46,17 @@ def pythia_embed(uv: torch.Tensor) -> torch.Tensor:
 
 
 def grounded_init(uv: torch.Tensor) -> torch.Tensor:
-    """z-scored top-K0 PCA coordinates of the teacher embedding = named-ish concept axes."""
-    e = pythia_embed(uv)
+    """z-scored top-K0 PCA coordinates of the teacher embedding = named-ish concept axes.
+    WYLY_EMBED=<npy> grounds in a DIFFERENT teacher's embedding (e.g. Qwen for the element
+    expert -- the token space must match the windows' tokenizer)."""
+    import os
+    ov = os.environ.get("WYLY_EMBED")
+    if ov:
+        import numpy as np
+        emb = np.load(ov)
+        e = torch.from_numpy(np.asarray(emb[uv.cpu().numpy()], dtype=np.float32))
+    else:
+        e = pythia_embed(uv)
     e = e - e.mean(0)
     q = min(K0, min(e.shape) - 1)                        # tiny vocabs (sudoku: 30 tokens) get
     _, _, vt = torch.pca_lowrank(e, q=q, niter=4)        # fewer real axes, zero-padded to K0
