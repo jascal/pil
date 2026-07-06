@@ -43,6 +43,7 @@ SWCOVER = os.environ.get("WYLY_COVER", "") == "sw"           # design dir 2: sup
 EMIT = os.environ.get("WYLY_EMIT", "") == "1"                # emit the rosetta package (relation kind)
 CONCEPTS = os.environ.get("WYLY_CONCEPTS", "") == "1"        # concept induction + class frames
 POINTER = os.environ.get("WYLY_POINTER", "") == "1"          # pointer rules (build-order 2)
+TPOINTER = os.environ.get("WYLY_TPOINTER", "") == "1"        # transform-composed pointers (5 o 2)
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
 DATA = REPO / "data" / (f"wyly_nexttoken_{DS}_L256.pt" if DS != "wikitext"
                         else "wyly_nexttoken_wikitext_L256.pt")
@@ -352,6 +353,43 @@ class PointerRule:
         def fn(ids):
             return self.lookup_conf(ids)[0]
         return fn
+
+
+class TransformPointer(PointerRule):
+    """TRANSFORM-COMPOSED pointer (build-order 5 composed with 2): the pointer finds the source
+    by class-match; the COUNTS TIER re-inflects. Where the plain pointer copies the source's
+    successor verbatim (and gets the wrong surface form on inflecting languages), this rule
+    predicts the member of the successor's CONCEPT that the target's local bigram row supports
+    most: pred = argmax_{m in concept(succ)} counts[last, m]. A composition of two certified
+    structures -- the pointer proposes the class, the counts decode the form -- with its own
+    per-(l,lc)-cell val confidences."""
+
+    def __init__(self, vocab, dev, counts_ref, cls, lmax=6, cmap_ref=None):
+        super().__init__(vocab, dev, lmax=lmax, cmap_ref=cmap_ref)
+        self.counts_ref, self.cls = counts_ref, cls
+
+    def _feats(self, ids):
+        pred, l, lc, has = super()._feats(ids)
+        if self.cmap_ref is None:
+            return pred, l, lc, has
+        cmap = self.cmap_ref[0]
+        counts = self.counts_ref[0]
+        dec_concept = cmap[self.cls]                          # concept of each decision class
+        out = torch.full_like(pred, -1)
+        ok = torch.zeros_like(has)
+        for i in range(0, len(ids), 4096):                    # chunked class->form decode
+            sl = slice(i, min(i + 4096, len(ids)))
+            m = has[sl] & (pred[sl] >= 0)
+            if not int(m.sum()):
+                continue
+            tgt = cmap[pred[sl]]                              # proposed CLASS (of the successor)
+            row = counts[ids[sl, -1]].float()                 # target-local bigram evidence
+            row = row * (dec_concept[None, :] == tgt[:, None])
+            mx, am = row.max(1)
+            good = m & (mx >= 1)
+            out[sl] = torch.where(good, self.cls[am], out[sl])
+            ok[sl] = good
+        return out, l, lc, ok
 
 
 CONF_FNS = {}                                            # name -> (ids)->(val, per-key conf)
@@ -827,6 +865,13 @@ def main():
             CONF_FNS["pointer (l,lc cells)"] = pointer.lookup_conf
         else:
             pointer = None
+        if TPOINTER and cspace is not None:
+            tpointer = TransformPointer(vocab, DEV, counts_ref=[None], cls=cls,
+                                        cmap_ref=[cspace.cmap])
+            candidates.append(("tpointer (class->form)", tpointer.mirror()))
+            CONF_FNS["tpointer (class->form)"] = tpointer.lookup_conf
+        else:
+            tpointer = None
     else:
         mined = None
     gate_cands = []
@@ -893,6 +938,14 @@ def main():
             if pointer.cmap_ref is not None and cspace is not None:
                 pointer.cmap_ref[0] = cspace.cmap
             pointer.refresh(ids, yv, val)
+        if TPOINTER and tpointer is not None:
+            tpointer.cmap_ref[0] = cspace.cmap
+            tpointer.counts_ref[0] = model.counts
+            tpointer.refresh(ids, yv, val)
+            if ep in (0, 7):
+                cells = sorted(tpointer.cells.items())
+                log.append(f"    sleep {ep}: TPOINTER {len(tpointer.cells)} cells: "
+                           + ", ".join(f"l={a},lc={b}:{c:.2f}" for (a, b), c in cells))
             if ep in (0, 7):
                 cells = sorted(pointer.cells.items())
                 log.append(f"    sleep {ep}: POINTER {len(pointer.cells)} cells: "
