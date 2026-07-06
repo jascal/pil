@@ -61,6 +61,10 @@ def SAFE_KGRAMS(vocab):
 ECHO_SUCCS = tuple(int(x) for x in os.environ.get("WYLY_ECHO_SUCCS", "1").split(","))
 VALREG = os.environ.get("WYLY_VAL_REGION", "") == "1"        # judge on a HELD-OUT corpus REGION
 TUPLE = os.environ.get("WYLY_TUPLE", "") == "1"              # tuple-keyed tiers: exact, any reach
+QUERIES = os.environ.get("WYLY_QUERIES", "")                 # QUERY-SHAPED judging: val = deployment
+QUERY_PAD = 24                                               # queries left-padded to >= max offset
+STRATA = os.environ.get("WYLY_STRATA", "") == "1"            # stratified admission + fall-through
+STRATA_TAU = float(os.environ.get("WYLY_STRATA_TAU", "0.35"))
 RULE_SIZE = {}                                               # name -> callable -> table entries
 CONCEPTS_CMAP = [None]                                       # cmap holder for package emission
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
@@ -888,6 +892,19 @@ def core_cover_sw(model, rules, ids, yv, cls, idxs, extra_conf=None, return_pred
     tot = row.sum(1)
     a = torch.where(mx >= 1, cls[am], torch.full_like(t, -1))
     consider(a, mx.float() / (tot + ALPHA))
+    if STRATA and getattr(model, "rules2", None):            # FALL-THROUGH: where stratum-1
+        low = conf < STRATA_TAU                              # confidence is below tau, stratum-2
+        if bool(low.any()):                                  # candidates may claim the answer
+            for name2, fn2 in model.rules2:
+                if name2 in CONF_FNS:
+                    a2, c2 = CONF_FNS[name2](w)
+                else:
+                    a2 = fn2(w)
+                    c2 = torch.full((len(w),), float(RULE_CONF.get(name2, 0.0)),
+                                    device=w.device)
+                m2 = low & (a2 >= 0) & (c2 > conf)
+                pred = torch.where(m2, a2, pred)
+                conf = torch.where(m2, c2, conf)
     fired = pred >= 0
     out = {"agree": float((pred == yv[idxs]).float().mean()),
            "cover": float(fired.float().mean()),
@@ -1133,12 +1150,63 @@ def sleep_admit_v5(model, ids, y, val, cycle, candidates, log, thresh=0.002):
     return None
 
 
+QUERY_BATCHES = []                                           # [(ids [B,L], y [B])] per length
+
+
+def load_queries(ts, uv, cls):
+    """WYLY_QUERIES: deployment-shaped judge set -- {prompt, answer} pairs, tokenized, mapped to
+    class space, grouped by length, left-padded to >= the deepest rule offset. The judge then
+    scores candidates WHERE DEPLOYMENT QUERIES LIVE (prompt-final positions), not on random
+    window slices -- the fix for the window-vs-query blindness seen on bAbI movement rules and
+    the elements k-tier admissions."""
+    import json as _json
+    qs = _json.loads(Path(QUERIES).read_text())
+    inv = {int(t): i for i, t in enumerate(uv.tolist())}
+    clsset = set(cls.tolist())
+    groups = {}
+    for q in qs:
+        toks = [inv.get(t) for t in ts.encode(" " + q["prompt"])]
+        ans = [inv.get(t) for t in ts.encode(" " + q["answer"])]
+        if any(t is None for t in toks) or not ans or ans[0] is None                 or ans[0] not in clsset:
+            continue
+        ln = max(len(toks), QUERY_PAD)
+        padded = [toks[0]] * (ln - len(toks)) + toks
+        groups.setdefault(ln, []).append((padded, ans[0]))
+    out = []
+    for _ln, items in sorted(groups.items()):
+        out.append((torch.tensor([p_ for p_, _ in items], device=DEV),
+                    torch.tensor([a_ for _, a_ in items], device=DEV)))
+    n = sum(len(b[1]) for b in out)
+    print(f"query judge: {n} deployment-shaped queries in {len(out)} length groups")
+    return out
+
+
+def query_agree(model, rules, cls, batches, fold=None, nfolds=3):
+    """agreement of the sw cover's first answer token on deployment-shaped queries (optionally
+    one fold of them). qans is already in class space (uv indices)."""
+    ok = tot = 0
+    for qids, qans in batches:
+        sel = torch.arange(len(qids), device=DEV)
+        if fold is not None:
+            sel = sel[sel % nfolds == fold]
+        if not len(sel):
+            continue
+        _, pred = core_cover_sw(model, rules, qids, qans, cls, sel, return_pred=True)
+        ok += int((pred == qans[sel]).sum())
+        tot += len(sel)
+    return ok / max(tot, 1)
+
+
 def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thresh=5e-4):
     """COVER-AWARE admission (design direction 1): a candidate is scored by its marginal to the
     PACKAGE COVER on held-out val -- the objective the runtime actually realizes -- not by its vote
     in the soft mixture. Rules that merely displace an equally good lower tier score ~0 and are
     rejected; rules still install into the soft model as votes once admitted (training benefit)."""
     cover = core_cover_sw if SWCOVER else core_cover
+    if QUERY_BATCHES:                                        # QUERY-SHAPED judging: marginals on
+        nf = FOLDS if FOLDS else 1                           # deployment-query folds
+        qbases = [query_agree(model, model.rules, cls, QUERY_BATCHES,
+                              fold=(i if FOLDS else None), nfolds=nf) for i in range(nf)]
     folds = ([val[i::FOLDS] for i in range(FOLDS)] if FOLDS else [val])
     bases = [cover(model, model.rules, ids, yv, cls, f)["agree"] for f in folds]
     best = (thresh, None)
@@ -1149,8 +1217,18 @@ def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thres
               if SWCOVER and name not in CONF_FNS and name not in RULE_CONF else None)
         kw = {"extra_conf": ec} if SWCOVER else {}
         t = 0.002 if name.startswith("gate") else thresh     # gate tables are high-variance
-        margs = [cover(model, model.rules + [(name, fn)], ids, yv, cls, f, **kw)["agree"] - b
-                 for f, b in zip(folds, bases, strict=True)]
+        if QUERY_BATCHES:                                    # BLEND: query value counts,
+            nf = FOLDS if FOLDS else 1                       # window value keeps broad
+            wmargs = [cover(model, model.rules + [(name, fn)], ids, yv, cls, f,
+                            **kw)["agree"] - b for f, b in zip(folds, bases, strict=True)]
+            qmargs = [query_agree(model, model.rules + [(name, fn)], cls, QUERY_BATCHES,
+                                  fold=(i if FOLDS else None), nfolds=nf) - b
+                      for i, b in zip(range(nf), qbases, strict=True)]
+            margs = [(qm + wm) / 2
+                     for qm, wm in zip(qmargs, wmargs, strict=False)] or qmargs
+        else:
+            margs = [cover(model, model.rules + [(name, fn)], ids, yv, cls, f, **kw)["agree"]
+                     - b for f, b in zip(folds, bases, strict=True)]
         marg = sum(margs) / len(margs)
         clears = sum(mm > t for mm in margs)
         pen = MDL_LAM * RULE_SIZE[name]() if DX and name in RULE_SIZE else 0.0
@@ -1165,7 +1243,20 @@ def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thres
         name, fn = best[1]
         model.install(name, fn)
         log.append(f"    sleep {cycle}: ADMITTED {name} (cover {best[0]:+.4f})")
-        return name
+    if STRATA:                                               # STRATUM 2: calibrated non-winners
+        if not hasattr(model, "rules2"):                     # (fired-accuracy >= 0.5, marginal
+            model.rules2 = []                                # not negative) survive as labeled
+        for name2, fn2 in candidates:                        # fall-through coverage instead of
+            if any(n == name2 for n, _ in model.rules) \
+                    or any(n == name2 for n, _ in model.rules2):
+                continue
+            fa = val_fired_acc(fn2, ids, yv, val)
+            if fa >= 0.5 and len(model.rules2) < 24:
+                model.rules2.append((name2, fn2))
+                RULE_CONF.setdefault(name2, fa)
+                log.append(f"    sleep {cycle}: stratum-2 {name2} (fired-acc {fa:.2f})")
+    if best[1]:
+        return best[1][0]
     return None
 
 
@@ -1776,6 +1867,12 @@ def main():
         print(f"gate grid ({len(gate_cands)}, proposer-selected at sleep): "
               f"{[n for n, _ in gate_cands]}")
 
+    if QUERIES:
+        sys.path.insert(0, str(REPO))
+        from pil.tokens import TokenSpace as _TS
+        _qts = _TS.from_file(TOKJ if TOKJ else str(REPO.parent / "rosetta" / "models"
+                                                   / "pythia70m" / "bundle.tokenizer.json"))
+        QUERY_BATCHES.extend(load_queries(_qts, uv, cls))
     ground = grounded_init(uv).to(DEV)
     ground = ground / ground.shape[1] ** 0.5
     torch.manual_seed(0)
