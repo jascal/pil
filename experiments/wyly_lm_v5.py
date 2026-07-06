@@ -651,6 +651,42 @@ def prev_occ_pos_filtered(ids, pos, avoid, look=3):
     return torch.where(pos >= 0, prev, torch.full_like(prev, -1))
 
 
+def estate_feature(ids, ent, val, avoid, within=7, look=3, slot=None):
+    """ENTITY-STATE REGISTER (the EAV rule form, one attribute per instance): last-writer-wins
+    fold -- at each clean occurrence of an entity-class token followed by a value-class token
+    within `within`, register[entity] := value; the feature is register[query entity] (the most
+    recent entity-class token). Self-grounded member sets; validated 1000/1000 on bAbI qa1."""
+    n = ids.shape[1]
+    rows = torch.arange(len(ids), device=ids.device)
+    qpos = recent_member_pos(ids, ent)                       # the queried entity
+    qtok = ids[rows, qpos.clamp(min=0)]
+    eq = (ids == qtok[:, None]) & ent[ids]                   # occurrences of THAT entity
+    bad = torch.zeros_like(eq)
+    for j in range(1, look + 1):                             # question-context filter
+        bad[:, :n - j] |= avoid[ids[:, j:]]
+    eq &= ~bad
+    idxs = torch.arange(n, device=ids.device)
+    eq &= idxs[None, :] < qpos[:, None]
+    has_val = torch.zeros_like(eq)                           # entity occ with a value in reach
+    vmask = val[ids]
+    first_val = torch.full_like(ids, -1)
+    for j in range(within, 0, -1):                           # nearest value within `within`
+        cand = torch.roll(ids, -j, 1)
+        cmask = torch.roll(vmask, -j, 1)
+        cmask[:, n - j:] = False
+        first_val = torch.where(cmask, cand, first_val)
+        has_val |= cmask
+    eq &= has_val
+    last = torch.where(eq, idxs, torch.full_like(idxs, -1).expand_as(eq)).max(1).values
+    feat = torch.where(last >= 0, first_val[rows, last.clamp(min=0)],
+                       torch.full_like(last, -1))
+    feat = torch.where(qpos >= 0, feat, torch.full_like(feat, -1))
+    if slot is not None:                                     # answer-slot signature: the (t-2,
+        ok_slot = (ids[:, -2] == slot[0]) & (ids[:, -1] == slot[1])   # t-1) pair where the
+        feat = torch.where(ok_slot, feat, torch.full_like(feat, -1))  # register predicts next
+    return feat
+
+
 def next_member_after(ids, pos, member):
     """the first member-set token AFTER `pos` (the location slot after a movement mention --
     template-length-invariant, unlike fixed succ shifts). -1 if none."""
@@ -1435,6 +1471,19 @@ def emit_full(model, cls, uv, ts, vocab):
                     derived_defs.append({"id": base_id, "kind": "recent-member",
                                          "members": [int(uv[i]) for i in torch.where(
                                              params["of_members"])[0].tolist()]})
+                elif kindname == "estate":
+                    derived_defs.append(
+                        {"id": fid, "kind": "estate",
+                         "entity_members": [int(uv[i]) for i in
+                                            torch.where(params["entity_members"])[0].tolist()],
+                         "value_members": [int(uv[i]) for i in
+                                           torch.where(params["value_members"])[0].tolist()],
+                         "avoid": [int(uv[i]) for i in
+                                   torch.where(params["avoid"])[0].tolist()],
+                         "within": params.get("within", 7),
+                         "slot": [int(uv[t]) for t in params["slot"]]})
+                    params = {}
+                if kindname == "prev-occ":
                     dd2 = {"id": fid, "kind": "prev-occ", "of": base_id,
                            "succ": params.get("succ", 0)}
                     if params.get("of_shift"):
@@ -1450,9 +1499,9 @@ def emit_full(model, cls, uv, ts, vocab):
                         dd[pk] = [int(uv[i]) for i in torch.where(pv)[0].tolist()]
                     else:
                         dd[pk] = pv
-                if kindname != "prev-occ":
+                if kindname not in ("prev-occ", "estate"):
                     derived_defs.append(dd)
-                tokfeat = kindname.startswith("recent")
+                tokfeat = kindname.startswith("recent") or kindname == "estate"
                 table, confs = {}, {}
                 for key, v, c in zip(tab_.k.tolist(), tab_.v.tolist(), tab_.c.tolist(),
                                      strict=True):
@@ -1656,10 +1705,10 @@ def main():
                 is_open[torch.tensor(opl, device=DEV)] = True
             if cll:
                 is_close[torch.tensor(cll, device=DEV)] = True
-            def add_dgate(nm_base, featfn, spec):
+            def add_dgate(nm_base, featfn, spec, min_keys=20):
                 tab_, nk_ = fit_dgate_feature(ids, yv, fit, featfn, vocab)
-                if nk_ < 20:
-                    return
+                if nk_ < min_keys:                           # estate-class rules are SURGICAL:
+                    return                                   # ~6 values x 1 query position
                 nm_ = f"{nm_base} [{nk_}]"
                 B2_ = vocab + 2
 
@@ -1820,6 +1869,48 @@ def main():
             for i in range(vocab):
                 if _ts.token_str(int(uv[i])).strip() in {"?", "Q", "A", "Q:", "A:"}:
                     avoid_set[i] = True
+            if int(cap_set.sum()) >= 5 and int(avoid_set.sum()) >= 1 \
+                    and "estate" not in CONF_FNS:
+                flat = ids[fit].reshape(-1)                  # SELF-GROUNDING (estate): entities
+                nf = len(flat)                               # = cap tokens NOT predominantly in
+                capocc = torch.bincount(flat[cap_set[flat]], minlength=vocab).float()
+                dirty_pos = torch.zeros(nf, dtype=torch.bool, device=DEV)
+                for jj in range(1, 4):                       # OR over shifts -- summing
+                    dirty_pos[:nf - jj] |= avoid_set[flat[jj:]]   # bincounts double-counts
+                mrows = cap_set[flat] & dirty_pos
+                dirty = torch.bincount(flat[mrows], minlength=vocab).float()
+                ent_set = (capocc >= 10) & (dirty / capocc.clamp(min=1) < 0.5)
+                the_ids = [i for i in range(vocab)
+                           if _ts.token_str(int(uv[i])).strip() == "the"]
+                val_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+                if the_ids and int(ent_set.sum()) >= 2:
+                    the_id = the_ids[0]                      # values = the transition slot:
+                    ent_near = torch.zeros(nf, dtype=torch.bool, device=DEV)
+                    epos = ent_set[flat]
+                    for jj in range(1, 8):
+                        ent_near[jj:] |= epos[:nf - jj]
+                    vh = flat[1:][(flat[:-1] == the_id) & ent_near[1:]]
+                    if len(vh) >= 50:
+                        hist = torch.bincount(vh, minlength=vocab).float()
+                        srt, order = hist.sort(descending=True)
+                        cum = srt.cumsum(0) / hist.sum()
+                        keep_n = int((cum < 0.95).sum()) + 1
+                        val_set[order[:keep_n]] = True
+                if int(val_set.sum()) >= 2:
+                    samp = fit[:20000]                       # slot mining: where does the
+                    f_s = estate_feature(ids[samp], ent_set, val_set, avoid_set)
+                    hit = f_s == yv[samp]                    # register PREDICT next? -> the
+                    if int(hit.sum()) >= 30:                 # dominant (t-2, t-1) = answer slot
+                        pair = ids[samp][hit][:, -2] * (vocab + 1) + ids[samp][hit][:, -1]
+                        top = pair.bincount().argmax()
+                        slot = (int(top) // (vocab + 1), int(top) % (vocab + 1))
+                        add_dgate("estate (entity-state register)",
+                                  lambda w, es=ent_set, vs=val_set, av=avoid_set, sl=slot:
+                                  estate_feature(w, es, vs, av, slot=sl),
+                                  ("estate", {"entity_members": ent_set,
+                                              "value_members": val_set,
+                                              "avoid": avoid_set, "within": 7,
+                                              "slot": slot}), min_keys=4)
             if int(cap_set.sum()) >= 20 and int(avoid_set.sum()) >= 1:
                 for sc in (3, 4, 5):
                     add_dgate(f"move-echo s{sc} gate",

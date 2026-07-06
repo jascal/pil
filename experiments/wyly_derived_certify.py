@@ -193,6 +193,46 @@ def check(name, tensor_vals, dl):
     return agree == n
 
 
+
+P_ESTATE = """
+// ENTITY-STATE REGISTER (estate): last-writer-wins (entity, value) fold.
+// feature = value nearest after the LAST clean pre-query occurrence of the
+// query entity (the most recent entity-class token). Mirrors estate_feature().
+.decl tok(w: number, p: number, t: number)
+.decl entity(t: number)
+.decl value(t: number)
+.decl avoid(t: number)
+.input tok
+.input entity
+.input value
+.input avoid
+.decl entat(w: number, p: number)
+entat(W, P) :- tok(W, P, T), entity(T).
+.decl qpos(w: number, p: number)
+qpos(W, P) :- entat(W, P), !laterent(W, P).
+.decl laterent(w: number, p: number)
+laterent(W, P) :- entat(W, P), entat(W, P2), P2 > P.
+.decl dirty(w: number, p: number)
+dirty(W, P) :- tok(W, P, _), tok(W, P2, T2), avoid(T2), P2 > P, P2 <= P + 3.
+.decl occ(w: number, p: number)
+occ(W, P) :- qpos(W, Q), tok(W, Q, T), tok(W, P, T), entity(T), P < Q, !dirty(W, P).
+.decl valafter(w: number, p: number, p2: number, v: number)
+valafter(W, P, P2, V) :- occ(W, P), tok(W, P2, V), value(V), P2 > P, P2 <= P + 7.
+.decl occval(w: number, p: number, v: number)
+occval(W, P, V) :- valafter(W, P, P2, V), !closer(W, P, P2).
+.decl closer(w: number, p: number, p2: number)
+closer(W, P, P2) :- valafter(W, P, P2, _), valafter(W, P, P3, _), P3 < P2.
+.decl hasval(w: number, p: number)
+hasval(W, P) :- occval(W, P, _).
+.decl lastocc(w: number, p: number)
+lastocc(W, P) :- hasval(W, P), !laterval(W, P).
+.decl laterval(w: number, p: number)
+laterval(W, P) :- hasval(W, P), hasval(W, P2), P2 > P.
+.decl feat(w: number, v: number)
+.output feat
+feat(W, V) :- lastocc(W, P), occval(W, P, V).
+"""
+
 def main():
     import wyly_lm_v5 as v5
 
@@ -235,6 +275,17 @@ def main():
     tsubj = v5.at_pos(w, v5.recent_member_pos(w, cap_set), succ=-1)
     ok &= check("recent-member succ=-1 (CLAIMANT role)", tsubj.cpu().tolist(),
                 run_souffle(P_SUBJ, {"tok": tokf, "member": mem}))
+    val_set = torch.zeros(vocab, dtype=torch.bool, device=ids.device)
+    val_set[torch.arange(0, vocab, 7, device=ids.device)] = True     # arbitrary fixed sets:
+    avd_set = torch.zeros(vocab, dtype=torch.bool, device=ids.device)  # the certificate is
+    avd_set[torch.arange(3, vocab, 11, device=ids.device)] = True    # about the FORM
+    test = v5.estate_feature(w, cap_set, val_set, avd_set)
+    ok &= check("estate (ENTITY-STATE REGISTER: last-writer-wins fold)", test.cpu().tolist(),
+                run_souffle(P_ESTATE,
+                            {"tok": tokf,
+                             "entity": mem,
+                             "value": [(int(i),) for i in torch.where(val_set)[0].tolist()],
+                             "avoid": [(int(i),) for i in torch.where(avd_set)[0].tolist()]}))
     tce = v5.at_pos(w, v5.prev_occ_pos(
         w, (v5.recent_member_pos(w, cap_set) - 1).clamp(min=-1)), succ=1)
     ok &= check("prev-occ of_shift=-1 succ=1 (CLAIM ECHO)", tce.cpu().tolist(),
