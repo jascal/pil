@@ -4,6 +4,7 @@ all corpora, independent of raw-file availability); crystallization = certified 
 student. Also: teacher gold top-1 (teacher==target on the kept windows), copy%, counts-only
 determinism. Spearman rank correlation at the end."""
 import gzip
+import os
 import sys
 from pathlib import Path
 
@@ -22,7 +23,8 @@ for ds in DSS:
     d = torch.load(REPO / "data" / f"wyly_nexttoken_{ds}_L256.pt", map_location="cpu")
     t = torch.load(REPO / "data" / f"wyly_teacher_pythia70m{tsfx}_L256.pt",
                    map_location="cpu")["teacher"]
-    st = torch.load(REPO / "data" / f"wyly_v5_mined_pythia70m_{ds}_cov_ol_sw.pt",
+    suf = os.environ.get("WYLY_DOM_SUFFIX", "_cov_ol_sw")
+    st = torch.load(REPO / "data" / f"wyly_v5_mined_pythia70m_{ds}{suf}.pt",
                     map_location="cpu")
     ids, tgt = d["kept_ids"], d["target"]
     gold = float((t == tgt).float().mean())

@@ -36,7 +36,7 @@ hit(w, p) :- tok(w, p, t), member(t){uniq}.
 .decl best(w:number, m:number)
 best(w, m) :- hit(w, _), m = max p : {{ hit(w, p) }}.
 .decl feat(w:number, t:number)
-feat(w, t) :- best(w, p), tok(w, p, t).
+feat(w, t) :- best(w, p), p2 = p + {succ}, tok(w, p2, t).
 .output feat
 """
 UNIQ_CLAUSE = ", n = count : { tok(w, _, t) }, n = 1"
@@ -106,10 +106,14 @@ def main():
     ok = True
     tm = v5.recent_member_feature(w, cap_set)
     ok &= check("recent-member", tm.cpu().tolist(),
-                run_souffle(P_RECENT.format(uniq=""), {"tok": tokf, "member": mem}))
+                run_souffle(P_RECENT.format(uniq="", succ=0), {"tok": tokf, "member": mem}))
     tu = v5.recent_member_feature(w, cap_set, unique=True)
     ok &= check("recent-unique", tu.cpu().tolist(),
-                run_souffle(P_RECENT.format(uniq=UNIQ_CLAUSE), {"tok": tokf, "member": mem}))
+                run_souffle(P_RECENT.format(uniq=UNIQ_CLAUSE, succ=0),
+                            {"tok": tokf, "member": mem}))
+    tsc = v5.at_pos(w, v5.recent_member_pos(w, cap_set), succ=1)
+    ok &= check("recent-member succ=1 (ROLE COMPOSITION)", tsc.cpu().tolist(),
+                run_souffle(P_RECENT.format(uniq="", succ=1), {"tok": tokf, "member": mem}))
     opl, cll = v5.bracket_sets(uv, ts)
     is_open = torch.zeros(vocab, dtype=torch.bool, device=ids.device)
     is_close = torch.zeros(vocab, dtype=torch.bool, device=ids.device)
