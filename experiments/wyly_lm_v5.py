@@ -518,6 +518,23 @@ def recent_member_feature(ids, member, unique=False):
     return at_pos(ids, recent_member_pos(ids, member, unique=unique))
 
 
+def since_member_feature(ids, member, cap=32):
+    """DISCOURSE extractor: tokens SINCE the most recent member occurrence, capped -- with
+    members = sentence enders this is position-in-sentence; with discourse connectives it is
+    position-in-move. cap+1 where no member occurred. Exact; certifiable (max aggregate +
+    arithmetic)."""
+    pos = recent_member_pos(ids, member)
+    n = ids.shape[1]
+    return torch.where(pos >= 0, (n - 1 - pos).clamp(max=cap),
+                       torch.full_like(pos, cap + 1))
+
+
+def member_parity_feature(ids, member):
+    """DISCOURSE extractor: the count of member occurrences mod 2 -- with members = quote marks
+    this is the inside-quotation indicator (attribution scope). Exact; certifiable (count + mod)."""
+    return member[ids].long().sum(1) % 2
+
+
 def depth_feature(ids, is_open, is_close, cap=8):
     """derived extractor (build-order 4, the balance counter): the current bracket DEPTH, clamped
     to [0, cap] -- stack-shaped context no frame can express, now one prefix sum."""
@@ -532,6 +549,9 @@ def fit_dgate_feature(ids, yv, tr, featfn, vocab, minsupp=3, mindet=0.5):
     w = ids[tr]
     f = featfn(w)
     m = f >= 0
+    if int(m.sum()) < 20:                                    # feature never fires here (e.g. an
+        e = torch.empty(0, dtype=torch.long, device=ids.device)  # English member set on German
+        return KeyTable(e, e.clone(), torch.empty(0, device=ids.device)), 0   # text) -> no gate
     key = (f[m] + 1) * B + w[m][:, -1]
     tab, nk = best_per_key(key, yv[tr][m], minsupp, mindet)
     return tab, nk
@@ -1310,14 +1330,35 @@ def main():
 
             cap_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
             claus_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+            conn_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+            attr_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+            sent_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+            quot_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
             SUBS = {"dass", "weil", "ob", "wenn", "da", "obwohl", "damit", "denn",
-                    "sondern", "als", "wie", "nachdem", "bevor", "sobald", "falls"}
+                    "sondern", "als", "wie", "nachdem", "bevor", "sobald", "falls",
+                    "that", "because", "although", "whether", "since", "unless", "whereas"}
+            CONN = {"however", "therefore", "thus", "hence", "moreover", "furthermore",
+                    "consequently", "nevertheless", "accordingly", "conversely", "indeed",
+                    "namely", "instead", "otherwise", "meanwhile", "aber", "jedoch", "also",
+                    "daher", "trotzdem", "deshalb", "dennoch"}
+            ATTR = {"argues", "claims", "says", "suggests", "believes", "maintains",
+                    "asserts", "contends", "holds", "denies", "observes", "notes",
+                    "concludes", "insists", "argued", "claimed", "said", "wrote"}
             for i in range(vocab):
                 d = _ts.token_str(int(uv[i])).strip()
                 if len(d) > 1 and d[0].isupper() and d.isalpha():
                     cap_set[i] = True
-                if d.lower() in SUBS:
+                dl = d.lower()
+                if dl in SUBS:
                     claus_set[i] = True
+                if dl in CONN:
+                    conn_set[i] = True
+                if dl in ATTR:
+                    attr_set[i] = True
+                if d in {".", "!", "?"}:
+                    sent_set[i] = True
+                if d in {'"', "``", "''"} or "\u201c" in repr(d) or "\u201d" in repr(d):
+                    quot_set[i] = True
             if int(cap_set.sum()) >= 20:
                 add_dgate("runiq gate",
                           lambda w, cs=cap_set: recent_member_feature(w, cs, unique=True),
@@ -1326,6 +1367,22 @@ def main():
                 add_dgate("clause gate",
                           lambda w, cs=claus_set: recent_member_feature(w, cs),
                           ("recent-member", {"members": claus_set}))
+            for nmb, mset in [("conn", conn_set), ("attrib", attr_set)]:
+                if int(mset.sum()) >= 5:
+                    add_dgate(f"{nmb} gate",
+                              lambda w, ms=mset: recent_member_feature(w, ms),
+                              ("recent-member", {"members": mset}))
+                    add_dgate(f"{nmb}-succ gate",
+                              lambda w, ms=mset: at_pos(w, recent_member_pos(w, ms), succ=1),
+                              ("recent-member", {"members": mset, "succ": 1}))
+            if int(sent_set.sum()) >= 1:
+                add_dgate("sincedot gate",
+                          lambda w, ms=sent_set: since_member_feature(w, ms),
+                          ("since-member", {"members": sent_set, "cap": 32}))
+            if int(quot_set.sum()) >= 1:
+                add_dgate("quoteparity gate",
+                          lambda w, ms=quot_set: member_parity_feature(w, ms),
+                          ("member-parity", {"members": quot_set}))
             if int(cap_set.sum()) >= 20:
                 add_dgate("cap-echo gate",
                           lambda w, cs=cap_set: at_pos(
