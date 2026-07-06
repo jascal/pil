@@ -21,3 +21,20 @@ arbitrary key reach — after which prompt-specific corrective patching becomes 
 operation the attributable-feedback design promises. The positive claims survive in exact form:
 feedback IS attributable (every wrong answer named its key), regressions ARE measurable
 per-round, and the collateral guard works — the missing piece is reach, not the feedback loop.
+
+## Postscript: tuple-keyed tiers landed — and the constraint moved
+
+`TupleFrame` (2D-row store + compacted-id trie lookup) replaces int64 key packing: **exact at any
+k and any vocabulary** (unit-proven: bit-identical to the packed tier at safe k on 300/300 fired
+lookups; brute-force-exact at k=10 where packing overflows). Two skeletons fell out of the
+packing era: pre-guard high-k runs had silently **wrapped** keys (functioning as an accidental
+hash table), and `SAFE_KGRAMS` had silently clamped the elements package to k≤5 — the W=6
+mystery solved.
+
+But with true k=2..12 available, the benchmark moved only 0.751 → 0.753 (mass 0.017 → 0.025),
+and the feedback pattern was unchanged — because **the judge admitted exactly one tier (k=6)**:
+on window-shaped validation, k=6 already covers, so deeper reach shows zero marginal. The reach
+constraint has migrated from the data structure into the admission objective. This is the third
+independent sighting of the same lesson (bAbI movement rules, elements W, now tuple tiers):
+**query-shaped judging is the single unlock** — the machinery for reach now exists end to end
+and waits on a judge that scores where deployment queries actually live.
