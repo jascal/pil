@@ -95,6 +95,34 @@ sleep — C10's calibration premise applied cell-wise. `WYLY_POINTER=1`; inducti
 Schema note: a `pointer` package kind would ship `lmax`, the cell-confidence table, and reference
 the manifest's concepts map — the relation-kind playbook applies once a served use-case wants it.
 
+## Follow-up: transform-composed pointers (build order 5 ∘ 2) — the mechanism validated, the German thread honestly closed
+
+`WYLY_TPOINTER=1`: the pointer finds the source by class-match; the **counts tier re-inflects** —
+predict the member of the source-successor's concept that the target's local bigram row supports
+most (`argmax_{m∈concept(succ)} counts[last, m]`). A composition of two certified structures with
+its own (ℓ,ℓc)-cell confidences. 8-corpus ablation vs the pointer baselines:
+
+- **The mechanism works, uniformly**: the class→form decode roughly doubles pure-class cell
+  reliability on *every* domain (de ℓ=0,ℓc=2: 0.11→0.24; code 0.20→0.35 and ℓ=0,ℓc=6 0.60→0.68;
+  isabelle 0.21→0.33; math ℓ=0,ℓc=4 0.23→0.45). Re-inflection through local count evidence is
+  the right transform.
+- **Arbitration keeps each rule in its cells**: on long exact matches the transform *hurts*
+  (code ℓ=4,ℓc=6: 0.89→0.70 — verbatim beats re-decoding when the match is strong), and the sw
+  cover lets the plain pointer keep those cells while the tpointer offers the low-ℓ ones. The
+  judge admitted the tpointer **on code** (where its cells add cover) and correctly declined it
+  elsewhere.
+- **No core moved** (all 8 within ±0.001): the class-only channel tops out at 0.24–0.45 val
+  accuracy — below what wins arbitration against the table tiers on almost every window at this
+  corpus scale.
+
+**The German thread, three experiments in**: morphology fragmentation → *fixed* by concept
+induction (+0.015, half the gap); word-order copy → the pointer machinery reaches it and the
+transform decodes the right form-class, but bigram-row concepts at 6 MB are too coarse to make
+distant class-matches reliable. Per the tag discipline: the *recipe* plateaus here —
+achievability stays **open**, with two named paths: sharper concept induction (multi-tier
+evidence: frame/skip rows, not just bigrams) and more corpus (the support floor on class cells is
+the binding constraint).
+
 ## Confounds (named)
 
 Single seed per cell; corpus register differs from Pile representation per domain (CFR is
