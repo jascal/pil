@@ -228,6 +228,7 @@ def mir_skip(table, off):
 
 CONF_FNS = {}                                            # name -> (ids)->(val, per-key conf)
 RULE_CONF = {}                                           # name -> scalar val fired-accuracy
+EMIT_INFO = {}                                           # name -> (kind, ...) for package emission
 
 
 def register_conf(name, table, keyfn):
@@ -509,6 +510,101 @@ def propose_gates(model, gate_cands, ids, yv, cls, sample, log, cycle, top=2):
     return [(n, f) for _, n, f in scored[:top]]
 
 
+
+
+def emit_full(model, cls, uv, ts, vocab):
+    """Package emission, support-weighted (design: C10 realized in serving). Every admitted rule
+    family becomes package rules carrying the SAME confidences the learner arbitrates with --
+    per-key Laplace-shrunk determinism for tables, val fired-accuracy for scalar kinds -- in the
+    learner's arbitration order (admitted rules, then the counts tier). The manifest declares
+    cover: support-weighted; a conforming runtime fires every applicable rule and takes the
+    argmax confidence (rosetta PACKAGE.md)."""
+    import re
+    B = vocab + 1
+    rules_out, skipped = [], []
+    rid = 0
+    src = f"wyly-v5-{LIB}-{TAG}-{DS}"
+
+    def add(r):
+        nonlocal rid
+        r["id"] = rid
+        rules_out.append(r)
+        rid += 1
+
+    def decomp(key, n):
+        toks = []
+        for _ in range(n):
+            toks.append(int(key % B))
+            key //= B
+        toks.reverse()
+        return toks
+
+    for name, _fn in model.rules:
+        conf = round(RULE_CONF.get(name, 0.0), 4)
+        cite = [f"admitted by the sleep judge ({LIB}/{JUDGE}{'/sw' if SWCOVER else ''}), "
+                f"teacher {TAG}, dataset {DS}; val fired-accuracy {conf}"]
+        if name.startswith("induction L="):
+            add({"kind": "induction", "tier": "trusted", "basis": "causal",
+                 "L": int(name.split("L=")[1]), "confidence": conf, "citation": cite})
+        elif name.startswith("relation"):
+            i, j, k = map(int, re.match(r"relation eq\((\d+),(\d+)\)c(\d+)", name).groups())
+            add({"kind": "relation", "tier": "trusted", "basis": "causal",
+                 "eq": [[i, j]], "copy": k, "confidence": conf, "citation": cite})
+        elif name in EMIT_INFO:
+            info = EMIT_INFO[name]
+            if info[0] == "kgram":
+                of = info[1]
+                tab, k = of.table, len(of.offs)
+                for key, v, c in zip(tab.k.tolist(), tab.v.tolist(), tab.c.tolist(), strict=True):
+                    add({"kind": "ngram", "tier": "gated", "basis": "observational",
+                         "ctx": [int(uv[t]) for t in decomp(key, k)], "out": int(uv[v]),
+                         "confidence": round(c, 4),
+                         "citation": [f"{src} online {k}-gram tier (s{of.minsupp})"]})
+            elif info[0] == "skip":
+                off, tab = info[1], info[2]
+                table = {int(uv[k]): int(uv[v]) for k, v in zip(tab.k.tolist(), tab.v.tolist(), strict=True)}
+                confs = {int(uv[k]): round(c, 4) for k, c in zip(tab.k.tolist(), tab.c.tolist(), strict=True)}
+                add({"kind": "gate", "tier": "gated", "basis": "observational", "frame": {},
+                     "slot": off, "table": table, "confs": confs,
+                     "citation": [f"{src} skip-bigram offset {off}"]})
+            elif info[0] == "mined":
+                mined = info[1]
+                by_frame = {}
+                for key, v, c in zip(mined.t1.k.tolist(), mined.t1.v.tolist(),
+                                     mined.t1.c.tolist(), strict=True):
+                    oa, last = key // B, key % B
+                    o, a = oa // B, oa % B
+                    by_frame.setdefault((("f1", o, a)), []).append((last, v, c))
+                for key, v, c in zip(mined.t2.k.tolist(), mined.t2.v.tolist(),
+                                     mined.t2.c.tolist(), strict=True):
+                    oid_ab, last = key // B, key % B
+                    oid, ab = oid_ab // (B * B), oid_ab % (B * B)
+                    o1, o2 = oid // 16, oid % 16
+                    a1, a2 = ab // B, ab % B
+                    by_frame.setdefault((("f2", o1, a1, o2, a2)), []).append((last, v, c))
+                for fr, entries in sorted(by_frame.items()):
+                    frame = ({str(fr[1]): int(uv[fr[2]])} if fr[0] == "f1"
+                             else {str(fr[1]): int(uv[fr[2]]), str(fr[3]): int(uv[fr[4]])})
+                    add({"kind": "gate", "tier": "gated", "basis": "observational",
+                         "frame": frame, "slot": 1,
+                         "table": {int(uv[last]): int(uv[v]) for last, v, _ in entries},
+                         "confs": {int(uv[last]): round(c, 4) for last, _, c in entries},
+                         "citation": [f"{src} mined frame {frame} (error-driven, online tier)"]})
+        else:
+            skipped.append(name)
+    mx, am = model.counts.max(1)
+    tot = model.counts.sum(1)
+    for t in torch.where(mx >= 1)[0].tolist():
+        add({"kind": "ngram", "tier": "gated", "basis": "observational",
+             "ctx": [int(uv[t])], "out": int(uv[cls[am[t]]]),
+             "support": int(mx[t]), "determinism": round(float(mx[t] / tot[t]), 4),
+             "confidence": round(float(mx[t] / (tot[t] + ALPHA)), 4),
+             "citation": [f"{src} online counts: {ts.token_str(int(uv[t]))!r} -> "
+                          f"{ts.token_str(int(uv[cls[am[t]]]))!r} (n={int(mx[t])}/{int(tot[t])})"]})
+    W = max((len(r["ctx"]) for r in rules_out if r.get("kind") == "ngram"), default=1)
+    return {"model": src, "cover": "support-weighted", "W": W, "n_rules": len(rules_out),
+            "rules": rules_out}, skipped
+
 def main():
     ids, y, cls, uv, tr, te = load_ds()
     yv = cls[y]
@@ -533,6 +629,7 @@ def main():
                     candidates.append((nm, of.mirror()))
                     CONF_FNS[nm] = (lambda ids, of=of:
                                     of.table.lookup_conf(of._suffix_key(ids, False)))
+                    EMIT_INFO[nm] = ("kgram", of)
             else:
                 tab, nk = fit_kgram(ids, yv, fit, k, vocab)
                 nm = f"kgram k={k} [{nk}]"
@@ -554,16 +651,19 @@ def main():
                 candidates.append((nm, of.mirror()))
                 CONF_FNS[nm] = (lambda ids, of=of:
                                 of.table.lookup_conf(of._suffix_key(ids, False)))
+                EMIT_INFO[nm] = ("kgram", of)
         for off in (2, 3):
             tab, nk = fit_skip(ids, yv, fit, off)
             nm = f"skip o={off} [{nk}]"
             candidates.append((nm, mir_skip(tab, off)))
             register_conf(nm, tab, keyfn_offsets((off,), vocab))
+            EMIT_INFO[nm] = ("skip", off, tab)
         for i, j, k in RELATION_GRID:
             candidates.append((f"relation eq({i},{j})c{k}", mir_relation(i, j, k)))
         mined = MinedGates(vocab, DEV)
         candidates.append(("mined frames (online)", mined.mirror()))
         CONF_FNS["mined frames (online)"] = mined.lookup_conf_all
+        EMIT_INFO["mined frames (online)"] = ("mined", mined)
     else:
         mined = None
     gate_cands = []
@@ -578,6 +678,7 @@ def main():
                     candidates.append((nm, of.mirror()))
                     CONF_FNS[nm] = (lambda ids, of=of:
                                     of.table.lookup_conf(of._suffix_key(ids, False)))
+                    EMIT_INFO[nm] = ("kgram", of)
             else:
                 tab, nk = fit_kgram(ids, yv, fit, k, vocab)
                 nm = f"kgram k={k} [{nk}]"
@@ -649,39 +750,22 @@ def main():
                 "core": core, "core_fixed": core_fixed, "core_sw": core_sw,
                 "rules": [r[0] for r in model.rules]}, STATE)
     if EMIT:
-        import re
         import shutil
-
-        from wyly_export_package import build_manifest
         sys.path.insert(0, str(REPO))
         from pil.tokens import TokenSpace
         tok = REPO.parent / "rosetta" / "models" / "pythia70m" / "bundle.tokenizer.json"
         ts = TokenSpace.from_file(tok)
-        trusted, skipped = [], []
-        for name, _fn in model.rules:
-            conf = round(RULE_CONF.get(name, 0.0), 4)
-            cite = [f"admitted by the sleep judge ({LIB}/{JUDGE}{'/sw' if SWCOVER else ''}), "
-                    f"teacher {TAG}, dataset {DS}; val fired-accuracy {conf}"]
-            if name.startswith("induction L="):
-                trusted.append({"kind": "induction", "tier": "trusted", "basis": "causal",
-                                "L": int(name.split("L=")[1]), "confidence": conf,
-                                "citation": cite})
-            elif name.startswith("relation"):
-                i, j, k = map(int, re.match(r"relation eq\((\d+),(\d+)\)c(\d+)", name).groups())
-                trusted.append({"kind": "relation", "tier": "trusted", "basis": "causal",
-                                "eq": [[i, j]], "copy": k, "confidence": conf, "citation": cite})
-            else:
-                skipped.append(name)
+        man, skipped = emit_full(model, cls, uv, ts, vocab)
         pkg = REPO / "data" / ("wyly_expert_package_v5" if DS == "wikitext"
                               else f"wyly_expert_package_v5_{DS}")
         pkg.mkdir(parents=True, exist_ok=True)
-        man = build_manifest(model.counts, cls, uv, ts, 1, 0.0, induction_rules=trusted,
-                             model=f"wyly-v5-{LIB}-{TAG}-{DS}")
         (pkg / "manifest.json").write_text(json.dumps(man))
         shutil.copy(tok, pkg / "bundle.tokenizer.json")
-        print(f"  package -> {pkg} ({len(trusted)} trusted rules; table-kind rules not emitted: "
-              f"{skipped})")
-    ADMIT_F.write_text(json.dumps([r[0] for r in model.rules]))
+        kinds = {}
+        for r in man["rules"]:
+            kinds[r["kind"]] = kinds.get(r["kind"], 0) + 1
+        print(f"  package -> {pkg} (support-weighted; {man['n_rules']} rules: {kinds}"
+              f"{'; NOT emitted: ' + str(skipped) if skipped else ''})")
 
 
 if __name__ == "__main__":
