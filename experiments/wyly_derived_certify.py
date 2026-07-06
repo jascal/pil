@@ -59,6 +59,34 @@ feat(w, t) :- prev(w, q), q1 = q + 1, tok(w, q1, t).
 .output feat
 """
 
+P_SINCE = """
+.decl tok(w:number, p:number, t:number)
+.input tok
+.decl member(t:number)
+.input member
+.decl hit(w:number, p:number)
+hit(w, p) :- tok(w, p, t), member(t).
+.decl base(w:number, m:number)
+base(w, m) :- hit(w, _), m = max p : { hit(w, p) }.
+.decl feat(w:number, v:number)
+feat(w, v) :- base(w, m), d = (NPOS - 1) - m, d <= CAP, v = d.
+feat(w, CAP) :- base(w, m), (NPOS - 1) - m > CAP.
+feat(w, v) :- tok(w, _, _), !hit(w, _), v = CAP + 1.
+.output feat
+"""
+
+P_PARITY = """
+.decl tok(w:number, p:number, t:number)
+.input tok
+.decl member(t:number)
+.input member
+.decl hit(w:number, p:number)
+hit(w, p) :- tok(w, p, t), member(t).
+.decl feat(w:number, v:number)
+feat(w, v) :- tok(w, _, _), c = count : { hit(w, _) }, v = c % 2.
+.output feat
+"""
+
 P_DEPTH = """
 .decl tok(w:number, p:number, t:number)
 .input tok
@@ -135,6 +163,13 @@ def main():
     tec = v5.at_pos(w, v5.prev_occ_pos(w, v5.recent_member_pos(w, cap_set)), succ=1)
     ok &= check("prev-occ succ=1 (CHAINED ROLE: entity echo)", tec.cpu().tolist(),
                 run_souffle(P_ECHO, {"tok": tokf, "member": mem}))
+    tsc2 = v5.since_member_feature(w, cap_set, cap=32)
+    ok &= check("since-member cap=32 (DISCOURSE: position-in-move)", tsc2.cpu().tolist(),
+                run_souffle(P_SINCE.replace("NPOS", str(w.shape[1])).replace("CAP", "32"),
+                            {"tok": tokf, "member": mem}))
+    tpar = v5.member_parity_feature(w, cap_set)
+    ok &= check("member-parity (DISCOURSE: quotation scope)", tpar.cpu().tolist(),
+                run_souffle(P_PARITY, {"tok": tokf, "member": mem}))
     opl, cll = v5.bracket_sets(uv, ts)
     is_open = torch.zeros(vocab, dtype=torch.bool, device=ids.device)
     is_close = torch.zeros(vocab, dtype=torch.bool, device=ids.device)

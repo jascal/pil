@@ -197,3 +197,28 @@ agglutinative extreme) — full stack, same protocol:
    95.2%, so size alone does not explain the psy/soc dip. German-language Gutenberg is likely
    outside the Pile (phil_de gold 0.323 — the lowest of any corpus — treat its row as
    teacher-OOD); cover on the abstraction wing runs 94–97% vs 99%+ elsewhere.
+
+## The discourse register: admitted, honest about its size — and the 6.9b rung
+
+**Discourse roles** (the register the abstraction wing identified as missing): `since-member`
+(position-in-sentence/move), `member-parity` (quotation/attribution scope), plus English
+connective, attribution-verb and subordinator sets over the existing kinds — all Soufflé-PROVED
+(seven extractor kinds at 192/192). The judges take them, domain-appropriately:
+
+- **attrib gate** admitted on psychology (Freud/James *attribute* constantly);
+  **quoteparity FIRST** on sociology *and* German philosophy; **clause (now English) +
+  sincedot** on wikitext.
+- Movement is real but modest: psy_en 92.3 → **93.9%**, phil_de 95.2 → **96.3%**, soc_en flat,
+  wikitext steady at 99.1%. Verdict, tagged honestly: the register is **admitted but not yet
+  decisive** — discourse structure is the right direction (judges keep choosing it) but the
+  abstraction tail at 70m/small-corpora needs either deeper discourse roles (rhetorical-relation
+  spans, claim/evidence pairing) or simply more corpus (soc_en remains 2.1 MB).
+
+**The 6.9b rung — the scaling law extends to 500×** (teacher run entirely on the 8 GB card:
+int8, batch 1, 1.9 h; gold top-1 0.497, quantization caveat named):
+
+- fig-comparable base config: fixed core **0.224** vs the series 0.285 (14m) → 0.230 (2.8b) —
+  **the plateau holds**;
+- full modern stack: core_sw **0.268 @ 99.0%** vs student 0.260 — **crystallization 103% at the
+  largest teacher yet**. The roles library doesn't just survive scale; the certified core
+  exceeds its own student at 6.9B.
