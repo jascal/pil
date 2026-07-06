@@ -5,7 +5,7 @@ field omega per concept and per rule (and per task head). The whole lifecycle is
     omega = 0            reserve (inactive, available to grow into)
     0 < omega < THETA    DROP: incidence too low -> reclaim to reserve   (the user's lower threshold)
     THETA < omega        active/plastic: gradient flows; protection is the EWC ANCHOR below, NOT grad-scaling
-    omega -> large       FROZEN: anchor pins param to its consolidated value  (the binary freeze = special case)
+    omega -> large       FROZEN: anchor pins param to its consolidated value (binary freeze = special case)
 NB: gradient-scaling by prot(omega)=1/(1+beta*omega) is provably INERT under sign-normalized optimizers like
 Adam (i-orca C8 sign_updates_ignore_scaling) -- so protection is done ONLY by the quadratic anchor, never by
 scaling the gradient. (An earlier prot()/BETA is removed to avoid attributing protection to an inert knob.)
