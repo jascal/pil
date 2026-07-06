@@ -57,3 +57,23 @@ and concept layers but no dgate; the dgate path is verified by certificate + uni
 admission (admit if it wins any of k seeds) is the obvious stabilizer. Also fixed here: the
 STATE-suffix chain bug (stack runs were overwriting the base-suffix state file; all reported
 ablation numbers came from run logs and are unaffected).
+
+## Follow-up: the extractor registry + fold-stable admission
+
+Three extractor kinds join bracket-mate, **each Soufflé-PROVED against its tensor mirror**
+(`wyly_derived_certify.py`, 192/192 per kind): `recent-member` (clause openers), `recent-unique`
+(the distinguished-referent role), `bracket-depth` (the balance counter — build-order #4, now one
+prefix sum). Admission runs on **3 disjoint val folds** (`WYLY_FOLDS=3`): mean marginal over
+threshold AND a majority of folds clearing it.
+
+- **German: core_sw 0.525 → 0.540 (+0.015); crystallization 93.1% → 95.1% → 97.6% across the
+  three goals.** The judge admitted *all three* new gates — the clause gate [1522 keys]
+  (+0.0013, 2/3 folds) is literally subordinator-conditioned prediction: **the Nebensätze
+  channel, confirmed**. What concepts fixed (morphology) and pointers couldn't reach (word
+  order), derived roles do.
+- **isabelle: 0.586 → 0.588 (new arc best)** via the depth gate [1030]; wikitext 0.339 (ties the
+  arc-wide best; three gates admitted); code flat.
+- **Fold stability, evidenced both ways**: isabelle ×2 produced *identical admission sets* —
+  and the mate gate is now **consistently rejected** rather than coin-flip admitted: the folds
+  identified its earlier single-run admission as val-variance, exactly the failure mode C10's
+  miscalibration bound prices.
