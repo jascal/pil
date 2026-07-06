@@ -1385,6 +1385,7 @@ def main():
             cap_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
             claus_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
             conn_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+            temp_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
             attr_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
             sent_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
             quot_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
@@ -1395,6 +1396,9 @@ def main():
                     "consequently", "nevertheless", "accordingly", "conversely", "indeed",
                     "namely", "instead", "otherwise", "meanwhile", "aber", "jedoch", "also",
                     "daher", "trotzdem", "deshalb", "dennoch"}
+            TEMPO = {"subsequently", "afterwards", "thereafter", "meanwhile", "until",
+                     "previously", "eventually", "finally", "initially", "thereupon",
+                     "later", "earlier", "immediately", "danach", "zuvor", "schliesslich"}
             ATTR = {"argues", "claims", "says", "suggests", "believes", "maintains",
                     "asserts", "contends", "holds", "denies", "observes", "notes",
                     "concludes", "insists", "argued", "claimed", "said", "wrote"}
@@ -1407,6 +1411,8 @@ def main():
                     claus_set[i] = True
                 if dl in CONN:
                     conn_set[i] = True
+                if dl in TEMPO:
+                    temp_set[i] = True
                 if dl in ATTR:
                     attr_set[i] = True
                 if d in {".", "!", "?"}:
@@ -1421,7 +1427,7 @@ def main():
                 add_dgate("clause gate",
                           lambda w, cs=claus_set: recent_member_feature(w, cs),
                           ("recent-member", {"members": claus_set}))
-            for nmb, mset in [("conn", conn_set), ("attrib", attr_set)]:
+            for nmb, mset in [("conn", conn_set), ("attrib", attr_set), ("tempo", temp_set)]:
                 if int(mset.sum()) >= 5:
                     add_dgate(f"{nmb} gate",
                               lambda w, ms=mset: recent_member_feature(w, ms),
