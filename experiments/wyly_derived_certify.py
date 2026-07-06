@@ -41,6 +41,24 @@ feat(w, t) :- best(w, p), p2 = p + {succ}, tok(w, p2, t).
 """
 UNIQ_CLAUSE = ", n = count : { tok(w, _, t) }, n = 1"
 
+P_ECHO = """
+.decl tok(w:number, p:number, t:number)
+.input tok
+.decl member(t:number)
+.input member
+.decl hit(w:number, p:number)
+hit(w, p) :- tok(w, p, t), member(t).
+.decl base(w:number, m:number)
+base(w, m) :- hit(w, _), m = max p : { hit(w, p) }.
+.decl prevhit(w:number, q:number)
+prevhit(w, q) :- base(w, p), tok(w, p, t), tok(w, q, t), q < p.
+.decl prev(w:number, m:number)
+prev(w, m) :- prevhit(w, _), m = max q : { prevhit(w, q) }.
+.decl feat(w:number, t:number)
+feat(w, t) :- prev(w, q), q1 = q + 1, tok(w, q1, t).
+.output feat
+"""
+
 P_DEPTH = """
 .decl tok(w:number, p:number, t:number)
 .input tok
@@ -114,6 +132,9 @@ def main():
     tsc = v5.at_pos(w, v5.recent_member_pos(w, cap_set), succ=1)
     ok &= check("recent-member succ=1 (ROLE COMPOSITION)", tsc.cpu().tolist(),
                 run_souffle(P_RECENT.format(uniq="", succ=1), {"tok": tokf, "member": mem}))
+    tec = v5.at_pos(w, v5.prev_occ_pos(w, v5.recent_member_pos(w, cap_set)), succ=1)
+    ok &= check("prev-occ succ=1 (CHAINED ROLE: entity echo)", tec.cpu().tolist(),
+                run_souffle(P_ECHO, {"tok": tokf, "member": mem}))
     opl, cll = v5.bracket_sets(uv, ts)
     is_open = torch.zeros(vocab, dtype=torch.bool, device=ids.device)
     is_close = torch.zeros(vocab, dtype=torch.bool, device=ids.device)

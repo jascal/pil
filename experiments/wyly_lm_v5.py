@@ -488,6 +488,20 @@ def mate_pos(ids, is_open, is_close):
     return torch.where(cand, pos, torch.full_like(pos, -1).expand_as(cand)).max(1).values
 
 
+def prev_occ_pos(ids, pos):
+    """CHAINED ROLE: the position of the PREVIOUS occurrence of the token found at `pos` --
+    strictly before it. -1 where the base position is absent or the token never occurred
+    earlier. Composed with at_pos(succ=1) this is the ENTITY ECHO: what followed this referent
+    the last time it appeared."""
+    rows = torch.arange(len(ids), device=ids.device)
+    base_tok = ids[rows, pos.clamp(min=0)]
+    eq = ids == base_tok[:, None]
+    idxs = torch.arange(ids.shape[1], device=ids.device)
+    eq &= idxs[None, :] < pos[:, None]
+    prev = torch.where(eq, idxs, torch.full_like(idxs, -1).expand_as(eq)).max(1).values
+    return torch.where(pos >= 0, prev, torch.full_like(prev, -1))
+
+
 def at_pos(ids, pos, succ=0):
     """ROLE COMPOSITION: the token at (position + succ) -- features of features ("the token
     after the mate", "the token after the clause opener"). -1 where the position is absent or
@@ -1084,13 +1098,22 @@ def emit_full(model, cls, uv, ts, vocab):
             elif info[0] == "dfeat":
                 (kindname, params), tab_, B2_ = info[1], info[2], info[3]
                 fid = f"feat{len(derived_defs)}"
+                if kindname == "prev-occ":                   # chained: emit the base def first
+                    base_id = f"feat{len(derived_defs)}b"
+                    derived_defs.append({"id": base_id, "kind": "recent-member",
+                                         "members": [int(uv[i]) for i in torch.where(
+                                             params["of_members"])[0].tolist()]})
+                    derived_defs.append({"id": fid, "kind": "prev-occ", "of": base_id,
+                                         "succ": params.get("succ", 0)})
+                    params = {}
                 dd = {"id": fid, "kind": kindname}
                 for pk, pv in params.items():
                     if pk in ("members", "openers", "closers"):
                         dd[pk] = [int(uv[i]) for i in torch.where(pv)[0].tolist()]
                     else:
                         dd[pk] = pv
-                derived_defs.append(dd)
+                if kindname != "prev-occ":
+                    derived_defs.append(dd)
                 tokfeat = kindname.startswith("recent")
                 table, confs = {}, {}
                 for key, v, c in zip(tab_.k.tolist(), tab_.v.tolist(), tab_.c.tolist(),
@@ -1303,6 +1326,11 @@ def main():
                 add_dgate("clause gate",
                           lambda w, cs=claus_set: recent_member_feature(w, cs),
                           ("recent-member", {"members": claus_set}))
+            if int(cap_set.sum()) >= 20:
+                add_dgate("cap-echo gate",
+                          lambda w, cs=cap_set: at_pos(
+                              w, prev_occ_pos(w, recent_member_pos(w, cs)), succ=1),
+                          ("prev-occ", {"of_members": cap_set, "succ": 1}))
             if int(claus_set.sum()) >= 5:
                 add_dgate("clause-succ gate",
                           lambda w, cs=claus_set: at_pos(w, recent_member_pos(w, cs), succ=1),

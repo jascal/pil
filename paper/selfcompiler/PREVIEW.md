@@ -226,7 +226,21 @@ code**. Every answer cites the count evidence or the sleep cycle that admitted i
 deployment lessons: word-level relevance gates never overlap subword citations (BPE splits
 identifiers); doubled-token "gibberish" *legitimately* fires the repetition rule.
 
-## 10. Confounds and Limitations
+## 10. The Second Campaign: Roles, Not Memory
+
+An eight-corpus study at the 70M rung found a sharp crystallization threshold at detokenized-gzip
+≈ 0.33 (structured domains >100%, prose 91–96%; teacher predictability ≈ compressibility, ρ =
+−0.98). The campaign then removed the gap with structure, never memory: concept induction,
+calibrated pointer rules, and — decisively — **derived roles**: the package became a two-layer
+program (Soufflé-certified extractors + dgate rules; composed and chained roles including the
+entity echo; 192/192 per kind), with fold-stable admission. **The threshold dissolved**: every
+corpus now crystallizes at 96–108% (wikitext 99.5%), five arc bests fell, and the two worst
+crystallizers moved most (German +0.029 via the composed clause-successor role — the verb-final
+channel; math +0.026 via referent + learned member-set roles, admitted on 6/8 corpora). The
+prose/formal gap was a rule-vocabulary artifact; the absolute ceiling still tracks structure
+(ρ = −0.93) — roles close the ratio, teacher predictability bounds the rest. (Fig. campaign2.pdf.)
+
+## 11. Confounds and Limitations
 
 Fixed student capacity; hand-seeded (though data-selected) families; top-V truncation; 5 MB
 slices with stride-1 overlap; possible teacher memorization of wiki text (the Pile); single
@@ -243,7 +257,7 @@ premise is per-cell calibration on the evaluation measure, and its 2ε envelope 
 low-support confidence inflation (the val-variance episodes) consumes — support pre-gates and
 per-family judge thresholds are what keep ε small.
 
-## 11. Conclusion
+## 12. Conclusion
 
 The loop runs end to end with no transformer in the inference path: **learn (SGD, wake/sleep) →
 harden (anneal to discreteness) → certify (Soufflé, proved on stated domains) → extract (weights
