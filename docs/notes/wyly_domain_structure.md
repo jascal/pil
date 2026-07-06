@@ -68,6 +68,33 @@ class-anchored frames, discovered not designed). Full 8-corpus ablation vs the b
   Nebensätze put the predictive evidence beyond any fixed-offset frame; that is the pointer-rule
   item on the build order, not a concept problem.
 
+## Follow-up: pointer rules (build order 2) — the copy headroom, harvested where concepts are crisp
+
+The **pointer kind** generalizes induction: score every in-window source position by exact-suffix
+match length ℓ *and* concept-suffix match length ℓc (through the ConceptSpace cmap), predict the
+successor of the lexicographic argmax, with a per-(ℓ,ℓc)-cell confidence measured on val each
+sleep — C10's calibration premise applied cell-wise. `WYLY_POINTER=1`; induction L is the
+ℓc-blind fixed-ℓ special case.
+
+8-corpus ablation vs the concepts baselines:
+
+- **New arc bests on the structured side**: code 0.605 → **0.610**, isabelle 0.571 → **0.573**,
+  math 0.355 → **0.365** (+0.010, the largest gain). The judge admitted the pointer on
+  code/isabelle/py **ranked first** (the single most valuable rule) and on math third.
+- **The off-diagonal (ℓc > ℓ) cells are real where concepts are crisp**: code ℓ=4,ℓc=6 fires at
+  **0.89** val accuracy, ℓ=2,ℓc=6 at 0.75, even ℓ=0,ℓc=6 at 0.60; isabelle ℓ=2,ℓc=6 at **0.84**;
+  math ℓ=6 diagonal at 0.83. Class-extended copy — match by type/identifier class where the
+  exact tokens differ — is a genuinely new, reliable channel on formal text.
+- **German stayed flat (0.525), pointer declined** — the discriminator's second half resolves:
+  class-matched sources exist but predict the *wrong surface form* (a class-pointer proposes the
+  source's successor verbatim; German needs the successor's *class* re-inflected in the target
+  context). The residual is a **copy-with-transform** problem (build order 5), not a pointer
+  problem. Prose (wikitext/wt103/legal) likewise flat: its off-diagonal cells are unreliable
+  (0.04–0.28) — prose concepts are not crisp enough to extend matches through.
+
+Schema note: a `pointer` package kind would ship `lmax`, the cell-confidence table, and reference
+the manifest's concepts map — the relation-kind playbook applies once a served use-case wants it.
+
 ## Confounds (named)
 
 Single seed per cell; corpus register differs from Pile representation per domain (CFR is
