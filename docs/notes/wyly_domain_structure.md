@@ -269,3 +269,38 @@ registers isolates the register effect):
 The 'abstraction breaks the band' finding survives in weakened form: at matched (16 MB) corpus
 scale, psychology remains the hardest domain in the study — the residual is real but small, and
 every point of it was closed by admitted, certified structure.
+
+## The causal/temporal wing: genre template beats byte structure (15 corpora)
+
+Three causal-reasoning domains (user-proposed): **med** (Gutenberg medicine, 16 MB), **hist**
+(analytical history, 16 MB), **postmortem** (disaster investigations, 5.5 MB — the Rogers
+Commission Challenger report, Johnstown flood, 1906 San Francisco earthquake). Plus a temporal-
+marker register (tempo/tempo-succ gates — declined everywhere, 0/3 folds: point-markers of time
+carry no recoverable signal).
+
+```
+    corpus   gzip   gold  student  core_sw  crystal   admitted highlights
+postmortem  0.390  0.429    0.311    0.334   107.4%   quoteparity, prevsent-head
+       med  0.409  0.361    0.359    0.346    96.4%   (marker gates declined)
+      hist  0.405  0.333    0.433    0.394    91.0%   DSTATE (first ever!), clause-succ, depth
+```
+
+1. **The study's biggest positive rank inversion**: postmortem at prose-level compressibility
+   crystallizes at **107.4%** — the core *exceeds* the student, code-style, on text that gzip
+   calls unstructured. The investigation genre's rhetorical template (chronology → findings →
+   testimony quotation → recommendations) is invisible to bytes and perfectly visible to the
+   role registers. The Challenger report crystallizes like a program.
+2. **Analytical history is the new hardest domain (91.0%)** — strong student (0.433), lagging
+   core: free-running causal narrative with no template. Fittingly, it drew the **first-ever
+   dstate admission** (the rhetorical-state register, declined on all twelve prior corpora) plus
+   clause-succ — the discourse registers activate exactly where discourse is the only structure,
+   they just can't yet carry enough of it.
+3. **The gzip axis breaks down at the analytical end** (crystallization ρ −0.53 at n=15, from
+   −0.69 at n=8): postmortem and hist differ by 0.015 gzip and 16 crystallization points. At the
+   prose end, what predicts certifiability is **genre scaffolding**, not compressibility — a
+   better axis would measure rhetorical-template density directly (the admitted-register profile
+   is itself that measurement).
+
+Confounds: postmortem is 5.5 MB and 4 sources (small-corpus + genre-homogeneity inflate together
+— though the *direction* matches soc20's support finding); Gutenberg medicine/history are
+pre-1930 registers; tempo sets were English+German only.
