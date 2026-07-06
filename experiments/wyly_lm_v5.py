@@ -49,6 +49,8 @@ CX = os.environ.get("WYLY_CX", "") == "1"                    # concept extension
 DX = os.environ.get("WYLY_DX", "") == "1"                    # detection extensions: MDL judge +
 MDL_LAM = float(os.environ.get("WYLY_MDL_LAM", "1e-8"))     # key-level retreat + anti-unification
 FOLDS = int(os.environ.get("WYLY_FOLDS", "0"))               # multi-fold admission (0 = off)
+TOKJ = os.environ.get("WYLY_TOKENIZER", "")                  # tokenizer override (non-pythia teachers)
+KGRAMS = tuple(int(x) for x in os.environ.get("WYLY_KGRAMS", "2,3").split(","))
 RULE_SIZE = {}                                               # name -> callable -> table entries
 CONCEPTS_CMAP = [None]                                       # cmap holder for package emission
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
@@ -1263,7 +1265,7 @@ def main():
     candidates = [(f"induction L={lm}", mir_induction_L(lm)) for lm in (1, 2, 3)]
     if LIB == "ext":                                         # tr (which contains val) leaks the val
         candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
-        for k in (2, 3):                                     # windows' own suffix pairs into the
+        for k in KGRAMS:                                     # windows' own suffix pairs into the
             if ONLINE:                                       # judge's val marginals
                 for supp in (40,):                           # s40 ~ 2 corpus occurrences under the
                     of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
@@ -1287,7 +1289,7 @@ def main():
         candidates.append(("repetition", mir_repetition))
     if LIB == "mined":                                       # design dir 3 second half: mined frames
         candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
-        for k in (2, 3):
+        for k in KGRAMS:
             for supp in (40,):
                 of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
                 online_frames.append(of)
@@ -1353,7 +1355,8 @@ def main():
         if CX:                                               # 15 v1: derived-feature gate (mate)
             sys.path.insert(0, str(REPO))
             from pil.tokens import TokenSpace
-            _ts = TokenSpace.from_file(REPO.parent / "rosetta" / "models" / "pythia70m"
+            _ts = TokenSpace.from_file(TOKJ if TOKJ else
+                                       REPO.parent / "rosetta" / "models" / "pythia70m"
                                        / "bundle.tokenizer.json")
             opl, cll = bracket_sets(uv, _ts)
             is_open = torch.zeros(vocab, dtype=torch.bool, device=DEV)
@@ -1560,7 +1563,7 @@ def main():
     gate_cands = []
     if LIB == "gates":                                       # learned-frame family (gate kind)
         candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
-        for k in (2, 3):
+        for k in KGRAMS:
             if ONLINE:
                 for supp in (40,):
                     of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
@@ -1718,7 +1721,8 @@ def main():
         import shutil
         sys.path.insert(0, str(REPO))
         from pil.tokens import TokenSpace
-        tok = REPO.parent / "rosetta" / "models" / "pythia70m" / "bundle.tokenizer.json"
+        tok = Path(TOKJ) if TOKJ else (REPO.parent / "rosetta" / "models" / "pythia70m"
+                                       / "bundle.tokenizer.json")
         ts = TokenSpace.from_file(tok)
         man, skipped = emit_full(model, cls, uv, ts, vocab)
         pkg = REPO / "data" / ("wyly_expert_package_v5" if DS == "wikitext"
