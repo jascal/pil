@@ -59,6 +59,7 @@ def SAFE_KGRAMS(vocab):
     (bAbI: 38 tokens) overflow at k=11 (39**12 > 2**63), silently corrupting keys."""
     return tuple(k for k in KGRAMS if (vocab + 1) ** (k + 1) < 2 ** 62)
 ECHO_SUCCS = tuple(int(x) for x in os.environ.get("WYLY_ECHO_SUCCS", "1").split(","))
+VALREG = os.environ.get("WYLY_VAL_REGION", "") == "1"        # judge on a HELD-OUT corpus REGION
 RULE_SIZE = {}                                               # name -> callable -> table entries
 CONCEPTS_CMAP = [None]                                       # cmap holder for package emission
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
@@ -1268,8 +1269,15 @@ def main():
           f"copy-subset {len(cs)}/{len(te)} ({len(cs) / len(te):.0%})")
 
     g = torch.Generator().manual_seed(0)
-    val = tr[torch.randperm(len(tr), generator=g)[:v2.NVAL]]
-    fit = tr[~torch.isin(tr, val)]                           # tables are fit on FIT ONLY -- fitting on
+    if VALREG:
+        # STORY-LEVEL judging: val = a contiguous held-out region; fit excludes every window
+        # overlapping its text (margin = window length) -- the tables and the judge never share
+        # a story, so memorization shows ZERO val marginal and generalizing rules can win.
+        val = tr[-v2.NVAL:]
+        fit = tr[:max(0, len(tr) - v2.NVAL - 260)]
+    else:
+        val = tr[torch.randperm(len(tr), generator=g)[:v2.NVAL]]
+        fit = tr[~torch.isin(tr, val)]                       # tables are fit on FIT ONLY -- fitting on
     online_frames = []
     candidates = [(f"induction L={lm}", mir_induction_L(lm)) for lm in (1, 2, 3)]
     if LIB == "ext":                                         # tr (which contains val) leaks the val

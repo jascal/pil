@@ -27,3 +27,25 @@ SAFE_KGRAMS guard now drops unsafe tiers per-vocabulary.
 Teacher gold on train windows 0.749; student core_sw 0.776 @ 100% (imitation is fine — the gap
 is generalization, not fidelity). Next: MMLU-college-chemistry through claymore tools mode (the
 LLM+expert composed unit), and the feedback-sharpening experiment.
+
+## The region judge: the instrument works, and it corrects the diagnosis
+
+`WYLY_VAL_REGION=1`: the judge's val becomes a contiguous held-out corpus region (fit excludes
+every window overlapping its text by a full window-length margin) — story-level judging, and a
+general fix for stride-overlap val contamination. Single-pass corpus. Results:
+
+- Package on unseen test: **0.527** (from 0.509) — cleaner admissions (mined cframes joined).
+- **The pointer verdict flips from ambiguous to decisively negative**: on held-out stories its
+  marginal is **−0.034 (0/3 folds)** — not under-credited, but *actively harmful*: its verbatim
+  suffix-copy binds to the entity's previous **question line** and copies the stale location
+  (people move). The earlier "memorization crowded it out" story is corrected: memorization did
+  dominate the old val, but the pointer also genuinely doesn't fit qa1.
+- What the 0.527 is: the k-gram/frame rules implement "answer = the most recent mover's
+  location" — right whenever the queried person moved last. The residual needs a rule kind the
+  library lacks: **entity-conditioned movement binding** — the token at +k after the queried
+  entity's most recent occurrence *in a movement sentence* (a member-set-filtered prev-occ:
+  skip occurrences inside question contexts). Named as the next composable extractor.
+
+The methodological deliverable stands regardless: with held-out-region judging, admission
+verdicts are trustworthy — a declined rule is now evidence about the rule, not about val
+contamination.

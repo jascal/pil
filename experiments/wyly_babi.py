@@ -29,7 +29,9 @@ def main():
     tr = pd.read_parquet(T / "babi_qa1_train.parquet")
     te = pd.read_parquet(T / "babi_qa1_test.parquet")
     lines = [render(r["story"]) for _, r in tr.iterrows()]
-    corpus = " ".join(lines * 3)
+    import os
+    passes = int(os.environ.get("BABI_PASSES", "1"))
+    corpus = " ".join(lines * passes)
     (REPO / "data" / "corpus_babi.txt").write_text(corpus)
     bench = []
     for _, r in te.iterrows():
@@ -39,7 +41,7 @@ def main():
                 bench.append({"prompt": render(st, upto=i),
                               "answer": st["answer"][i], "prop": "qa1"})
     (REPO / "data" / "babi_bench.json").write_text(json.dumps(bench, indent=0))
-    print(f"corpus {len(corpus) // 1000} KB ({len(lines)} stories x3); "
+    print(f"corpus {len(corpus) // 1000} KB ({len(lines)} stories x{passes}); "
           f"bench {len(bench)} test questions")
 
 
