@@ -371,8 +371,13 @@ Pile); single seeds; teacher decisions at fp16 above 410M; the code corpus is on
 scaling ladder stops at 2.8B (VRAM). Certification is over \emph{stated domains} --- the proved
 tag never travels past its test set. Wake-SGD-only multi-hop learning remains open (sleep-Adam is
 the design's answer; the purist question stands), and the runtimes' shipped cover is still
-fixed-priority --- the arbitration gains are measured in the learner and proposed to the schema,
-not yet realized in serving. Calibration, finally, is a \emph{formal} requirement rather than an
+fixed-priority only by default --- the arbitration gains, measured in the learner, are
+now \emph{realized} in serving: both runtimes implement the support-weighted cover
+(\code{cover:\,support-weighted}), the emitter ships every admitted family with its arbitration
+confidences, and replaying all held-out windows through the served runtime reproduces the
+learner-measured core \emph{exactly} ($0.605$ code, $0.329$ wikitext; gap $+0.0000$; C++/Python
+parity 200/200) --- the parity harness itself caught a dropped-confidence runtime bug on the way.
+Calibration, finally, is a \emph{formal} requirement rather than an
 observation: C10's dominance premise is per-cell confidence calibration on the evaluation
 measure, and its $2\varepsilon$ envelope is exactly what low-support confidence inflation --- the
 val-variance episodes --- consumes; the support pre-gates and per-family judge thresholds are the
