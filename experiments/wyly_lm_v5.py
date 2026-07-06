@@ -513,6 +513,36 @@ def prev_occ_pos(ids, pos):
     return torch.where(pos >= 0, prev, torch.full_like(prev, -1))
 
 
+def prev_occ_pos_filtered(ids, pos, avoid, look=3):
+    """FILTERED chained role (entity-conditioned MOVEMENT binding): the previous occurrence of
+    the token at `pos`, skipping occurrences whose following `look` tokens contain an avoid-set
+    member (e.g. question markers -- the stale-location fix the region judge demanded)."""
+    rows = torch.arange(len(ids), device=ids.device)
+    base_tok = ids[rows, pos.clamp(min=0)]
+    eq = ids == base_tok[:, None]
+    n = ids.shape[1]
+    bad = torch.zeros_like(eq)
+    for j in range(1, look + 1):
+        bad[:, :n - j] |= avoid[ids[:, j:]]
+    idxs = torch.arange(n, device=ids.device)
+    eq &= (idxs[None, :] < pos[:, None]) & ~bad
+    prev = torch.where(eq, idxs, torch.full_like(idxs, -1).expand_as(eq)).max(1).values
+    return torch.where(pos >= 0, prev, torch.full_like(prev, -1))
+
+
+def next_member_after(ids, pos, member):
+    """the first member-set token AFTER `pos` (the location slot after a movement mention --
+    template-length-invariant, unlike fixed succ shifts). -1 if none."""
+    n = ids.shape[1]
+    m = member[ids]
+    idxs = torch.arange(n, device=ids.device)
+    m &= idxs[None, :] > pos[:, None]
+    nxt = torch.where(m, idxs, torch.full_like(idxs, n + 1).expand_as(m)).min(1).values
+    ok = (pos >= 0) & (nxt <= n - 1)
+    rows = torch.arange(len(ids), device=ids.device)
+    return torch.where(ok, ids[rows, nxt.clamp(max=n - 1)], torch.full_like(pos, -1))
+
+
 def at_pos(ids, pos, succ=0):
     """ROLE COMPOSITION: the token at (position + succ) -- features of features ("the token
     after the mate", "the token after the clause opener"). -1 where the position is absent or
@@ -1169,6 +1199,9 @@ def emit_full(model, cls, uv, ts, vocab):
                            "succ": params.get("succ", 0)}
                     if params.get("of_shift"):
                         dd2["of_shift"] = params["of_shift"]
+                    if params.get("avoid") is not None:
+                        dd2["avoid"] = [int(uv[i]) for i in
+                                        torch.where(params["avoid"])[0].tolist()]
                     derived_defs.append(dd2)
                     params = {}
                 dd = {"id": fid, "kind": kindname}
@@ -1542,6 +1575,18 @@ def main():
                               w, prev_occ_pos(w, (recent_member_pos(w, ms) - 1).clamp(min=-1)),
                               succ=1),
                           ("prev-occ", {"of_members": attr_set, "of_shift": -1, "succ": 1}))
+            avoid_set = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+            for i in range(vocab):
+                if _ts.token_str(int(uv[i])).strip() in {"?", "Q", "A", "Q:", "A:"}:
+                    avoid_set[i] = True
+            if int(cap_set.sum()) >= 20 and int(avoid_set.sum()) >= 1:
+                for sc in (3, 4, 5):
+                    add_dgate(f"move-echo s{sc} gate",
+                              lambda w, cs=cap_set, av=avoid_set, sc=sc: at_pos(
+                                  w, prev_occ_pos_filtered(
+                                      w, recent_member_pos(w, cs), av), succ=sc),
+                              ("prev-occ", {"of_members": cap_set, "avoid": avoid_set,
+                                            "succ": sc}))
             if int(cap_set.sum()) >= 20:
                 for sc in ECHO_SUCCS:
                     add_dgate(f"cap-echo s{sc} gate",
@@ -1648,6 +1693,39 @@ def main():
                 if nk:
                     log.append(f"    sleep {ep}: GROW +{nk} compound concepts "
                                f"(total {len(model.grow_keys)})")
+            if CX and CONCEPTS and cspace is not None and ep >= 1 and "avoid_set" in dir():
+                cm2 = cspace.cmap
+                reps2, cnts2 = cm2.unique(return_counts=True)
+                for rep in reps2[cnts2.argsort(descending=True)[:4]].tolist():
+                    nm3 = f"moveloc [{rep}]"
+                    if any(nm3 in n_ for n_, _ in model.rules) or nm3 in CONF_FNS:
+                        continue
+                    grp = torch.where(cm2 == rep)[0]
+                    if len(grp) < 3:
+                        continue
+                    mset2 = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+                    mset2[grp] = True
+
+                    def mfeat(w, ms=mset2):
+                        return next_member_after(
+                            w, prev_occ_pos_filtered(
+                                w, recent_member_pos(w, cap_set), avoid_set), ms)
+
+                    tab3, nk3 = fit_dgate_feature(ids, yv, fit, mfeat, vocab)
+                    if nk3 < 20:
+                        continue
+                    B23 = vocab + 2
+
+                    def mconf(w, tab3=tab3, B23=B23, mfeat=mfeat):
+                        f_ = mfeat(w)
+                        v_, c_ = tab3.lookup_conf((f_ + 1) * B23 + w[:, -1])
+                        miss = f_ < 0
+                        return (torch.where(miss, torch.full_like(v_, -1), v_),
+                                torch.where(miss, torch.full_like(c_, -1e9), c_))
+
+                    candidates.append((nm3, lambda w, mconf=mconf: mconf(w)[0]))
+                    CONF_FNS[nm3] = mconf
+                    RULE_SIZE[nm3] = lambda nk3=nk3: nk3
             if CX and CONCEPTS and cspace is not None and ep >= 1:
                 cm = cspace.cmap                             # LEARNED member sets: top concept
                 reps, cnts = cm.unique(return_counts=True)   # groups offered as recent-member
