@@ -49,3 +49,22 @@ general fix for stride-overlap val contamination. Single-pass corpus. Results:
 The methodological deliverable stands regardless: with held-out-region judging, admission
 verdicts are trustworthy — a declined rule is now evidence about the rule, not about val
 contamination.
+
+## The movement-binding arc completes: three forms, three verdicts, one root cause
+
+1. Verbatim pointer: **negative** (−0.034) — copies stale locations from question lines.
+2. Fixed-shift move-echo (filtered prev-occ + succ 3/4/5): declined — bAbI's movement templates
+   put the location at varying offsets; any fixed shift is right ~1/3 of the time.
+3. `next-member-after` (moveloc: the first location-class token after the filtered occurrence,
+   template-length-invariant, location class from learned concept groups): **declined at ~0.000**
+   — form-correct, and still no window marginal.
+
+The root cause is now clean: **the judge's val is window-shaped; the benchmark is query-shaped.**
+Val windows are random 256-token slices where questions sit mid-window with text continuing —
+there the k-gram tiers already answer well. Benchmark prompts END at "A:" on fresh stories —
+exactly where kgrams fail and moveloc would win, and exactly the positions the judge never
+scores. Admission optimizes window-imitation, not deployment queries. Named next upgrade:
+**query-shaped judging** (val = cloze-formatted queries from held-out stories, scored on answer
+tokens). bAbI stands at package 0.527 vs Qwen 0.782; the machinery (filtered prev-occ with
+avoid/look, next-member-after) is certified-family and shipped in the schema (rosetta 872c3f3,
+sgiandubh PR #23) for when the judge can see what it's worth.
