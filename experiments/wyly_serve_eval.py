@@ -41,7 +41,8 @@ from serve_package import decide, load_package  # noqa: E402
 DS = os.environ.get("WYLY_DS", "wikitext")
 PKG = REPO / "data" / ("wyly_expert_package_v5" if DS == "wikitext"
                        else f"wyly_expert_package_v5_{DS}")
-STATE = REPO / "data" / f"wyly_v5_mined_pythia70m_{DS}_cov_ol_sw.pt"
+SUF = os.environ.get("WYLY_EVAL_SUFFIX", "_cov_ol_sw")
+STATE = REPO / "data" / f"wyly_v5_mined_pythia70m_{DS}{SUF}.pt"
 
 
 def main():

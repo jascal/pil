@@ -49,13 +49,17 @@ CX = os.environ.get("WYLY_CX", "") == "1"                    # concept extension
 DX = os.environ.get("WYLY_DX", "") == "1"                    # detection extensions: MDL judge +
 MDL_LAM = float(os.environ.get("WYLY_MDL_LAM", "1e-8"))     # key-level retreat + anti-unification
 RULE_SIZE = {}                                               # name -> callable -> table entries
+CONCEPTS_CMAP = [None]                                       # cmap holder for package emission
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
 DATA = REPO / "data" / (f"wyly_nexttoken_{DS}_L256.pt" if DS != "wikitext"
                         else "wyly_nexttoken_wikitext_L256.pt")
 TEACH = REPO / "data" / (f"wyly_teacher_{TAG}_{DS}_L256.pt" if DS != "wikitext"
                          else f"wyly_teacher_{TAG}_L256.pt")
 STATE = REPO / "data" / (f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}"
-                         f"{'_ol' if ONLINE else ''}{'_sw' if SWCOVER else ''}.pt")
+                         f"{'_ol' if ONLINE else ''}{'_sw' if SWCOVER else ''}"
+                         f"{'_cn' if CONCEPTS else ''}{'_pt' if POINTER else ''}"
+                         f"{'_tp' if TPOINTER else ''}{'_dx' if DX else ''}"
+                         f"{'_cx' if CX else ''}{'_gr' if GROW else ''}.pt")
 ADMIT_F = REPO / "data" / f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}_admitted.json"
 DEV, V = v2.DEV, v2.V
 
@@ -955,6 +959,7 @@ def emit_full(model, cls, uv, ts, vocab):
         toks.reverse()
         return toks
 
+    derived_defs, need_concepts = [], False
     for name, _fn in model.rules:
         conf = round(RULE_CONF.get(name, 0.0), 4)
         cite = [f"admitted by the sleep judge ({LIB}/{JUDGE}{'/sw' if SWCOVER else ''}), "
@@ -983,6 +988,29 @@ def emit_full(model, cls, uv, ts, vocab):
                 add({"kind": "gate", "tier": "gated", "basis": "observational", "frame": {},
                      "slot": off, "table": table, "confs": confs,
                      "citation": [f"{src} skip-bigram offset {off}"]})
+            elif info[0] == "mate":
+                mtab, opl, cll, B2 = info[1], info[2], info[3], info[4]
+                derived_defs.append({"id": "mate0", "kind": "bracket-mate",
+                                     "openers": [int(uv[i]) for i in opl],
+                                     "closers": [int(uv[i]) for i in cll]})
+                table, confs = {}, {}
+                for key, v, c in zip(mtab.k.tolist(), mtab.v.tolist(), mtab.c.tolist(),
+                                     strict=True):
+                    f, last = key // B2 - 1, key % B2
+                    ck = f"{int(uv[f])}:{int(uv[last])}"
+                    table[ck] = int(uv[v])
+                    confs[ck] = round(c, 4)
+                add({"kind": "dgate", "tier": "gated", "basis": "observational",
+                     "feature": "mate0", "table": table, "confs": confs,
+                     "citation": [f"{src} mate gate: innermost unclosed opener (extractor "
+                                  "PROVED, wyly_mate_certify)"]})
+            elif info[0] == "pointer":
+                ptr = info[1]
+                need_concepts = ptr.cmap_ref is not None
+                add({"kind": "pointer", "tier": "trusted", "basis": "causal",
+                     "lmax": ptr.lmax,
+                     "cells": {f"{a}:{b}": round(c, 4) for (a, b), c in ptr.cells.items()},
+                     "citation": [f"{src} pointer: per-(l,lc)-cell val fired-accuracy"]})
             elif info[0] == "mined":
                 mined = info[1]
                 by_frame = {}
@@ -1018,8 +1046,18 @@ def emit_full(model, cls, uv, ts, vocab):
              "citation": [f"{src} online counts: {ts.token_str(int(uv[t]))!r} -> "
                           f"{ts.token_str(int(uv[cls[am[t]]]))!r} (n={int(mx[t])}/{int(tot[t])})"]})
     W = max((len(r["ctx"]) for r in rules_out if r.get("kind") == "ngram"), default=1)
-    return {"model": src, "cover": "support-weighted", "W": W, "n_rules": len(rules_out),
-            "rules": rules_out}, skipped
+    man = {"model": src, "cover": "support-weighted", "W": W, "n_rules": len(rules_out),
+           "rules": rules_out}
+    if derived_defs:
+        man["derived"] = derived_defs
+    if need_concepts and CONCEPTS_CMAP[0] is not None:
+        cm = CONCEPTS_CMAP[0].cpu()
+        groups = {}
+        for i, rep in enumerate(cm.tolist()):
+            if rep != i:
+                groups.setdefault(int(uv[rep]), []).append(int(uv[i]))
+        man["concepts"] = {str(rep): mem for rep, mem in groups.items()}
+    return man, skipped
 
 def main():
     ids, y, cls, uv, tr, te = load_ds()
@@ -1113,6 +1151,7 @@ def main():
                                   cmap_ref=[cspace.cmap] if cspace is not None else None)
             candidates.append(("pointer (l,lc cells)", pointer.mirror()))
             CONF_FNS["pointer (l,lc cells)"] = pointer.lookup_conf
+            EMIT_INFO["pointer (l,lc cells)"] = ("pointer", pointer)
         else:
             pointer = None
         if TPOINTER and cspace is not None:
@@ -1150,6 +1189,7 @@ def main():
                 candidates.append((nm, lambda w: mate_conf(w)[0]))
                 CONF_FNS[nm] = mate_conf
                 RULE_SIZE[nm] = lambda mnk=mnk: mnk
+                EMIT_INFO[nm] = ("mate", mtab, opl, cll, B2)
                 print(f"CX: mate gate over {len(opl)} openers/{len(cll)} closers, {mnk} keys")
     else:
         mined = None
@@ -1211,6 +1251,7 @@ def main():
                 if au:
                     log.append(f"    sleep {ep}: AU {len(au)} anchor pairs -> concept evidence")
                 pooled_ref["v"] = pooled_counts(model.counts, cspace.cmap, vocab)
+                CONCEPTS_CMAP[0] = cspace.cmap
                 minedc.amap[0] = cspace.cmap                 # freshest concept space
                 log.append(f"    sleep {ep}: CONCEPTS {cspace.n_concepts} "
                            f"({cspace.n_merged} classes merged)")
