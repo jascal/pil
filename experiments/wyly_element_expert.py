@@ -100,10 +100,10 @@ def norm(s):
     return s.strip().strip(".,;:").lower()
 
 
-def cmd_bench(model, dtype, batch):
+def cmd_bench(model, dtype, batch, bench_file):
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    bench = json.load(open(DATA / "element_bench.json"))
+    bench = json.load(open(bench_file))
     tok = AutoTokenizer.from_pretrained(model)
     kw = {}
     if dtype == "int8":
@@ -139,13 +139,13 @@ def cmd_bench(model, dtype, batch):
         print(f"   {p:>9}: {h}/{n} = {h / n:.3f}")
 
 
-def cmd_evalpkg(pkg):
+def cmd_evalpkg(pkg, bench_file):
     sys.path.insert(0, str(REPO))
     sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
     from serve_package import decide, load_package
 
     from pil.tokens import TokenSpace
-    bench = json.load(open(DATA / "element_bench.json"))
+    bench = json.load(open(bench_file))
     ts = TokenSpace.from_file(Path(pkg) / "bundle.tokenizer.json")
     idioms, ngrams, m = load_package(Path(pkg) / "manifest.json")
     ok = 0
@@ -194,10 +194,11 @@ if __name__ == "__main__":
     ap.add_argument("--dtype", default="fp16")
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--pkg", default=str(DATA / "wyly_expert_package_v5_elements"))
+    ap.add_argument("--bench-file", default=str(DATA / "element_bench.json"))
     a = ap.parse_args()
     if a.cmd == "build":
         cmd_build()
     elif a.cmd == "bench":
-        cmd_bench(a.model, a.dtype, a.batch)
+        cmd_bench(a.model, a.dtype, a.batch, a.bench_file)
     else:
-        cmd_evalpkg(a.pkg)
+        cmd_evalpkg(a.pkg, a.bench_file)

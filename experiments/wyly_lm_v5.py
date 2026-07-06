@@ -51,6 +51,14 @@ MDL_LAM = float(os.environ.get("WYLY_MDL_LAM", "1e-8"))     # key-level retreat 
 FOLDS = int(os.environ.get("WYLY_FOLDS", "0"))               # multi-fold admission (0 = off)
 TOKJ = os.environ.get("WYLY_TOKENIZER", "")                  # tokenizer override (non-pythia teachers)
 KGRAMS = tuple(int(x) for x in os.environ.get("WYLY_KGRAMS", "2,3").split(","))
+MINE_OFFS = tuple(int(x) for x in os.environ.get("WYLY_MINE_OFFS", "2,3,4,5,6,7,8").split(","))
+
+
+def SAFE_KGRAMS(vocab):
+    """drop tiers whose PAIR key (suffix*base + next) would overflow int64 -- tiny vocabs
+    (bAbI: 38 tokens) overflow at k=11 (39**12 > 2**63), silently corrupting keys."""
+    return tuple(k for k in KGRAMS if (vocab + 1) ** (k + 1) < 2 ** 62)
+ECHO_SUCCS = tuple(int(x) for x in os.environ.get("WYLY_ECHO_SUCCS", "1").split(","))
 RULE_SIZE = {}                                               # name -> callable -> table entries
 CONCEPTS_CMAP = [None]                                       # cmap holder for package emission
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
@@ -754,8 +762,9 @@ class MinedGates:
     store with online-tier semantics. The library stops being hand-designed here: offsets, anchors
     and conjunctions all come from the data."""
 
-    def __init__(self, vocab, dev, offs=(2, 3, 4, 5, 6, 7, 8),
+    def __init__(self, vocab, dev, offs=None,
                  pair_offs=((2, 3), (2, 4), (3, 4), (2, 5)), amap=None):
+        offs = MINE_OFFS if offs is None else offs
         self.B, self.dev = vocab + 1, dev
         self.amap = amap                                     # anchor-space map (class frames): ids
         # pass through amap[.] on the ANCHOR channel only; table keys stay raw tokens
@@ -1265,7 +1274,7 @@ def main():
     candidates = [(f"induction L={lm}", mir_induction_L(lm)) for lm in (1, 2, 3)]
     if LIB == "ext":                                         # tr (which contains val) leaks the val
         candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
-        for k in KGRAMS:                                     # windows' own suffix pairs into the
+        for k in SAFE_KGRAMS(vocab):                         # windows' own suffix pairs into the
             if ONLINE:                                       # judge's val marginals
                 for supp in (40,):                           # s40 ~ 2 corpus occurrences under the
                     of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
@@ -1289,7 +1298,7 @@ def main():
         candidates.append(("repetition", mir_repetition))
     if LIB == "mined":                                       # design dir 3 second half: mined frames
         candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
-        for k in KGRAMS:
+        for k in SAFE_KGRAMS(vocab):
             for supp in (40,):
                 of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
                 online_frames.append(of)
@@ -1526,10 +1535,11 @@ def main():
                               succ=1),
                           ("prev-occ", {"of_members": attr_set, "of_shift": -1, "succ": 1}))
             if int(cap_set.sum()) >= 20:
-                add_dgate("cap-echo gate",
-                          lambda w, cs=cap_set: at_pos(
-                              w, prev_occ_pos(w, recent_member_pos(w, cs)), succ=1),
-                          ("prev-occ", {"of_members": cap_set, "succ": 1}))
+                for sc in ECHO_SUCCS:
+                    add_dgate(f"cap-echo s{sc} gate",
+                              lambda w, cs=cap_set, sc=sc: at_pos(
+                                  w, prev_occ_pos(w, recent_member_pos(w, cs)), succ=sc),
+                              ("prev-occ", {"of_members": cap_set, "succ": sc}))
             if int(claus_set.sum()) >= 5:
                 add_dgate("clause-succ gate",
                           lambda w, cs=claus_set: at_pos(w, recent_member_pos(w, cs), succ=1),
@@ -1563,7 +1573,7 @@ def main():
     gate_cands = []
     if LIB == "gates":                                       # learned-frame family (gate kind)
         candidates += [(f"induction L={lm}", mir_induction_L(lm)) for lm in (4, 5)]
-        for k in KGRAMS:
+        for k in SAFE_KGRAMS(vocab):
             if ONLINE:
                 for supp in (40,):
                     of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
