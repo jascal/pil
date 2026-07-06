@@ -16,7 +16,7 @@ from pil.tokens import TokenSpace  # noqa: E402
 
 ts = TokenSpace.from_file(REPO.parent / "rosetta" / "models" / "pythia70m" /
                           "bundle.tokenizer.json")
-DSS = ["wikitext", "wt103", "de", "legal", "math", "py", "code", "isabelle"]
+DSS = os.environ.get("WYLY_DOM_DSS", "wikitext,wt103,de,legal,math,py,code,isabelle").split(",")
 rows = []
 for ds in DSS:
     tsfx = "" if ds == "wikitext" else f"_{ds}"

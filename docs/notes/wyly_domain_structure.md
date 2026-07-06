@@ -166,3 +166,34 @@ biggest movers are exactly the two worst crystallizers of the original study: Ge
 (morphology → concepts; Nebensätze → clause/clause-succ roles) and math +0.026 (referent +
 learned-set roles). What remains open: the absolute ceiling still tracks structure (core ρ −0.93
 unchanged) — roles close the *ratio* gap, and the teacher's own predictability bounds the rest.
+
+## The abstraction wing: abstraction breaks the band, morphology does not (12 corpora)
+
+Four corpora added at the user's suggestion — **phil_de** (Kant/Nietzsche, German Gutenberg),
+**psy_en** (Freud/James/Jung), **soc_en** (Veblen/Spencer/Sumner), **fi** (EuroParl Finnish, the
+agglutinative extreme) — full stack, same protocol:
+
+```
+    corpus   gzip   gold  student  core_sw  crystal
+        fi  0.345  0.389    0.580    0.558    96.2%   <- morphology extreme: HOLDS the band
+   phil_de  0.366  0.323    0.438    0.416    95.2%   <- abstraction x morphology (OOD teacher)
+    psy_en  0.390  0.333    0.366    0.338    92.3%   <- abstraction: BELOW the band
+    soc_en  0.393  0.347    0.383    0.348    90.9%   <- abstraction: the new floor
+  (12-corpus Spearman: crystal -0.61, core -0.91, gold -0.94)
+```
+
+1. **Finnish vindicates the roles machinery**: despite morphology far beyond German's, it
+   crystallizes at 96.2% — concepts (1,655 merges) + depth/cmember roles carry it. The
+   morphology story is closed: agglutination is not the certified tier's enemy.
+2. **Abstraction is.** psy_en and soc_en under-crystallize their compressibility rank by 5–7
+   points — the same *rank-inversion* signature German once showed, now in the conceptual
+   direction. Strikingly, the concept machinery worked *hardest* exactly there (psy 7,884 /
+   soc 9,888 classes merged — abstraction vocabularies cluster massively) and the judge admitted
+   learned-set and referent roles on all four — **the diffuse tail is not a vocabulary problem
+   the current role kinds can reach**. Abstraction-dense argument structure (claims, stances,
+   discourse relations) is the next genuinely missing rule register.
+3. **Confounds, named**: soc_en is the smallest corpus in the study (2.1 MB; psy 3.8 MB) and de20
+   showed support floors matter (+0.7% from 3.5× corpus) — but phil_de at similar size scores
+   95.2%, so size alone does not explain the psy/soc dip. German-language Gutenberg is likely
+   outside the Pile (phil_de gold 0.323 — the lowest of any corpus — treat its row as
+   teacher-OOD); cover on the abstraction wing runs 94–97% vs 99%+ elsewhere.

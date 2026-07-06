@@ -60,8 +60,10 @@ def main():
         anchor()
     from transformers import AutoModelForCausalLM
     if a.dtype == "int8":                                # 8-bit path: pythia-6.9b on an 8GB card
-        m = AutoModelForCausalLM.from_pretrained(f"EleutherAI/{a.model}", local_files_only=True,
-                                                 load_in_8bit=True, device_map="cuda:0").eval()
+        from transformers import BitsAndBytesConfig
+        m = AutoModelForCausalLM.from_pretrained(
+            f"EleutherAI/{a.model}", local_files_only=True, device_map="cuda:0",
+            quantization_config=BitsAndBytesConfig(load_in_8bit=True)).eval()
     else:
         dt = torch.float16 if a.dtype == "fp16" else torch.float32
         m = AutoModelForCausalLM.from_pretrained(f"EleutherAI/{a.model}", local_files_only=True,
