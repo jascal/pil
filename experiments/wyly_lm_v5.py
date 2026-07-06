@@ -44,6 +44,11 @@ EMIT = os.environ.get("WYLY_EMIT", "") == "1"                # emit the rosetta 
 CONCEPTS = os.environ.get("WYLY_CONCEPTS", "") == "1"        # concept induction + class frames
 POINTER = os.environ.get("WYLY_POINTER", "") == "1"          # pointer rules (build-order 2)
 TPOINTER = os.environ.get("WYLY_TPOINTER", "") == "1"        # transform-composed pointers (5 o 2)
+GROW = os.environ.get("WYLY_GROW", "") == "1"                # append-only concept growth (13+14)
+CX = os.environ.get("WYLY_CX", "") == "1"                    # concept extensions: cluster-scoped
+DX = os.environ.get("WYLY_DX", "") == "1"                    # detection extensions: MDL judge +
+MDL_LAM = float(os.environ.get("WYLY_MDL_LAM", "1e-8"))     # key-level retreat + anti-unification
+RULE_SIZE = {}                                               # name -> callable -> table entries
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
 DATA = REPO / "data" / (f"wyly_nexttoken_{DS}_L256.pt" if DS != "wikitext"
                         else "wyly_nexttoken_wikitext_L256.pt")
@@ -166,12 +171,39 @@ class OnlineFrame:
         keep = (cnt[sel] >= self.minsupp) & (cnt[sel].float() / tot[kinv[sel]].clamp(min=1)
                                              >= self.mindet)
         conf = cnt[sel].float() / (tot[kinv[sel]] + ALPHA)
-        self.table = KeyTable(key[sel][keep], val[sel][keep], conf[keep])
+        k2, v2, c2 = key[sel][keep], val[sel][keep], conf[keep]
+        if hasattr(self, "banned") and len(self.banned):
+            kp = ~torch.isin(k2, self.banned)
+            k2, v2, c2 = k2[kp], v2[kp], c2[kp]
+        self.table = KeyTable(k2, v2, c2)
 
     def mirror(self):
         def fn(ids):
             return self.table.lookup(self._suffix_key(ids, False))
         return fn
+
+    def retreat(self, ids, yv, val, floor=0.15, minn=8):
+        """8: CEGIS-style retreat -- a rule keeps only the keys it is RIGHT on. Per-key val
+        fired-accuracy; keys with n >= minn and acc < floor are banned (and stay banned through
+        refreshes). Raises per-rule confidence, which the sw cover immediately monetizes."""
+        if not hasattr(self, "banned"):
+            self.banned = torch.empty(0, dtype=torch.long, device=self.pk.device)
+        q = self._suffix_key(ids[val], False)
+        v, _ = self.table.lookup_conf(q)
+        f = v >= 0
+        if not int(f.sum()):
+            return 0
+        good = (v[f] == yv[val][f]).float()
+        uk, inv = q[f].unique(return_inverse=True)
+        acc = torch.zeros(len(uk), device=q.device).index_add_(0, inv, good)
+        nn = torch.zeros(len(uk), device=q.device).index_add_(0, inv, torch.ones_like(good))
+        bad = uk[(nn >= minn) & (acc / nn.clamp(min=1) < floor)]
+        if len(bad):
+            self.banned = torch.cat([self.banned, bad]).unique()
+        keep = ~torch.isin(self.table.k, self.banned)
+        self.table = KeyTable(self.table.k[keep], self.table.v[keep],
+                              self.table.c[keep] if self.table.c is not None else None)
+        return int(len(bad))
 
 
 def fit_frame(ids, yv, tr, offs, vocab, stride=12, minsupp=2, mindet=0.5):
@@ -242,7 +274,7 @@ class ConceptSpace:
         self.cmap = torch.arange(vocab, device=dev)
         self.n_concepts = self.n_merged = 0
 
-    def refresh(self, counts):
+    def refresh(self, counts, extra_pairs=None):
         tot = counts.sum(1)
         strong = torch.where(tot >= self.minsupp)[0]
         if len(strong) < 10:
@@ -254,6 +286,8 @@ class ConceptSpace:
         ii, jj = torch.nonzero(sim >= self.tau, as_tuple=True)
         keep = ii < jj
         pairs = torch.stack([strong[ii[keep]], strong[jj[keep]]], 1).tolist()
+        if extra_pairs:
+            pairs = pairs + [list(p) for p in extra_pairs]
         parent = list(range(self.vocab))
 
         def find(x):
@@ -390,6 +424,107 @@ class TransformPointer(PointerRule):
             out[sl] = torch.where(good, self.cls[am], out[sl])
             ok[sl] = good
         return out, l, lc, ok
+
+
+def bracket_sets(uv, ts):
+    """extensional opener/closer token sets from the tokenizer (exact; class = decoded string)."""
+    op, cl = [], []
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    for i, t in enumerate(uv.tolist()):
+        d = ts.token_str(t).strip()
+        if d in pairs:
+            op.append(i)
+        elif d in pairs.values():
+            cl.append(i)
+    return op, cl
+
+
+def mate_feature(ids, is_open, is_close):
+    """15 (v1): the DERIVED FEATURE 'innermost unclosed opener' -- a role, not a token set.
+    depth = cumsum(+1 opener / -1 closer); opener at i is unclosed iff min depth over [i, end)
+    >= depth at i (reverse cummin); the feature is the CLASS ID of the innermost such opener
+    (or -1). Exact and host-side: the first two-layer rule -- derive the predicate, gate on it."""
+    sign = is_open[ids].long() - is_close[ids].long()
+    pref = sign.cumsum(1)
+    revmin = pref.flip(1).cummin(1).values.flip(1)
+    cand = is_open[ids] & (revmin >= pref)
+    pos = torch.arange(ids.shape[1], device=ids.device)
+    best = torch.where(cand, pos, torch.full_like(pos, -1).expand_as(cand)).max(1).values
+    rows = torch.arange(len(ids), device=ids.device)
+    return torch.where(best >= 0, ids[rows, best.clamp(min=0)],
+                       torch.full_like(best, -1))
+
+
+def fit_mate(ids, yv, tr, is_open, is_close, vocab, minsupp=3, mindet=0.5):
+    """gate keyed on (mate, last): when the innermost unclosed opener is X and the last token is
+    Y, the teacher's decision -- the rule that knows WHICH closer (or continuation) fits."""
+    B = vocab + 2
+    w = ids[tr]
+    f = mate_feature(w, is_open, is_close)
+    m = f >= 0
+    key = (f[m] + 1) * B + w[m][:, -1]
+    tab, nk = best_per_key(key, yv[tr][m], minsupp, mindet)
+    return tab, nk
+
+
+class WylyGrow(WylyV3):
+    """13+14: APPEND-ONLY concept growth. C stays a frozen buffer and the tied decode is untouched
+    -- the C9-compatible reading of the frozen-C rule: the retention argument forbids MUTATING
+    decode rows, not appending input-side ones. Sleep mines high-PMI adjacent class pairs
+    (compound tokens -- BPE-above-BPE, chosen by the learner); each compound gets a trainable
+    delta vector ADDED to the last-position concept features whenever the pair is present; wake
+    trains the new rows like any parameter, and only behavior OUTSIDE the certified cover can
+    move."""
+
+    def __init__(self, ground, cls, ell):
+        super().__init__(ground, cls, ell)
+        self.register_buffer("grow_keys", torch.empty(0, dtype=torch.long,
+                                                      device=ground.device))
+        self.Cx = torch.nn.Parameter(torch.zeros(0, ground.shape[1], device=ground.device))
+
+    def base(self, ids):
+        f = super().base(ids)
+        if len(self.grow_keys):
+            pair = ids[:, -2] * self.C.shape[0] + ids[:, -1]
+            i = torch.searchsorted(self.grow_keys, pair).clamp(max=len(self.grow_keys) - 1)
+            hit = self.grow_keys[i] == pair
+            kk = self.C.shape[1]
+            add = torch.zeros(len(ids), kk, device=ids.device, dtype=f.dtype)
+            add[hit] = self.Cx[i[hit]]
+            f = torch.cat([f[:, :kk] + add, f[:, kk:]], -1)
+        return f
+
+    def grow(self, new_keys):
+        if not len(new_keys):
+            return 0
+        allk = torch.cat([self.grow_keys, new_keys]).unique(sorted=True)
+        cx = torch.zeros(len(allk), self.C.shape[1], device=allk.device)
+        if len(self.grow_keys):
+            pos = torch.searchsorted(allk, self.grow_keys)
+            cx[pos] = self.Cx.data
+        added = len(allk) - len(self.grow_keys)
+        self.grow_keys = allk
+        self.Cx = torch.nn.Parameter(cx)
+        return added
+
+
+def mine_compounds(ids, chunk, vocab, topn=40, minn=50, minpmi=3.0):
+    """14: high-PMI adjacent pairs -- compound-token concepts. The uniform stride-overlap
+    inflation cancels in the PMI ratio."""
+    w = ids[chunk]
+    a, b = w[:, :-1].reshape(-1), w[:, 1:].reshape(-1)
+    pair = a * vocab + b
+    pk, pc = pair.unique(return_counts=True)
+    tok, tc = w.reshape(-1).unique(return_counts=True)
+    freq = torch.zeros(vocab, device=ids.device).index_add_(0, tok, tc.float())
+    n = float(len(a))
+    pa, pb = freq[pk // vocab] / n, freq[pk % vocab] / n
+    pmi = torch.log((pc.float() / n) / (pa * pb).clamp(min=1e-12))
+    keep = (pc >= minn) & (pmi >= minpmi)
+    pk, pmi = pk[keep], pmi[keep]
+    if len(pk) > topn:
+        pk = pk[pmi.topk(topn).indices]
+    return pk
 
 
 CONF_FNS = {}                                            # name -> (ids)->(val, per-key conf)
@@ -578,6 +713,112 @@ class MinedGates:
             return self.lookup_conf_all(ids)[0]
         return fn
 
+    def retreat(self, ids, yv, val, floor=0.15, minn=8):
+        """8: key-level retreat over both mined stores (see OnlineFrame.retreat)."""
+        pruned = 0
+        w = ids[val]
+        for o in self.offs:
+            q = (o * self.B + self.A(w[:, -o])) * self.B + w[:, -1]
+            pruned += self._retreat_store("t1", q, yv[val], floor, minn)
+        for o1, o2 in self.pair_offs:
+            q = ((o1 * 16 + o2) * self.B ** 2 + self.A(w[:, -o1]) * self.B
+                 + self.A(w[:, -o2])) * self.B + w[:, -1]
+            pruned += self._retreat_store("t2", q, yv[val], floor, minn)
+        return pruned
+
+    def _retreat_store(self, which, q, y, floor, minn):
+        tab = getattr(self, which)
+        v, _ = tab.lookup_conf(q)
+        f = v >= 0
+        if not int(f.sum()):
+            return 0
+        good = (v[f] == y[f]).float()
+        uk, inv = q[f].unique(return_inverse=True)
+        acc = torch.zeros(len(uk), device=q.device).index_add_(0, inv, good)
+        nn = torch.zeros(len(uk), device=q.device).index_add_(0, inv, torch.ones_like(good))
+        bad = uk[(nn >= minn) & (acc / nn.clamp(min=1) < floor)]
+        if not len(bad):
+            return 0
+        keep = ~torch.isin(tab.k, bad)
+        setattr(self, which, KeyTable(tab.k[keep], tab.v[keep], tab.c[keep]))
+        return int(len(bad))
+
+    def mine_clustered(self, model, ids, yv, cls, fitset, ground, g, log, cycle,
+                       kcl=10, sample_n=6000):
+        """9: ERROR CLUSTERING IN CONCEPT SPACE -- cluster residual-error contexts by their mean
+        concept vector (last 16 positions), then run the anchor search WITHIN each cluster with
+        lower floors: scopes the offset grid never contained. Frames found here join the same
+        stores (and face the same judge)."""
+        smp = fitset[torch.randint(len(fitset), (sample_n,), generator=g)]
+        _, pred = core_cover_sw(model, model.rules, ids, yv, cls, smp, return_pred=True)
+        err = smp[pred != yv[smp]]
+        if len(err) < 200:
+            return
+        feat = ground[ids[err][:, -16:]].mean(1)
+        cent = feat[torch.randperm(len(feat), generator=g)[:kcl].to(feat.device)]
+        for _ in range(6):
+            d = torch.cdist(feat, cent)
+            asg = d.argmin(1)
+            for c in range(len(cent)):
+                m = asg == c
+                if int(m.sum()):
+                    cent[c] = feat[m].mean(0)
+        tails, ytail = ids[fitset], yv[fitset]
+        new1 = 0
+        for c in range(kcl):
+            sub = err[asg == c]
+            if len(sub) < 30:
+                continue
+            for o in self.offs:
+                tab, _ = best_per_key(self.A(tails[:, -o]) * self.B + tails[:, -1], ytail, 3, 0.4)
+                v, cc = tab.lookup_conf(self.A(ids[sub][:, -o]) * self.B + ids[sub][:, -1])
+                good = (v == yv[sub]).float()
+                ua, inv = self.A(ids[sub][:, -o]).unique(return_inverse=True)
+                rec = torch.zeros(len(ua), device=self.dev).index_add_(0, inv, good)
+                cnt = torch.zeros(len(ua), device=self.dev).index_add_(0, inv,
+                                                                       torch.ones_like(good))
+                for a in ua[(cnt >= 8) & (rec / cnt.clamp(min=1) >= 0.3)].tolist():
+                    if (o, a) in self.mined1:
+                        continue
+                    self.mined1.add((o, a))
+                    sl = (tab.k // self.B) == a
+                    self.t1 = self._merge(self.t1, (o * self.B + a) * self.B + tab.k[sl] % self.B,
+                                          tab.v[sl], tab.c[sl])
+                    new1 += 1
+        self.n_frames = len(self.mined1) + len(self.mined2)
+        if new1:
+            log.append(f"    sleep {cycle}: CLUSTER-MINED {new1} frames (from {len(err)} errors, "
+                       f"{kcl} concept-space clusters)")
+
+    def au_pairs(self, min_shared=5, agree=0.8):
+        """7: ANTI-UNIFICATION -- anchors at the same offset whose singleton tables agree on
+        shared content keys are interchangeable; the pairs feed ConceptSpace as frame-tier
+        evidence (least-general-generalization: classes DISCOVERED from admitted structure)."""
+        pairs = []
+        if not len(self.t1.k):
+            return pairs
+        oa, last = self.t1.k // self.B, self.t1.k % self.B
+        o_all, a_all = oa // self.B, oa % self.B
+        for o in self.offs:
+            m = o_all == o
+            if int(m.sum()) < 2 * min_shared:
+                continue
+            anchors = a_all[m].unique()
+            tabs = {}
+            for a in anchors.tolist():
+                sl = m & (a_all == a)
+                tabs[a] = dict(zip(last[sl].tolist(), self.t1.v[sl].tolist(), strict=True))
+            alist = list(tabs)
+            for i in range(len(alist)):
+                for j in range(i + 1, len(alist)):
+                    ti, tj = tabs[alist[i]], tabs[alist[j]]
+                    shared = set(ti) & set(tj)
+                    if len(shared) >= min_shared:
+                        ag = sum(ti[k] == tj[k] for k in shared) / len(shared)
+                        if ag >= agree:
+                            pairs.append((alist[i], alist[j]))
+        return pairs
+
 
 def sleep_admit_v5(model, ids, y, val, cycle, candidates, log, thresh=0.002):
     """the judge, library-agnostic: temp-install each unadmitted candidate; admit the best payer."""
@@ -616,10 +857,13 @@ def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thres
               if SWCOVER and name not in CONF_FNS and name not in RULE_CONF else None)
         kw = {"extra_conf": ec} if SWCOVER else {}
         marg = cover(model, model.rules + [(name, fn)], ids, yv, cls, val, **kw)["agree"] - base
-        log.append(f"    sleep {cycle}: candidate {name} COVER marginal {marg:+.4f}")
-        t = 0.002 if name.startswith("gate") else thresh     # gate tables are high-variance
-        if marg > t and marg > best[0]:
-            best = (marg, (name, fn))
+        pen = MDL_LAM * RULE_SIZE[name]() if DX and name in RULE_SIZE else 0.0
+        score = marg - pen                                   # 11: MDL -- marginal per table bit;
+        log.append(f"    sleep {cycle}: candidate {name} COVER marginal {marg:+.4f}"
+                   + (f" (MDL -{pen:.4f})" if pen else ""))  # 1e-8/entry: a 50k-entry table must
+        t = 0.002 if name.startswith("gate") else thresh     # beat DOUBLE the base threshold
+        if score > t and score > best[0]:
+            best = (score, (name, fn))
     if best[1]:
         name, fn = best[1]
         model.install(name, fn)
@@ -802,6 +1046,7 @@ def main():
                     CONF_FNS[nm] = (lambda ids, of=of:
                                     of.table.lookup_conf(of._suffix_key(ids, False)))
                     EMIT_INFO[nm] = ("kgram", of)
+                    RULE_SIZE[nm] = lambda of=of: len(of.table.k)
             else:
                 tab, nk = fit_kgram(ids, yv, fit, k, vocab)
                 nm = f"kgram k={k} [{nk}]"
@@ -824,18 +1069,21 @@ def main():
                 CONF_FNS[nm] = (lambda ids, of=of:
                                 of.table.lookup_conf(of._suffix_key(ids, False)))
                 EMIT_INFO[nm] = ("kgram", of)
+                RULE_SIZE[nm] = lambda of=of: len(of.table.k)
         for off in (2, 3):
             tab, nk = fit_skip(ids, yv, fit, off)
             nm = f"skip o={off} [{nk}]"
             candidates.append((nm, mir_skip(tab, off)))
             register_conf(nm, tab, keyfn_offsets((off,), vocab))
             EMIT_INFO[nm] = ("skip", off, tab)
+            RULE_SIZE[nm] = lambda nk=nk: nk
         for i, j, k in RELATION_GRID:
             candidates.append((f"relation eq({i},{j})c{k}", mir_relation(i, j, k)))
         mined = MinedGates(vocab, DEV)
         candidates.append(("mined frames (online)", mined.mirror()))
         CONF_FNS["mined frames (online)"] = mined.lookup_conf_all
         EMIT_INFO["mined frames (online)"] = ("mined", mined)
+        RULE_SIZE["mined frames (online)"] = lambda: len(mined.t1.k) + len(mined.t2.k)
         if CONCEPTS:                                         # build-order 12+1: concept induction
             cspace = ConceptSpace(vocab, DEV)                # feeding class-anchored frames + a
             pooled_ref = {}                                  # pooled concept-counts tier
@@ -853,9 +1101,11 @@ def main():
 
             CONF_FNS["concept counts (pooled)"] = pooled_conf
             candidates.append(("concept counts (pooled)", lambda w: pooled_conf(w)[0]))
+            RULE_SIZE["concept counts (pooled)"] = lambda: cspace.n_concepts
             minedc = MinedGates(vocab, DEV, amap=[cspace.cmap])
             candidates.append(("mined cframes (online)", minedc.mirror()))
             CONF_FNS["mined cframes (online)"] = minedc.lookup_conf_all
+            RULE_SIZE["mined cframes (online)"] = lambda: len(minedc.t1.k) + len(minedc.t2.k)
         else:
             cspace = minedc = None
         if POINTER:
@@ -872,6 +1122,35 @@ def main():
             CONF_FNS["tpointer (class->form)"] = tpointer.lookup_conf
         else:
             tpointer = None
+        if CX:                                               # 15 v1: derived-feature gate (mate)
+            sys.path.insert(0, str(REPO))
+            from pil.tokens import TokenSpace
+            _ts = TokenSpace.from_file(REPO.parent / "rosetta" / "models" / "pythia70m"
+                                       / "bundle.tokenizer.json")
+            opl, cll = bracket_sets(uv, _ts)
+            is_open = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+            is_close = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+            if opl:
+                is_open[torch.tensor(opl, device=DEV)] = True
+            if cll:
+                is_close[torch.tensor(cll, device=DEV)] = True
+            if opl and cll:
+                mtab, mnk = fit_mate(ids, yv, fit, is_open, is_close, vocab)
+                nm = f"mate gate [{mnk}]"
+                B2 = vocab + 2
+
+                def mate_conf(w, mtab=mtab, B2=B2):
+                    f = mate_feature(w, is_open, is_close)
+                    q = (f + 1) * B2 + w[:, -1]
+                    v, c = mtab.lookup_conf(q)
+                    miss = f < 0
+                    return (torch.where(miss, torch.full_like(v, -1), v),
+                            torch.where(miss, torch.full_like(c, -1e9), c))
+
+                candidates.append((nm, lambda w: mate_conf(w)[0]))
+                CONF_FNS[nm] = mate_conf
+                RULE_SIZE[nm] = lambda mnk=mnk: mnk
+                print(f"CX: mate gate over {len(opl)} openers/{len(cll)} closers, {mnk} keys")
     else:
         mined = None
     gate_cands = []
@@ -887,6 +1166,7 @@ def main():
                     CONF_FNS[nm] = (lambda ids, of=of:
                                     of.table.lookup_conf(of._suffix_key(ids, False)))
                     EMIT_INFO[nm] = ("kgram", of)
+                    RULE_SIZE[nm] = lambda of=of: len(of.table.k)
             else:
                 tab, nk = fit_kgram(ids, yv, fit, k, vocab)
                 nm = f"kgram k={k} [{nk}]"
@@ -910,7 +1190,7 @@ def main():
     ground = grounded_init(uv).to(DEV)
     ground = ground / ground.shape[1] ** 0.5
     torch.manual_seed(0)
-    model = WylyV3(ground, cls.cpu(), ell).to(DEV)
+    model = (WylyGrow if GROW else WylyV3)(ground, cls.cpu(), ell).to(DEV)
     log = []
     print(f"\n{'episode':>8}{'teacher-agree':>15}{'copy-agree':>12}{'tier':>6}")
     for ep, ch in enumerate(torch.chunk(fit, v2.EPISODES)):
@@ -926,7 +1206,10 @@ def main():
             of.refresh()                                     # re-gate the online tiers each sleep
         if mined is not None:
             if CONCEPTS and cspace is not None:              # concepts refresh BEFORE mining so
-                cspace.refresh(model.counts)                 # this sleep's frames anchor in the
+                au = mined.au_pairs() if DX else None        # 7: frame-tier interchangeability
+                cspace.refresh(model.counts, extra_pairs=au)  # evidence joins the bigram rows
+                if au:
+                    log.append(f"    sleep {ep}: AU {len(au)} anchor pairs -> concept evidence")
                 pooled_ref["v"] = pooled_counts(model.counts, cspace.cmap, vocab)
                 minedc.amap[0] = cspace.cmap                 # freshest concept space
                 log.append(f"    sleep {ep}: CONCEPTS {cspace.n_concepts} "
@@ -934,6 +1217,21 @@ def main():
             mined.mine(model, ids, yv, cls, fit, g, log, ep)
             if CONCEPTS and minedc is not None:
                 minedc.mine(model, ids, yv, cls, fit, g, log, ep)
+            if GROW:                                         # 13+14: append compound rows
+                nk = model.grow(mine_compounds(ids, ch, vocab))
+                if nk:
+                    log.append(f"    sleep {ep}: GROW +{nk} compound concepts "
+                               f"(total {len(model.grow_keys)})")
+            if CX and CONCEPTS:                              # 9: cluster-scoped anchor mining
+                mined.mine_clustered(model, ids, yv, cls, fit, ground, g, log, ep)
+            if DX:                                           # 8: rules retreat to where they are
+                pr = mined.retreat(ids, yv, val)             # right -- key-level val pruning
+                if CONCEPTS and minedc is not None:
+                    pr += minedc.retreat(ids, yv, val)
+                for of in online_frames:
+                    pr += of.retreat(ids, yv, val)
+                if pr:
+                    log.append(f"    sleep {ep}: RETREAT pruned {pr} failing keys")
         if POINTER and pointer is not None:
             if pointer.cmap_ref is not None and cspace is not None:
                 pointer.cmap_ref[0] = cspace.cmap
