@@ -41,6 +41,7 @@ JUDGE = os.environ.get("WYLY_JUDGE", "soft")                 # soft = sec-8.6 ba
 ONLINE = os.environ.get("WYLY_ONLINE", "") == "1"            # design dir 5: online k-gram tiers
 SWCOVER = os.environ.get("WYLY_COVER", "") == "sw"           # design dir 2: support-weighted cover
 EMIT = os.environ.get("WYLY_EMIT", "") == "1"                # emit the rosetta package (relation kind)
+CONCEPTS = os.environ.get("WYLY_CONCEPTS", "") == "1"        # concept induction + class frames
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
 DATA = REPO / "data" / (f"wyly_nexttoken_{DS}_L256.pt" if DS != "wikitext"
                         else "wyly_nexttoken_wikitext_L256.pt")
@@ -226,6 +227,60 @@ def mir_skip(table, off):
     return fn
 
 
+class ConceptSpace:
+    """TABLE-DRIVEN CONCEPT INDUCTION (build-order 12): two token classes belong to one concept
+    when they are interchangeable in the certified tier -- their next-decision count rows agree.
+    Refreshed each sleep: support-gated rows, cosine similarity, union-find merge; cmap maps every
+    class to its concept REPRESENTATIVE (min member id), identity where nothing merged. Discrete,
+    extensional, and certifiable by the members' pooled stats -- no new trust surface."""
+
+    def __init__(self, vocab, dev, minsupp=30, tau=0.85):
+        self.vocab, self.dev = vocab, dev
+        self.minsupp, self.tau = minsupp, tau
+        self.cmap = torch.arange(vocab, device=dev)
+        self.n_concepts = self.n_merged = 0
+
+    def refresh(self, counts):
+        tot = counts.sum(1)
+        strong = torch.where(tot >= self.minsupp)[0]
+        if len(strong) < 10:
+            return
+        rows = counts[strong].float()
+        rn = rows / rows.norm(dim=1, keepdim=True).clamp(min=1e-9)
+        sim = rn @ rn.T
+        sim.fill_diagonal_(0)
+        ii, jj = torch.nonzero(sim >= self.tau, as_tuple=True)
+        keep = ii < jj
+        pairs = torch.stack([strong[ii[keep]], strong[jj[keep]]], 1).tolist()
+        parent = list(range(self.vocab))
+
+        def find(x):
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        for a, b in pairs:
+            ra, rb = find(a), find(b)
+            if ra != rb:
+                parent[max(ra, rb)] = min(ra, rb)
+        cmap = torch.tensor([find(i) for i in range(self.vocab)], device=self.dev)
+        self.n_merged = int((cmap != torch.arange(self.vocab, device=self.dev)).sum())
+        self.n_concepts = int(cmap.unique().numel())
+        self.cmap = cmap
+
+
+def pooled_counts(counts, cmap, vocab):
+    """counts pooled by concept: rows index_add'd over cmap -> (argmax, Laplace conf) per concept
+    representative. Fires through cmap[last]; sw arbitration decides when pooling beats the exact
+    row (exact wins where it has support; the pool wins on rare members -- the de/morphology fix)."""
+    pooled = torch.zeros_like(counts).index_add_(0, cmap, counts)
+    mx, am = pooled.max(1)
+    tot = pooled.sum(1)
+    conf = mx.float() / (tot + ALPHA)
+    return am, conf, mx
+
+
 CONF_FNS = {}                                            # name -> (ids)->(val, per-key conf)
 RULE_CONF = {}                                           # name -> scalar val fired-accuracy
 EMIT_INFO = {}                                           # name -> (kind, ...) for package emission
@@ -320,14 +375,19 @@ class MinedGates:
     and conjunctions all come from the data."""
 
     def __init__(self, vocab, dev, offs=(2, 3, 4, 5, 6, 7, 8),
-                 pair_offs=((2, 3), (2, 4), (3, 4), (2, 5))):
+                 pair_offs=((2, 3), (2, 4), (3, 4), (2, 5)), amap=None):
         self.B, self.dev = vocab + 1, dev
+        self.amap = amap                                     # anchor-space map (class frames): ids
+        # pass through amap[.] on the ANCHOR channel only; table keys stay raw tokens
         self.offs, self.pair_offs = list(offs), list(pair_offs)
         self.mined1, self.mined2 = set(), set()
         e = torch.empty(0, dtype=torch.long, device=dev)
         self.t1 = KeyTable(e, e.clone(), torch.empty(0, device=dev))     # (o,a,last) singleton
         self.t2 = KeyTable(e.clone(), e.clone(), torch.empty(0, device=dev))  # 2-anchor frames
         self.n_frames = 0
+
+    def A(self, x):
+        return x if self.amap is None else self.amap[0][x]
 
     def _merge(self, tab, keys, vals, confs):
         k = torch.cat([tab.k, keys])
@@ -344,10 +404,10 @@ class MinedGates:
         tails, ytail = ids[fitset], yv[fitset]
         new1 = new2 = 0
         for o in self.offs:                                  # singleton frames {o: a}
-            tab, _ = best_per_key(tails[:, -o] * self.B + tails[:, -1], ytail, 3, 0.4)
-            v, c = tab.lookup_conf(ids[err][:, -o] * self.B + ids[err][:, -1])
+            tab, _ = best_per_key(self.A(tails[:, -o]) * self.B + tails[:, -1], ytail, 3, 0.4)
+            v, c = tab.lookup_conf(self.A(ids[err][:, -o]) * self.B + ids[err][:, -1])
             good = (v == yv[err]).float()
-            ua, inv = ids[err][:, -o].unique(return_inverse=True)
+            ua, inv = self.A(ids[err][:, -o]).unique(return_inverse=True)
             rec = torch.zeros(len(ua), device=self.dev).index_add_(0, inv, good)
             cnt = torch.zeros(len(ua), device=self.dev).index_add_(0, inv,
                                                                    torch.ones_like(good))
@@ -363,12 +423,12 @@ class MinedGates:
         res = err[v1 != yv[err]]
         if len(res) >= 50:
             for o1, o2 in self.pair_offs:                    # 2-anchor conjunctions {o1:a1, o2:a2}
-                key_fit = ((tails[:, -o1] * self.B + tails[:, -o2]) * self.B + tails[:, -1])
+                key_fit = ((self.A(tails[:, -o1]) * self.B + self.A(tails[:, -o2])) * self.B + tails[:, -1])
                 tab, _ = best_per_key(key_fit, ytail, 3, 0.5)
-                ke = (ids[res][:, -o1] * self.B + ids[res][:, -o2]) * self.B + ids[res][:, -1]
+                ke = (self.A(ids[res][:, -o1]) * self.B + self.A(ids[res][:, -o2])) * self.B + ids[res][:, -1]
                 v, c = tab.lookup_conf(ke)
                 good = (v == yv[res]).float()
-                pk = ids[res][:, -o1] * self.B + ids[res][:, -o2]
+                pk = self.A(ids[res][:, -o1]) * self.B + self.A(ids[res][:, -o2])
                 ua, inv = pk.unique(return_inverse=True)
                 rec = torch.zeros(len(ua), device=self.dev).index_add_(0, inv, good)
                 cnt = torch.zeros(len(ua), device=self.dev).index_add_(0, inv,
@@ -391,11 +451,12 @@ class MinedGates:
         best_v = torch.full((len(w),), -1, dtype=torch.long, device=w.device)
         best_c = torch.full((len(w),), -1e9, device=w.device)
         for o in self.offs:
-            v, c = self.t1.lookup_conf((o * self.B + w[:, -o]) * self.B + w[:, -1])
+            v, c = self.t1.lookup_conf((o * self.B + self.A(w[:, -o])) * self.B + w[:, -1])
             m = (v >= 0) & (c > best_c)
             best_v, best_c = torch.where(m, v, best_v), torch.where(m, c, best_c)
         for o1, o2 in self.pair_offs:
-            k = ((o1 * 16 + o2) * self.B ** 2 + w[:, -o1] * self.B + w[:, -o2]) * self.B + w[:, -1]
+            k = ((o1 * 16 + o2) * self.B ** 2 + self.A(w[:, -o1]) * self.B
+                 + self.A(w[:, -o2])) * self.B + w[:, -1]
             v, c = self.t2.lookup_conf(k)
             m = (v >= 0) & (c > best_c)
             best_v, best_c = torch.where(m, v, best_v), torch.where(m, c, best_c)
@@ -664,6 +725,28 @@ def main():
         candidates.append(("mined frames (online)", mined.mirror()))
         CONF_FNS["mined frames (online)"] = mined.lookup_conf_all
         EMIT_INFO["mined frames (online)"] = ("mined", mined)
+        if CONCEPTS:                                         # build-order 12+1: concept induction
+            cspace = ConceptSpace(vocab, DEV)                # feeding class-anchored frames + a
+            pooled_ref = {}                                  # pooled concept-counts tier
+
+            def pooled_conf(w):
+                if "v" not in pooled_ref:
+                    return (torch.full((len(w),), -1, dtype=torch.long, device=w.device),
+                            torch.full((len(w),), -1e9, device=w.device))
+                am, conf, mx = pooled_ref["v"]
+                t = cspace.cmap[w[:, -1]]
+                a = torch.where(mx[t] >= 1, cls[am[t]], torch.full_like(w[:, -1], -1))
+                c = torch.where(mx[t] >= 1, conf[t],
+                                torch.full((len(w),), -1e9, device=w.device))
+                return a, c
+
+            CONF_FNS["concept counts (pooled)"] = pooled_conf
+            candidates.append(("concept counts (pooled)", lambda w: pooled_conf(w)[0]))
+            minedc = MinedGates(vocab, DEV, amap=[cspace.cmap])
+            candidates.append(("mined cframes (online)", minedc.mirror()))
+            CONF_FNS["mined cframes (online)"] = minedc.lookup_conf_all
+        else:
+            cspace = minedc = None
     else:
         mined = None
     gate_cands = []
@@ -717,7 +800,15 @@ def main():
         for of in online_frames:
             of.refresh()                                     # re-gate the online tiers each sleep
         if mined is not None:
+            if CONCEPTS and cspace is not None:              # concepts refresh BEFORE mining so
+                cspace.refresh(model.counts)                 # this sleep's frames anchor in the
+                pooled_ref["v"] = pooled_counts(model.counts, cspace.cmap, vocab)
+                minedc.amap[0] = cspace.cmap                 # freshest concept space
+                log.append(f"    sleep {ep}: CONCEPTS {cspace.n_concepts} "
+                           f"({cspace.n_merged} classes merged)")
             mined.mine(model, ids, yv, cls, fit, g, log, ep)
+            if CONCEPTS and minedc is not None:
+                minedc.mine(model, ids, yv, cls, fit, g, log, ep)
         for name, fn in model.rules:                         # scalar confidences from val (sw cover)
             if name not in CONF_FNS:
                 RULE_CONF[name] = val_fired_acc(fn, ids, yv, val)
