@@ -60,6 +60,7 @@ def SAFE_KGRAMS(vocab):
     return tuple(k for k in KGRAMS if (vocab + 1) ** (k + 1) < 2 ** 62)
 ECHO_SUCCS = tuple(int(x) for x in os.environ.get("WYLY_ECHO_SUCCS", "1").split(","))
 VALREG = os.environ.get("WYLY_VAL_REGION", "") == "1"        # judge on a HELD-OUT corpus REGION
+TUPLE = os.environ.get("WYLY_TUPLE", "") == "1"              # tuple-keyed tiers: exact, any reach
 RULE_SIZE = {}                                               # name -> callable -> table entries
 CONCEPTS_CMAP = [None]                                       # cmap holder for package emission
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
@@ -221,6 +222,122 @@ class OnlineFrame:
         self.table = KeyTable(self.table.k[keep], self.table.v[keep],
                               self.table.c[keep] if self.table.c is not None else None)
         return int(len(bad))
+
+
+class TupleFrame:
+    """TUPLE-KEYED online tier (the key-reach fix): rows are stored as 2D (suffix tokens, next)
+    with counts -- no base**k packing, so NO int64 overflow at any k and any vocab: reach is
+    unbounded and keys are EXACT (the packed tiers silently WRAPPED at base**(k+1) >= 2**63,
+    functioning as an accidental hash table). Lookup is a tensorized trie: per level, (prev-id,
+    token) pairs compact to unique ids -- ids are bounded by ROW COUNT, never by vocab**k."""
+
+    def __init__(self, offs, vocab, dev, minsupp=40, mindet=0.5):
+        self.offs, self.vocab = offs, vocab
+        self.k = len(offs)
+        self.minsupp, self.mindet = minsupp, mindet
+        self.dev = dev
+        self.rows = torch.empty(0, self.k + 1, dtype=torch.long, device=dev)
+        self.cnts = torch.empty(0, dtype=torch.long, device=dev)
+        self.levels, self.leaf_val, self.leaf_conf = [], None, None
+        self.banned = torch.empty(0, dtype=torch.long, device=dev)
+
+    def _tails(self, ids, sliding):
+        if sliding:
+            maxo, ell = max(self.offs), ids.shape[1]
+            cols = [ids[:, maxo - o:ell - o].reshape(-1) for o in self.offs]
+            return torch.stack(cols, 1)
+        return torch.stack([ids[:, -o] for o in self.offs], 1)
+
+    def update(self, w, ytail):
+        maxo = max(self.offs)
+        r1 = torch.cat([self._tails(w, True), w[:, maxo:].reshape(-1, 1)], 1)
+        r2 = torch.cat([self._tails(w, False), ytail.reshape(-1, 1)], 1)
+        allr = torch.cat([self.rows.repeat_interleave(
+            torch.ones(len(self.rows), dtype=torch.long, device=self.dev), 0), r1, r2])
+        allc = torch.cat([self.cnts,
+                          torch.ones(len(r1) + len(r2), dtype=torch.long, device=self.dev)])
+        uniq, inv = allr.unique(dim=0, return_inverse=True)
+        self.rows = uniq
+        self.cnts = torch.zeros(len(uniq), dtype=torch.long,
+                                device=self.dev).index_add_(0, inv, allc)
+
+    def refresh(self):
+        if not len(self.rows):
+            return
+        suf, val, cnt = self.rows[:, :-1], self.rows[:, -1], self.cnts
+        usuf, kinv = suf.unique(dim=0, return_inverse=True)
+        tot = torch.zeros(len(usuf), device=self.dev).index_add_(0, kinv, cnt.float())
+        comp = kinv * (int(cnt.max()) + 1) + cnt
+        order = comp.argsort(descending=True)
+        first = torch.ones(len(order), dtype=torch.bool, device=self.dev)
+        first[1:] = kinv[order][1:] != kinv[order][:-1]
+        sel = order[first]
+        keep = (cnt[sel] >= self.minsupp) & (cnt[sel].float()
+                                             / tot[kinv[sel]].clamp(min=1) >= self.mindet)
+        keys2d, vals = suf[sel][keep], val[sel][keep]
+        confs = (cnt[sel].float() / (tot[kinv[sel]] + ALPHA))[keep]
+        if not len(keys2d):
+            self.levels, self.leaf_val, self.leaf_conf = [], None, None
+            return
+        self.keys2d, self.vals2d, self.confs2d = keys2d, vals, confs
+        # trie build: per level, (prev-id, token) pairs -> compact unique ids
+        self.levels = []
+        ids_ = torch.zeros(len(keys2d), dtype=torch.long, device=self.dev)
+        nprev = 1
+        for i in range(self.k):
+            pair = ids_ * (self.vocab + 1) + keys2d[:, i]    # ids_ < N rows -> never overflows
+            upair, inv = pair.unique(return_inverse=True)
+            self.levels.append(upair)
+            ids_ = inv
+            nprev = len(upair)
+        self.leaf_val = torch.full((nprev,), -1, dtype=torch.long, device=self.dev)
+        self.leaf_conf = torch.zeros(nprev, device=self.dev)
+        self.leaf_val[ids_] = vals
+        self.leaf_conf[ids_] = confs
+
+    def _walk(self, q2d):
+        ids_ = torch.zeros(len(q2d), dtype=torch.long, device=self.dev)
+        alive = torch.ones(len(q2d), dtype=torch.bool, device=self.dev)
+        for i, upair in enumerate(self.levels):
+            pair = ids_ * (self.vocab + 1) + q2d[:, i]
+            j = torch.searchsorted(upair, pair).clamp(max=max(len(upair) - 1, 0))
+            hit = (upair[j] == pair) if len(upair) else torch.zeros_like(alive)
+            alive &= hit
+            ids_ = torch.where(alive, j, ids_)
+        return ids_, alive
+
+    def lookup_conf(self, ids):
+        q2d = self._tails(ids, False)
+        if not self.levels or self.leaf_val is None:
+            return (torch.full((len(ids),), -1, dtype=torch.long, device=self.dev),
+                    torch.full((len(ids),), -1e9, device=self.dev))
+        ids_, alive = self._walk(q2d)
+        v = torch.where(alive, self.leaf_val[ids_], torch.full_like(ids_, -1))
+        c = torch.where(alive & (v >= 0), self.leaf_conf[ids_],
+                        torch.full((len(ids),), -1e9, device=self.dev))
+        return v, c
+
+    def mirror(self):
+        def fn(ids):
+            return self.lookup_conf(ids)[0]
+        return fn
+
+    def retreat(self, ids, yv, val, floor=0.15, minn=8):
+        v, _ = self.lookup_conf(ids[val])
+        f = v >= 0
+        if not int(f.sum()):
+            return 0
+        good = (v[f] == yv[val][f]).float()
+        q2d = self._tails(ids[val], False)[f]
+        uq, inv = q2d.unique(dim=0, return_inverse=True)
+        acc = torch.zeros(len(uq), device=self.dev).index_add_(0, inv, good)
+        nn = torch.zeros(len(uq), device=self.dev).index_add_(0, inv, torch.ones_like(good))
+        badk = uq[(nn >= minn) & (acc / nn.clamp(min=1) < floor)]
+        if not len(badk):
+            return 0
+        ids2, alive = self._walk(badk)
+        self.leaf_val[ids2[alive]] = -1
+        return int(alive.sum())
 
 
 def fit_frame(ids, yv, tr, offs, vocab, stride=12, minsupp=2, mindet=0.5):
@@ -1318,7 +1435,8 @@ def main():
         for k in SAFE_KGRAMS(vocab):                         # windows' own suffix pairs into the
             if ONLINE:                                       # judge's val marginals
                 for supp in (40,):                           # s40 ~ 2 corpus occurrences under the
-                    of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
+                    FrameCls = TupleFrame if TUPLE else OnlineFrame
+                    of = FrameCls(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
                     online_frames.append(of)                 # ~21x window overlap; offering s2 too
                     nm = f"kgram k={k} (online s{supp})"     # re-admits val-noise
                     candidates.append((nm, of.mirror()))
@@ -1629,7 +1747,8 @@ def main():
         for k in SAFE_KGRAMS(vocab):
             if ONLINE:
                 for supp in (40,):
-                    of = OnlineFrame(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
+                    FrameCls = TupleFrame if TUPLE else OnlineFrame
+                    of = FrameCls(tuple(range(k, 0, -1)), vocab, DEV, minsupp=supp)
                     online_frames.append(of)
                     nm = f"kgram k={k} (online s{supp})"
                     candidates.append((nm, of.mirror()))

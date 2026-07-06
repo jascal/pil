@@ -79,7 +79,7 @@ def main():
                 continue                                     # prompt-specific long keys instead
             ctx = list(ts.encode(" " + b["prompt"]))
             want = ts.encode(" " + b["answer"])
-            kw = int(m.get("W", 6))                          # patch at the manifest's own max
+            kw = min(int(m.get("W", 6)), 12)                 # patch at the manifest's own max
             for w in want:                                   # scanned key length
                 key = tuple(ctx[-kw:])
                 if len(key) == kw:
