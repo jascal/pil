@@ -33,6 +33,18 @@ def main():
     passes = int(os.environ.get("BABI_PASSES", "1"))
     corpus = " ".join(lines * passes)
     (REPO / "data" / "corpus_babi.txt").write_text(corpus)
+    try:
+        va = pd.read_parquet(T / 'babi_qa1_valid.parquet')
+        vq = []
+        for _, r in va.iterrows():
+            st = r['story']
+            for i, typ in enumerate(st['type']):
+                if int(typ) == 1:
+                    vq.append({'prompt': render(st, upto=i), 'answer': st['answer'][i]})
+        (REPO / 'data' / 'wyly_queries_babi.json').write_text(json.dumps(vq, indent=0))
+        print(f'{len(vq)} judge queries from the VALID split')
+    except Exception as e:
+        print('valid split unavailable:', e)
     bench = []
     for _, r in te.iterrows():
         st = r["story"]

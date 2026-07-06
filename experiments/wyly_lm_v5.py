@@ -1166,24 +1166,28 @@ def load_queries(ts, uv, cls):
     groups = {}
     for q in qs:
         toks = [inv.get(t) for t in ts.encode(" " + q["prompt"])]
-        ans = [inv.get(t) for t in ts.encode(" " + q["answer"])]
-        if any(t is None for t in toks) or not ans or ans[0] is None                 or ans[0] not in clsset:
+        ans = [inv.get(t) for t in ts.encode(" " + q["answer"])][:8]
+        if any(t is None for t in toks) or not ans or any(a is None for a in ans) \
+                or ans[0] not in clsset:
             continue
         ln = max(len(toks), QUERY_PAD)
         padded = [toks[0]] * (ln - len(toks)) + toks
-        groups.setdefault(ln, []).append((padded, ans[0]))
+        groups.setdefault(ln, []).append((padded, ans))
     out = []
+    maxa = max((len(a_) for g in groups.values() for _, a_ in g), default=1)
     for _ln, items in sorted(groups.items()):
         out.append((torch.tensor([p_ for p_, _ in items], device=DEV),
-                    torch.tensor([a_ for _, a_ in items], device=DEV)))
+                    torch.tensor([a_ + [-1] * (maxa - len(a_)) for _, a_ in items],
+                                 device=DEV)))
     n = sum(len(b[1]) for b in out)
     print(f"query judge: {n} deployment-shaped queries in {len(out)} length groups")
     return out
 
 
 def query_agree(model, rules, cls, batches, fold=None, nfolds=3):
-    """agreement of the sw cover's first answer token on deployment-shaped queries (optionally
-    one fold of them). qans is already in class space (uv indices)."""
+    """CHAIN-scored agreement on deployment queries: greedy-slide through the full answer and
+    require every answer token to match -- first-token scoring is blind to generation-time
+    value. qans: [B, A] class-space answers padded with -1."""
     ok = tot = 0
     for qids, qans in batches:
         sel = torch.arange(len(qids), device=DEV)
@@ -1191,8 +1195,18 @@ def query_agree(model, rules, cls, batches, fold=None, nfolds=3):
             sel = sel[sel % nfolds == fold]
         if not len(sel):
             continue
-        _, pred = core_cover_sw(model, rules, qids, qans, cls, sel, return_pred=True)
-        ok += int((pred == qans[sel]).sum())
+        w = qids[sel]
+        good = torch.ones(len(sel), dtype=torch.bool, device=DEV)
+        for step in range(qans.shape[1]):
+            want = qans[sel, step]
+            live = want >= 0
+            if not bool(live.any()):
+                break
+            _, pred = core_cover_sw(model, rules, w, want.clamp(min=0), cls,
+                                    torch.arange(len(w), device=DEV), return_pred=True)
+            good &= (~live) | (pred == want)
+            w = torch.cat([w[:, 1:], torch.where(live, want, w[:, -1]).unsqueeze(1)], 1)
+        ok += int(good.sum())
         tot += len(sel)
     return ok / max(tot, 1)
 
@@ -1250,7 +1264,19 @@ def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thres
             if any(n == name2 for n, _ in model.rules) \
                     or any(n == name2 for n, _ in model.rules2):
                 continue
-            fa = val_fired_acc(fn2, ids, yv, val)
+            if QUERY_BATCHES:                            # qualify on DEPLOYMENT-shaped data:
+                oks = tots = 0                           # window fired-acc admitted the stale
+                for qids, qans in QUERY_BATCHES:         # pointer to stratum 2 (0.71 on val
+                    if name2 in CONF_FNS:                # windows) and the fall-through zone
+                        a2, _ = CONF_FNS[name2](qids)    # was exactly where it is wrong
+                    else:
+                        a2 = fn2(qids)
+                    f2 = a2 >= 0
+                    oks += int((a2[f2] == qans[f2, 0]).sum())
+                    tots += int(f2.sum())
+                fa = oks / tots if tots >= 20 else 0.0
+            else:
+                fa = val_fired_acc(fn2, ids, yv, val)
             if fa >= 0.5 and len(model.rules2) < 24:
                 model.rules2.append((name2, fn2))
                 RULE_CONF.setdefault(name2, fa)
@@ -1329,9 +1355,13 @@ def emit_full(model, cls, uv, ts, vocab):
     rid = 0
     src = f"wyly-v5-{LIB}-{TAG}-{DS}"
 
+    cur_stratum = 1
+
     def add(r):
         nonlocal rid
         r["id"] = rid
+        if cur_stratum > 1:
+            r["stratum"] = cur_stratum
         rules_out.append(r)
         rid += 1
 
@@ -1344,7 +1374,9 @@ def emit_full(model, cls, uv, ts, vocab):
         return toks
 
     derived_defs, need_concepts = [], False
-    for name, _fn in model.rules:
+    all_rules = [(1, r) for r in model.rules] + \
+                [(2, r) for r in getattr(model, "rules2", [])]
+    for cur_stratum, (name, _fn) in all_rules:  # noqa: B007 (read by add())
         conf = round(RULE_CONF.get(name, 0.0), 4)
         cite = [f"admitted by the sleep judge ({LIB}/{JUDGE}{'/sw' if SWCOVER else ''}), "
                 f"teacher {TAG}, dataset {DS}; val fired-accuracy {conf}"]
@@ -1489,7 +1521,7 @@ def emit_full(model, cls, uv, ts, vocab):
                           f"{ts.token_str(int(uv[cls[am[t]]]))!r} (n={int(mx[t])}/{int(tot[t])})"]})
     W = max((len(r["ctx"]) for r in rules_out if r.get("kind") == "ngram"), default=1)
     man = {"model": src, "cover": "support-weighted", "W": W, "n_rules": len(rules_out),
-           "rules": rules_out}
+           "strata_tau": STRATA_TAU if STRATA else None, "rules": rules_out}
     if derived_defs:
         man["derived"] = derived_defs
     if need_concepts and CONCEPTS_CMAP[0] is not None:
