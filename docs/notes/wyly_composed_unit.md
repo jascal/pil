@@ -62,3 +62,14 @@ because many chem questions PARTIALLY ground (they mention elements; canon parse
 answers marginal facts; the hub then synthesizes over real-but-not-decisive evidence) — the
 honest frontier is now sub-question attribution, not fallback plumbing. Claymore PR: the
 fallback is config-gated, default OFF; the bounded-deployment contract is untouched.
+
+## Addendum: attribution — the partial-grounding hypothesis, refuted
+
+`consulted[]` attribution (claymore PR #14) carries every (tool, query, grounded) triple in the
+response. First measurement, MMLU-chem through the canon-gated element spoke: **0/25 questions
+ground at all** — parse-or-abstain correctly rejects off-template chemistry phrasings even when
+they mention elements. The earlier "partial grounding" reading of B=0.170 was wrong for the
+post-canon spoke: everything routes to the labeled-ungrounded fallback, which scores ≈
+hub-direct (7-9/25 at n=25). The composed unit's MMLU behavior is now fully attributed:
+in-domain → grounded+cited; out-of-domain → labeled fallback at hub quality; nothing in
+between misleads.

@@ -45,11 +45,35 @@ def run_bench(bench, ts, idioms, ngrams, m, trace=False):
     return results
 
 
+def emit_patched(pkg_dir, patches, ts):
+    """write the feedback patches into a copy of the manifest as ORIGIN:FEEDBACK rules --
+    the third ingestion route of the unified spec (PACKAGE.md v2): every patch cites the
+    prompt that produced it and carries the calibrated confidence of a human correction."""
+    import shutil
+    src = Path(pkg_dir)
+    out = Path(str(src) + "_patched")
+    if out.exists():
+        shutil.rmtree(out)
+    shutil.copytree(src, out)
+    m = json.load(open(out / "manifest.json"))
+    base = len(m["rules"])
+    for i, (key, val, prompt) in enumerate(patches):
+        m["rules"].append({"kind": "ngram", "tier": "gated", "basis": "observational",
+                           "ctx": list(key), "out": int(val), "confidence": 0.999,
+                           "origin": "feedback",
+                           "citation": [f"human-feedback patch: {prompt[:60]}"],
+                           "id": base + i})
+    m["n_rules"] = len(m["rules"])
+    json.dump(m, open(out / "manifest.json", "w"))
+    print(f"patched package -> {out} (+{len(patches)} origin:feedback rules)")
+
+
 def main():
     rounds = int(sys.argv[1]) if len(sys.argv) > 1 else 3
     bench = json.load(open(REPO / "data" / "element_bench.json"))
     ts = TokenSpace.from_file(PKG / "bundle.tokenizer.json")
     idioms, ngrams, m = load_package(PKG / "manifest.json")
+    patch_rules = []
     res = run_bench(bench, ts, idioms, ngrams, m)
     base_ok = {i for i, r in enumerate(res) if r[0]}
     print(f"round 0: {len(base_ok)}/{len(bench)} = {len(base_ok) / len(bench):.3f}")
@@ -84,7 +108,8 @@ def main():
                 key = tuple(ctx[-kw:])
                 if len(key) == kw:
                     ngrams[kw][key] = (w, "feedback", f"human-feedback patch: {b['prompt'][:40]}",
-                                      0.999)
+                                      0.999, 1, "feedback")
+                    patch_rules.append((key, w, b["prompt"]))
                     adds += 1
                 ctx.append(w)
         res = run_bench(bench, ts, idioms, ngrams, m)
@@ -96,6 +121,8 @@ def main():
         base_ok = now_ok
         if bans == 0 and adds == 0:
             break
+    if patch_rules and "--emit" in sys.argv:
+        emit_patched(PKG, patch_rules, ts)
 
 
 if __name__ == "__main__":

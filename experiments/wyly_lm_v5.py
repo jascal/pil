@@ -2058,12 +2058,27 @@ def main():
                           "take": mkset(e2["take_verbs"]), "drop": mkset(e2["drop_verbs"])}
                 if all(int(v_.sum()) >= 2 for v_ in e2sets.values()):
                     for mode in ("is", "before"):
-                        samp2 = fit[:20000]
-                        f_s2 = estate2_feature(ids[samp2], e2sets, mode=mode)
-                        hit2 = f_s2 == yv[samp2]
-                        if int(hit2.sum()) < 30:
-                            continue
-                        pr2 = ids[samp2][hit2][:, -2] * (vocab + 1) + ids[samp2][hit2][:, -1]
+                        yv_q = None
+                        if QUERY_BATCHES:                    # DEPLOYMENT-FIRST slot mining:
+                            prs = []                         # the slot's job is to gate to
+                            for qids_, qans_ in QUERY_BATCHES:   # answer positions -- mine it
+                                f_q = estate2_feature(qids_, e2sets, mode=mode)
+                                hq = f_q == qans_[:, 0]      # from the queries' own tails
+                                if int(hq.sum()):            # (fit-window hits concentrate at
+                                    prs.append(qids_[hq][:, -2] * (vocab + 1)
+                                               + qids_[hq][:, -1])   # 'to the', gating to 0)
+                            if not prs:
+                                continue
+                            pr2 = torch.cat(prs)
+                            if len(pr2) < 30:
+                                continue
+                        else:
+                            samp2 = fit[:20000]
+                            f_s2 = estate2_feature(ids[samp2], e2sets, mode=mode)
+                            hit2 = f_s2 == yv[samp2]
+                            if int(hit2.sum()) < 30:
+                                continue
+                            pr2 = ids[samp2][hit2][:, -2] * (vocab + 1) + ids[samp2][hit2][:, -1]
                         t2 = pr2.bincount().argmax()
                         sl2 = (int(t2) // (vocab + 1), int(t2) % (vocab + 1))
                         def e2fn(w, sets_=e2sets, mode_=mode, sl_=sl2):
@@ -2076,16 +2091,29 @@ def main():
                         # and lose (qa2: a 4-of-6-key table capped the gate at ~0.52 while the
                         # feature was 0.836). Confidence = per-VALUE fired accuracy (C10).
                         B2e = vocab + 2
-                        f_all = e2fn(ids[samp2])
+                        samp2c = fit[:20000]
+                        f_all = e2fn(ids[samp2c])
                         fired_m = f_all >= 0
+                        if QUERY_BATCHES and int(fired_m.sum()) < 50:
+                            # slot gates to answer positions -- fit windows rarely end there;
+                            # calibrate per-value confs on the queries instead
+                            fq_all, fq_ans = [], []
+                            for qids_, qans_ in QUERY_BATCHES:
+                                f_q = e2fn(qids_)
+                                fq_all.append(f_q)
+                                fq_ans.append(qans_[:, 0])
+                            f_all = torch.cat(fq_all)
+                            yv_q = torch.cat(fq_ans)
+                            fired_m = f_all >= 0
                         vals_e = torch.where(e2sets["loc"])[0]
                         keys_l, vals_l, confs_l = [], [], []
+                        tgt_e = yv_q if yv_q is not None else yv[samp2c]
                         for v_ in vals_e.tolist():
                             mv_ = fired_m & (f_all == v_)
                             nv_ = int(mv_.sum())
-                            acc_ = (float((yv[samp2][mv_] == v_).float().mean())
+                            acc_ = (float((tgt_e[mv_] == v_).float().mean())
                                     if nv_ >= 5 else
-                                    float((yv[samp2][fired_m]
+                                    float((tgt_e[fired_m]
                                            == f_all[fired_m]).float().mean()))
                             keys_l.append((v_ + 1) * B2e + sl2[1])
                             vals_l.append(v_)

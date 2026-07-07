@@ -10,7 +10,7 @@ import sys
 from collections import Counter, defaultdict
 
 
-def mine(corpus_path, min_support=30):
+def mine(corpus_path, min_support=30, pkg=None):
     text = open(corpus_path).read()
     sents = re.split(r"(?<=[.!?])\s+", text)
     words_all = re.findall(r"[A-Za-z']+", text)
@@ -55,7 +55,14 @@ def mine(corpus_path, min_support=30):
         term = [p for p in g if p[-1] == "{V}"]
         if not term:
             continue
-        rep = max(term, key=lambda p: pat_count[p])
+        scorer = serveability(pkg, None) if pkg else None
+        if scorer is not None:                               # measured: the package answers it
+            pairs = sorted({(e_, v_) for p_ in g for e_, v_ in pat_pairs[p_]})
+            rep = max(term, key=lambda p_: (scorer(" ".join(p_[:-1]).replace(" :", ":")
+                                                   .replace(" %", "%"), pairs),
+                                            len(p_), pat_count[p_]))
+        else:                                                # fallback: reach first
+            rep = max(term, key=lambda p_: (len(p_), pat_count[p_]))
         prefix = " ".join(rep[:-1]).replace(" :", ":").replace(" %", "%")
         content = sorted({w.lower().rstrip("s") for p in g for w in p
                           if w not in ("{E}", "{V}") and w.isalpha()
@@ -66,9 +73,38 @@ def mine(corpus_path, min_support=30):
     return {"entities": sorted(ents), "templates": canon}
 
 
+def serveability(pkg, canon_groups):
+    """score each candidate rep by ASKING THE PACKAGE: rewrite known (E,V) pairs through the
+    candidate and check the cover answers V. The canonical form is only canonical if the
+    tables can see it (reach) AND answer it (support) -- measured, not assumed."""
+    import sys as _sys
+    from pathlib import Path as _P
+    _sys.path.insert(0, str(_P(__file__).resolve().parent.parent))
+    _sys.path.insert(0, str(_P(__file__).resolve().parent.parent.parent / "rosetta" / "py"))
+    try:
+        from serve_package import decide, load_package
+
+        from pil.tokens import TokenSpace
+        ts = TokenSpace.from_file(f"{pkg}/bundle.tokenizer.json")
+        idioms, ngrams, m = load_package(f"{pkg}/manifest.json")
+    except Exception as e:
+        print(f"serveability scoring unavailable ({e}); falling back to reach-first")
+        return None
+
+    def score(prefix, pairs):
+        ok = 0
+        for e_, v_ in pairs[:20]:
+            ctx = list(ts.encode(" " + prefix.replace("{E}", e_)))
+            d = decide(ctx, idioms, ngrams, m)
+            if d is not None and ts.token_str(d["answer"]).strip() == v_:
+                ok += 1
+        return ok / max(1, min(20, len(pairs)))
+    return score
+
+
 def main():
     corpus, pkg = sys.argv[1], sys.argv[2]
-    c = mine(corpus)
+    c = mine(corpus, pkg=pkg)
     mp = f"{pkg}/manifest.json"
     m = json.load(open(mp))
     m["canon"] = c

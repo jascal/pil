@@ -34,3 +34,14 @@ normrules/gram converter to manifest kinds with `origin: document` + span refs, 
 patches stamping `origin: feedback` when the tuple-reach patching lands. One more excavated
 lesson en route: an edit script that asserts mid-way rolls back ALL its edits — grep-verify
 after every multi-part patch (this bit twice today; it is now a reflex).
+
+## Addendum: all three origins now produce; FFI parity closed
+
+- **feedback**: `wyly_feedback.py --emit` writes patched packages with origin:feedback rules
+  (677 on the element expert), each citing the prompt that produced it.
+- **document**: the classic converter (rosetta #45).
+- **teacher**: wyly emissions (with grounding sidecars).
+
+The Rust-FFI tokenizer parity question is **closed**: encode is bit-exact between the FFI and
+pil's TokenSpace on all probes; the historic C++-vs-python divergence decomposed entirely into
+since-fixed runtime bugs (stratum plumbing, conf parsing) and the canon reach defect (above).
