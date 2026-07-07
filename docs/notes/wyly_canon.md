@@ -25,4 +25,8 @@ Paraphrase battery: possessives, "how heavy is", "which group does X belong to",
 entities — all parse to the correct template+entity; OOD ("what colour is the sky") abstains
 with an explicit reason. 5/7 answers correct end-to-end; the 2 misses are known cover residuals
 (mass digit-path, one group misfire), not canonicalization errors. C++ spoke startup reports
-`canon=5`; sgiandubh PR #27, rosetta PR #42. MMLU three-arm regression rerun queued (GPU).
+`canon=5`; sgiandubh PR #27, rosetta PR #42. MMLU regression (canon-enabled spoke, same hub/LLM): **element MC arm B 0.300 → 0.383**
+(+28% relative — the composed unit's largest single improvement; LLM-alone 0.683 remains the
+in-domain target, the residual now attributed to the 3B hub's tool loop + the cover's own
+residuals). MMLU chem arm B 0.050 vs 0.080 — noise at the refusal-contract floor,
+out-of-domain behavior unchanged by design.
