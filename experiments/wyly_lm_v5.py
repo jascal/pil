@@ -1017,7 +1017,12 @@ def core_cover_sw(model, rules, ids, yv, cls, idxs, extra_conf=None, return_pred
     mx, am = row.max(1)
     tot = row.sum(1)
     a = torch.where(mx >= 1, cls[am], torch.full_like(t, -1))
-    consider(a, mx.float() / (tot + ALPHA))
+    ccal = getattr(model, "counts_calib", None)              # QUERY-CALIBRATED counts: window
+    cconf = mx.float() / (tot + ALPHA)                       # confidences can be junk-confident
+    if ccal is not None:                                     # at deployment tails (babi2 ':'
+        c2_ = ccal[t]                                        # row: conf 0.489, acc 0.000 on
+        cconf = torch.where(c2_ >= 0, c2_, cconf)            # 1000/1000 queries)
+    consider(a, cconf)
     if STRATA and getattr(model, "rules2", None):            # FALL-THROUGH: where stratum-1
         low = conf < STRATA_TAU                              # confidence is below tau, stratum-2
         if bool(low.any()):                                  # candidates may claim the answer
@@ -1343,6 +1348,20 @@ def sleep_admit_cover(model, ids, yv, cls, y, val, cycle, candidates, log, thres
     in the soft mixture. Rules that merely displace an equally good lower tier score ~0 and are
     rejected; rules still install into the soft model as votes once admitted (training benefit)."""
     cover = core_cover_sw if SWCOVER else core_cover
+    if QUERY_BATCHES and SWCOVER:                            # counts calibration on deployment
+        # queries: per-tail fired accuracy
+        ok_ = torch.zeros(len(model.counts), device=DEV)     # replaces window conf where
+        n_ = torch.zeros(len(model.counts), device=DEV)      # measured (n >= 10)
+        for qids_, qans_ in QUERY_BATCHES:
+            t_ = qids_[:, -1]
+            row_ = model.counts[t_]
+            pred_ = cls[row_.argmax(1)]
+            good_ = (pred_ == qans_[:, 0]).float()
+            ok_.index_add_(0, t_, good_)
+            n_.index_add_(0, t_, torch.ones(len(t_), device=DEV))
+        calib_ = torch.where(n_ >= 10, ok_ / n_.clamp(min=1),
+                             torch.full_like(ok_, -1.0))
+        model.counts_calib = calib_
     if QUERY_BATCHES:                                        # QUERY-SHAPED judging: marginals on
         nf = FOLDS if FOLDS else 1                           # deployment-query folds
         qbases = [query_agree(model, model.rules, cls, QUERY_BATCHES,
@@ -1562,7 +1581,10 @@ def emit_full(model, cls, uv, ts, vocab):
                                          "members": [int(uv[i]) for i in torch.where(
                                              params["of_members"])[0].tolist()]})
                 elif kindname == "estate2":
-                    dd2 = dict(params["sets"])
+                    sk = {"ent": "entities", "loc": "locations", "obj": "objects",
+                          "move": "move_verbs", "take": "take_verbs", "drop": "drop_verbs"}
+                    dd2 = {sk[k2]: [int(uv[i]) for i in torch.where(v2_)[0].tolist()]
+                           for k2, v2_ in params["sets"].items()}
                     dd2.update({"id": fid, "kind": "estate2", "mode": params["mode"],
                                 "slot": [int(uv[t]) for t in params["slot"]]})
                     derived_defs.append(dd2)
@@ -1657,11 +1679,15 @@ def emit_full(model, cls, uv, ts, vocab):
             skipped.append(name)
     mx, am = model.counts.max(1)
     tot = model.counts.sum(1)
+    ccal_e = getattr(model, "counts_calib", None)
     for t in torch.where(mx >= 1)[0].tolist():
+        conf_e = float(mx[t] / (tot[t] + ALPHA))
+        if ccal_e is not None and float(ccal_e[t]) >= 0:
+            conf_e = float(ccal_e[t])                        # query-calibrated (deployment)
         add({"kind": "ngram", "tier": "gated", "basis": "observational",
              "ctx": [int(uv[t])], "out": int(uv[cls[am[t]]]),
              "support": int(mx[t]), "determinism": round(float(mx[t] / tot[t]), 4),
-             "confidence": round(float(mx[t] / (tot[t] + ALPHA)), 4),
+             "confidence": round(conf_e, 4),
              "citation": [f"{src} online counts: {ts.token_str(int(uv[t]))!r} -> "
                           f"{ts.token_str(int(uv[cls[am[t]]]))!r} (n={int(mx[t])}/{int(tot[t])})"]})
     W = max((len(r["ctx"]) for r in rules_out if r.get("kind") == "ngram"), default=1)
@@ -2073,7 +2099,7 @@ def main():
                         CONF_FNS[nm_e] = e2conf
                         RULE_SIZE[nm_e] = lambda n_=nkeys_e: n_
                         EMIT_INFO[nm_e] = ("dfeat", ("estate2",
-                                           {"sets": e2, "mode": mode, "slot": sl2}),
+                                           {"sets": e2sets, "mode": mode, "slot": sl2}),
                                            tab_e, B2e)
             if int(cap_set.sum()) >= 20 and int(avoid_set.sum()) >= 1:
                 for sc in (3, 4, 5):
