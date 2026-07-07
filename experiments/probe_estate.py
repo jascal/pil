@@ -1,7 +1,9 @@
 """Validate the SELF-GROUNDED estate design: mine entity/value sets from the corpus with the
 proposed procedures, then run the register on the 1000 test prompts."""
-import json, sys
+import json
+import sys
 from collections import Counter
+
 sys.path.insert(0, "/home/allans/code/pil")
 from pil.tokens import TokenSpace
 
@@ -35,8 +37,10 @@ for i in ent_pos:
 tot = sum(val.values())
 V, acc = set(), 0
 for w, n in val.most_common():
-    if acc / tot >= 0.95: break
-    V.add(w); acc += n
+    if acc / tot >= 0.95:
+        break
+    V.add(w)
+    acc += n
 print("values mined:", sorted(V), f"(95% mass, from {len(val)} candidates)")
 
 # the REGISTER on the 1000 test prompts
@@ -47,16 +51,23 @@ for b in bench:
     pstrs = [ts.token_str(t).strip() for t in ptoks]
     ent = None
     for i in range(len(pstrs) - 1, -1, -1):
-        if pstrs[i] in E: ent = pstrs[i]; break
+        if pstrs[i] in E:
+            ent = pstrs[i]
+            break
     reg = {}
     i = 0
     for i2, w in enumerate(pstrs):
         if w in E:
             nxt3 = {pstrs[j] for j in range(i2 + 1, min(i2 + 4, len(pstrs)))}
-            if nxt3 & AVOID: continue
+            if nxt3 & AVOID:
+                continue
             for j in range(i2 + 1, min(i2 + 8, len(pstrs))):
-                if pstrs[j] in V: reg[w] = pstrs[j]; break
+                if pstrs[j] in V:
+                    reg[w] = pstrs[j]
+                    break
     got = reg.get(ent)
-    if got == b["answer"].strip(): ok += 1
-    else: miss += 1
+    if got == b["answer"].strip():
+        ok += 1
+    else:
+        miss += 1
 print(f"ESTATE (self-grounded) on 1000 unseen test prompts: {ok}/1000 = {ok / 1000:.3f}")
