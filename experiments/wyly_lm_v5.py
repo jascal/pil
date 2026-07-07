@@ -1720,7 +1720,7 @@ def main():
         # overlapping its text (margin = window length) -- the tables and the judge never share
         # a story, so memorization shows ZERO val marginal and generalizing rules can win.
         val = tr[-v2.NVAL:]
-        fit = tr[:max(0, len(tr) - v2.NVAL - 260)]
+        fit = tr[:max(0, len(tr) - v2.NVAL - (ids.shape[1] + 4))]   # margin >= window length
     else:
         val = tr[torch.randperm(len(tr), generator=g)[:v2.NVAL]]
         fit = tr[~torch.isin(tr, val)]                       # tables are fit on FIT ONLY -- fitting on
@@ -2039,13 +2039,19 @@ def main():
                 import json as _json
                 e2 = _json.loads(Path(ESTATE2).read_text())
                 tokmap = {}
+                inv_tok = {}
                 for i in range(vocab):
                     tokmap.setdefault(_ts.token_str(int(uv[i])).strip(), i)
+                    inv_tok[int(uv[i])] = i
                 def mkset(names):
                     m_ = torch.zeros(vocab, dtype=torch.bool, device=DEV)
                     for nm_ in names:
                         if nm_ in tokmap:
                             m_[tokmap[nm_]] = True
+                        else:                                # multi-token word ('journeyed' =
+                            ft = _ts.encode(" " + nm_)       # ' journey'+'ed'): its FIRST token
+                            if ft and ft[0] in inv_tok:      # is the class-space signature
+                                m_[inv_tok[ft[0]]] = True
                     return m_
                 e2sets = {"ent": mkset(e2["entities"]), "loc": mkset(e2["locations"]),
                           "obj": mkset(e2["objects"]), "move": mkset(e2["move_verbs"]),
