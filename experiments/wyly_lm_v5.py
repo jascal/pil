@@ -1692,6 +1692,8 @@ def emit_full(model, cls, uv, ts, vocab):
                           f"{ts.token_str(int(uv[cls[am[t]]]))!r} (n={int(mx[t])}/{int(tot[t])})"]})
     W = max((len(r["ctx"]) for r in rules_out if r.get("kind") == "ngram"), default=1)
     man = {"model": src, "cover": "support-weighted", "W": W, "n_rules": len(rules_out),
+           "origin": "teacher", "origin_model": TAG,          # unified-spec provenance axis
+           "grounding": "grounding.txt",
            "strata_tau": STRATA_TAU if STRATA else None, "rules": rules_out}
     if derived_defs:
         man["derived"] = derived_defs
@@ -2448,6 +2450,9 @@ def main():
         pkg.mkdir(parents=True, exist_ok=True)
         (pkg / "manifest.json").write_text(json.dumps(man))
         shutil.copy(tok, pkg / "bundle.tokenizer.json")
+        corp = REPO / "data" / f"corpus_{DS}.txt"             # grounding sidecar: the source
+        if corp.exists():                                     # text behind the rules --
+            shutil.copy(corp, pkg / "grounding.txt")          # attestation (stratum 0)
         kinds = {}
         for r in man["rules"]:
             kinds[r["kind"]] = kinds.get(r["kind"], 0) + 1

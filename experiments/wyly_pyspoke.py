@@ -17,6 +17,10 @@ PKG = Path(sys.argv[1])
 PORT = int(sys.argv[2])
 ts = TokenSpace.from_file(PKG / "bundle.tokenizer.json")
 idioms, ngrams, m = load_package(PKG / "manifest.json")
+GROUNDING = ""
+gp = PKG / str(m.get("grounding", ""))
+if m.get("grounding") and gp.exists():
+    GROUNDING = gp.read_text()                              # attestation sidecar (stratum 0)
 
 
 class H(BaseHTTPRequestHandler):
@@ -59,6 +63,13 @@ class H(BaseHTTPRequestHandler):
         if canon_info:
             a["canonical"] = q                               # TRANSPARENCY: the question
             a["bindings"] = canon_info                       # actually answered
+        if txt and GROUNDING:
+            stmt = (q.rstrip() + " " + txt).strip()          # ATTESTATION: verbatim-checkable
+            if stmt in GROUNDING:                            # against the grounding sidecar
+                a["stratum"] = 0
+                a["attested"] = True
+                i0 = GROUNDING.index(stmt)
+                a["quote"] = GROUNDING[max(0, i0 - 40):i0 + len(stmt) + 40].strip()
         self._reply(a)
 
     def _reply(self, a):
