@@ -1,6 +1,8 @@
 """Component-level probe: WHY does moveloc miss on deployment queries? Pure token-level python
 re-implementation of the moveloc chain on the 1000 real test prompts, vs gold."""
-import json, sys
+import json
+import sys
+
 sys.path.insert(0, "/home/allans/code/pil")
 from pil.tokens import TokenSpace
 
@@ -20,7 +22,8 @@ for b in bench[:1000]:
     for i in range(len(strs) - 1, -1, -1):
         w = strs[i].strip()
         if len(w) > 1 and w[0].isupper() and w.isalpha() and w != "Where":
-            cap = i; break
+            cap = i
+            break
     gold_entity = b["prompt"].split("Where is ")[-1].split("?")[0].strip()
     if cap is None or strs[cap].strip() != gold_entity:
         stats["recent_cap_wrong"] += 1
@@ -34,13 +37,15 @@ for b in bench[:1000]:
                 q = i
     if q < 0:
         stats["no_prevocc"] += 1
-        if len(examples) < 3: examples.append(("no_prevocc", b["prompt"][-120:]))
+        if len(examples) < 3:
+            examples.append(("no_prevocc", b["prompt"][-120:]))
         continue
     # 3) next location token after q
     ans = None
     for j in range(q + 1, len(strs)):
         if strs[j].strip() in LOCS:
-            ans = strs[j].strip(); break
+            ans = strs[j].strip()
+            break
     if ans == b["answer"].strip():
         stats["ok"] += 1
     else:
@@ -50,4 +55,5 @@ for b in bench[:1000]:
             examples.append(("next_loc_wrong", f"gold={b['answer']} got={ans} | ...{ctx}..."))
 print(stats)
 print(f"UPPER BOUND of the moveloc FORM: {stats['ok'] / 10:.1f}%")
-for e in examples: print(" ", e)
+for e in examples:
+    print(" ", e)
