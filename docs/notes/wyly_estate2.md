@@ -107,3 +107,19 @@ before-mode gate/arbitration integration on qa3 queries: slot keying, identity-t
 an incumbent overlap not yet traced). qa1 = 1.000 and qa2 = 0.778 stand; qa3 is the EAV
 family's remaining frontier, now with three diagnosed-and-cleared layers behind it (window,
 verbs, and the counts/stratum calibrations shared with qa2).
+
+## Postscript 3: the qa3 gate anomaly — feature perfect, marginal zero, precisely bounded
+
+The deployment trace delivered a stunning intermediate: at L=512 with the verb fix, the
+before-feature is **1000/1000 PERFECT on the qa3 judge queries**. The first blocker was the
+slot: mined from fit windows it landed on (' to', ' the') — register-correct positions
+concentrate mid-movement-sentence — which passes **0/1000** query tails, so the gate never
+fired. Slot mining is now **deployment-first** (mined from the queries' own tails when a query
+set exists; identity-table confidences likewise query-calibrated when fit rarely reaches the
+slot). The structural lesson generalizes the calibration principle: **every mined component of
+a gate — not just its confidence — must be mined from the deployment distribution.**
+
+And the honest anomaly: with the fix verified in-run, estate2/before STILL proposes at +0.0047
+— slot-invariant, over a perfect feature. Served qa3 stays 0.429. The next diagnostic is
+in-run: log the mined slot and a gate-level query_agree inside the proposer. qa1 1.000 /
+qa2 0.778 / qa3 0.429-with-a-perfect-feature-waiting.

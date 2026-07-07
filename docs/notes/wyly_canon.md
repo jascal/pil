@@ -30,3 +30,15 @@ with an explicit reason. 5/7 answers correct end-to-end; the 2 misses are known 
 in-domain target, the residual now attributed to the 3B hub's tool loop + the cover's own
 residuals). MMLU chem arm B 0.050 vs 0.080 — noise at the refusal-contract floor,
 out-of-domain behavior unchanged by design.
+
+## Addendum: the reach lesson — a canonical form must be visible to the tables
+
+The FFI-parity investigation traced the last composed-unit wrongness to canon REP SELECTION:
+the symbol family's rep ("The symbol for {E} is") is 5 tokens, and the elements package has
+ngram tiers {1, 6} only — the rewritten query could never reach the k=6 tier and fell to counts
+junk (also the old Osmium-group '1'). Reps are now **serveability-scored**: candidates are
+probed against the package itself with known (E, V) pairs, and the rep the cover actually
+answers best wins (falling back to longest-first). Live battery after: **6/7 correct, all
+attested** — including the previously-wrong pass-through control ("The chemical symbol of Gold
+is" → "Au.", attested). The principle: canonicalization is part of the serving contract, so its
+choices must be measured against the serving tables, not corpus statistics alone.
