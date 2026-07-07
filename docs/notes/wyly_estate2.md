@@ -90,3 +90,20 @@ Every arbitration participant is now calibrated on the deployment distribution �
 (query-blend marginals), stratum-2 qualification (query fired-accuracy), incumbents (eviction +
 champion restarts), and the counts tier (per-tail calibration) — C10's premise enforced end to
 end, with the WYLY_PARITY dump as the standing guard that caught every serving-side divergence.
+
+## Postscript 2: the L=512 pipeline — truncation lifted, and the residual moved again
+
+The window-truncation limit is gone: qa3 re-extracted at L=512 (full ~600-token stories fit;
+teacher gold 0.603 → 0.618; the VAL_REGION fit-exclusion margin is now window-aware). En route,
+a general tokenization hole was found and fixed: **word-level mined member sets must map through
+the tokenizer** — 'journeyed' splits into two Qwen tokens, so the mined verb never reached class
+space and a quarter of movements were invisible to the fold (feature 0.790-of-fired). Multi-token
+words now map to their first-token signatures (`mkset` fallback).
+
+The honest scoreboard after both fixes: **served qa3 stays 0.429**. estate2/before proposes at
+only +0.005 marginal despite a ~0.64-overall feature — the remaining gap between a feature that
+substantially beats the cover and a near-zero admission marginal is the named open (the
+before-mode gate/arbitration integration on qa3 queries: slot keying, identity-table reach, or
+an incumbent overlap not yet traced). qa1 = 1.000 and qa2 = 0.778 stand; qa3 is the EAV
+family's remaining frontier, now with three diagnosed-and-cleared layers behind it (window,
+verbs, and the counts/stratum calibrations shared with qa2).
