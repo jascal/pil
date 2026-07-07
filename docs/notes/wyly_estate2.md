@@ -64,3 +64,29 @@ qa3 carries an additional named limit: its stories run ~600 tokens — beyond th
 so the fold sees truncated histories; the fix is an L=512 extraction + teacher pass (future).
 The estate2 FORM remains validated at ceiling; the remaining distance is arbitration
 calibration, not the rule.
+
+## Postscript: the calibration goal — qa2 served at 0.778
+
+The counts-tier measurement was total: at every one of the 1000 query tails (':'), the counts
+tier fired at confidence 0.489, answered ' Where', and was **0.000 accurate** — the Q-colon
+conflation living in the counts tier itself. Per-tail query calibration (fired accuracy replaces
+window confidence where n ≥ 10, in cover arbitration and in the emitted k=1 confidences) let
+**estate2 win admission at sleep 0 (+0.4246)**; the learner cover reached **0.809**.
+
+The parity dump then caught two more real defects on the way to serving:
+1. estate2's emission wrote member sets as **word strings** where the runtime compares token
+   ids — the served fold never fired (fixed: token-id emission).
+2. **The stratum plumbing had two holes** (rosetta #43, sgiandubh #28): the loader's backfill
+   desynced on kinds that don't map 1:1 into idioms, and the pointer/induction consider sites
+   never passed stratum — stratum-2 rules were serving at stratum 1 (a stratum-2 pointer
+   answered ' Where' at conf 0.82 on 334 queries).
+
+**Served qa2: 0.498 → 0.778** (learner 0.809; the residual is query-set noise + fall-through
+differences). qa3 remains window-truncated (~600-token stories vs L=256; L=512 pipeline future).
+
+## The calibration principle, complete
+
+Every arbitration participant is now calibrated on the deployment distribution — admitted rules
+(query-blend marginals), stratum-2 qualification (query fired-accuracy), incumbents (eviction +
+champion restarts), and the counts tier (per-tail calibration) — C10's premise enforced end to
+end, with the WYLY_PARITY dump as the standing guard that caught every serving-side divergence.
