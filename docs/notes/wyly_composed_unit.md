@@ -39,3 +39,26 @@ works end to end — the flagship smoke:
 The composed-unit thesis survives in precise form: **provenance flows and honesty composes — but
 the hub LLM is the weakest link at 3B, and the spoke's coverage contract extends to QUERY
 PHRASINGS, not just facts.**
+
+## The 7B rung + the labeled-ungrounded fallback
+
+| arm | element MC (3B) | element MC (7B) | MMLU (3B) | MMLU (7B) |
+|---|---|---|---|---|
+| A: LLM direct | 0.683 | **0.850** | 0.440 | 0.450 |
+| B: LLM + expert | 0.383 | **0.633** | 0.050 | 0.110 / 0.170* |
+
+*first number phrasing-triggered fallback, second evidence-triggered.
+
+**The hub LLM was the measured bottleneck, confirmed**: swapping 3B → 7B lifted the composed
+unit +25 points in-domain (0.383 → 0.633) and narrowed the gap to direct from 0.300 to 0.217.
+The remaining gap is the tool-loop overhead + the cover's own residuals.
+
+**The fallback works and taught a design lesson**: phrasing-based triggers (body == REFUSE)
+miss LLMs that compose their own refusal text or guess anyway — the shipped trigger is
+EVIDENCE-based (no tool call returned grounded results → the answer is by construction
+ungrounded → label it, whatever it says). Verified live: an OOD chemistry question returns
+"[ungrounded — no expert coverage; hub model answer] B" (correct). MMLU-B stays modest (0.170)
+because many chem questions PARTIALLY ground (they mention elements; canon parses; the spoke
+answers marginal facts; the hub then synthesizes over real-but-not-decisive evidence) — the
+honest frontier is now sub-question attribution, not fallback plumbing. Claymore PR: the
+fallback is config-gated, default OFF; the bounded-deployment contract is untouched.
