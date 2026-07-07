@@ -33,17 +33,34 @@ The tensor fold scores 0.836 standalone on qa2 judge queries, yet the served pac
    selection loop now drops EMIT_INFO-less rules first (the optimize-what-you-ship principle,
    the same lesson as query-shaped judging, one level up).
 
-## Honest state
+## Honest state — the parity investigation, resolved and reframed
+
+**There was no learner-vs-package gap.** The `WYLY_PARITY` dump (now standing instrumentation)
+proved the live cover and the served package agree query-for-query (0.511 == 0.511, all 1000);
+the suspected ~0.3 gap was a wrong inference from in-learner state. What the hunt actually
+found, in layers:
+
+1. **Fit-statistics tables cap identity maps**: estate2's dgate had learned identity for only
+   4 of 6 values (support/det filters); unkeyed firings fell to counts and lost. Fixed: the
+   identity table is now synthesized **analytically** — a key per value, per-value fired
+   accuracy as calibrated confidence (C10-style).
+2. **Query-miscalibrated incumbents** can hold a cover in a local optimum single swaps cannot
+   escape; two escape mechanisms added — **eviction** (query fired-acc < 0.5) and
+   **restart-from-champion** (rebuild greedily on a standalone winner).
+3. Neither fired on qa2 — which isolates the remaining suspect precisely: **the counts tier's
+   window-fit confidences at query tails** (the one arbitration participant that is not a
+   removable rule). estate2's raw feature+gate reads 0.836 on judge queries, but its in-learner
+   standalone cover ({rule + counts}) reads ≤0.53. The named next measurement: per-query
+   arbitration traces; if counts outrank calibrated rules at answer slots, the counts tier
+   needs query-calibration too.
 
 | | qa2 | qa3 |
 |---|---|---|
-| probe (form ceiling) | 1.000 | 0.998 |
-| teacher on train windows | 0.665 | 0.603 |
+| probe (form ceiling, word level) | 1.000 | 0.998 |
+| tensor feature on judge queries | 0.836 | — |
 | served package | 0.498 | 0.429 |
 
-After all three fixes the swap still does not fire: the in-learner cover scores ≥0.83 on the
-same judge queries where the served package scores 0.51 — a **learner-vs-package parity gap**
-in one of this package's emitted kinds (candidates: cmember, induction, counts-tier
-confidences, pointer cells). That is the named next investigation; the estate2 form itself is
-validated at ceiling and shipped in the schema and both runtimes (rosetta PR #42, sgiandubh
-PR #27).
+qa3 carries an additional named limit: its stories run ~600 tokens — beyond the L=256 window —
+so the fold sees truncated histories; the fix is an L=512 extraction + teacher pass (future).
+The estate2 FORM remains validated at ceiling; the remaining distance is arbitration
+calibration, not the rule.
