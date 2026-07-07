@@ -2036,9 +2036,45 @@ def main():
                             f_ = estate2_feature(w, sets_, mode=mode_)
                             oks = (w[:, -2] == sl_[0]) & (w[:, -1] == sl_[1])
                             return torch.where(oks, f_, torch.full_like(f_, -1))
-                        add_dgate(f"estate2/{mode} (world-state fold)", e2fn,
-                                  ("estate2", {"sets": e2, "mode": mode, "slot": sl2}),
-                                  min_keys=4)
+                        # IDENTITY table, synthesized analytically: the fold's answer IS the
+                        # prediction. A fit-statistics table only learns identity per-key --
+                        # values whose keys miss the support/det filters fall through to counts
+                        # and lose (qa2: a 4-of-6-key table capped the gate at ~0.52 while the
+                        # feature was 0.836). Confidence = per-VALUE fired accuracy (C10).
+                        B2e = vocab + 2
+                        f_all = e2fn(ids[samp2])
+                        fired_m = f_all >= 0
+                        vals_e = torch.where(e2sets["loc"])[0]
+                        keys_l, vals_l, confs_l = [], [], []
+                        for v_ in vals_e.tolist():
+                            mv_ = fired_m & (f_all == v_)
+                            nv_ = int(mv_.sum())
+                            acc_ = (float((yv[samp2][mv_] == v_).float().mean())
+                                    if nv_ >= 5 else
+                                    float((yv[samp2][fired_m]
+                                           == f_all[fired_m]).float().mean()))
+                            keys_l.append((v_ + 1) * B2e + sl2[1])
+                            vals_l.append(v_)
+                            confs_l.append(acc_)
+                        tab_e = KeyTable(torch.tensor(keys_l, device=DEV),
+                                         torch.tensor(vals_l, device=DEV),
+                                         torch.tensor(confs_l, device=DEV))
+                        nm_e = f"estate2/{mode} (world-state fold) [{len(keys_l)}]"
+
+                        def e2conf(w, tab_=tab_e, B2_=B2e, featfn=e2fn):
+                            f_ = featfn(w)
+                            v_, c_ = tab_.lookup_conf((f_ + 1) * B2_ + w[:, -1])
+                            miss = f_ < 0
+                            return (torch.where(miss, torch.full_like(v_, -1), v_),
+                                    torch.where(miss, torch.full_like(c_, -1e9), c_))
+
+                        nkeys_e = len(keys_l)
+                        candidates.append((nm_e, lambda w, c_=e2conf: c_(w)[0]))
+                        CONF_FNS[nm_e] = e2conf
+                        RULE_SIZE[nm_e] = lambda n_=nkeys_e: n_
+                        EMIT_INFO[nm_e] = ("dfeat", ("estate2",
+                                           {"sets": e2, "mode": mode, "slot": sl2}),
+                                           tab_e, B2e)
             if int(cap_set.sum()) >= 20 and int(avoid_set.sum()) >= 1:
                 for sc in (3, 4, 5):
                     add_dgate(f"move-echo s{sc} gate",
@@ -2275,6 +2311,24 @@ def main():
         if dropped:
             model.rules = [r_ for r_ in model.rules if r_[0] in EMIT_INFO]
             log.append(f"    dropped unemittable from selection: {dropped}")
+        # QUERY-MISCALIBRATED incumbents: window-fit confidences can be junk-confident at
+        # query tails (the Q-colon lesson, now inside stratum 1) -- a wrong incumbent that
+        # outranks every challenger makes swap trials read flat. Same medicine as stratum-2
+        # qualification: measure each rule's fired-accuracy ON QUERIES; evict below 0.5.
+        for nm_, fn_ in list(model.rules):
+            oks_ = tots_ = 0
+            for qids_, qans_ in QUERY_BATCHES:
+                if nm_ in CONF_FNS:
+                    a_, _c = CONF_FNS[nm_](qids_)
+                else:
+                    a_ = fn_(qids_)
+                f_ = a_ >= 0
+                oks_ += int((a_[f_] == qans_[f_, 0]).sum())
+                tots_ += int(f_.sum())
+            if tots_ >= 20 and oks_ / tots_ < 0.5:
+                model.rules = [r_ for r_ in model.rules if r_[0] != nm_]
+                log.append(f"    evicted query-miscalibrated {nm_} "
+                           f"(query fired-acc {oks_ / tots_:.2f} on {tots_})")
         # rank unadmitted EMITTABLE candidates by STANDALONE query value (cheap pre-filter)
         inn = {n_ for n_, _ in model.rules}
         pool = []
@@ -2285,6 +2339,20 @@ def main():
             pool.append((qa_, cn_, cf_))
         pool.sort(reverse=True)
         pool = pool[:5]
+        base_q0 = query_agree(model, model.rules, cls, QUERY_BATCHES)
+        if pool and pool[0][0] > base_q0 + 0.02:
+            # RESTART FROM CHAMPION: a single candidate beats the entire incumbent cover on
+            # deployment queries -- multi-incumbent local optima resist one-swap-at-a-time
+            # escape (several window-calibrated rules each cap the trial), so rebuild greedily
+            # on top of the champion instead.
+            qa0, cn0, cf0 = pool[0]
+            log.append(f"    RESTART from champion {cn0} "
+                       f"(standalone {qa0:.3f} > cover {base_q0:.3f})")
+            model.rules = [(cn0, cf0)]
+            for sweep_ in range(6):
+                if not sleep_admit_cover(model, ids, yv, cls, y, val, 80 + sweep_,
+                                         cands, log):
+                    break
         changed = True
         sweeps = 0
         while changed and sweeps < 6:
@@ -2359,6 +2427,45 @@ def main():
             kinds[r["kind"]] = kinds.get(r["kind"], 0) + 1
         print(f"  package -> {pkg} (support-weighted; {man['n_rules']} rules: {kinds}"
               f"{'; NOT emitted: ' + str(skipped) if skipped else ''})")
+        if os.environ.get("WYLY_PARITY") and QUERY_BATCHES:
+            # PARITY DUMP: the live cover vs the just-emitted package on identical queries --
+            # names the culprit when the served artifact underperforms the learner.
+            from collections import Counter as _C
+            sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
+            from serve_package import decide as _pdec
+            from serve_package import load_package as _pload
+            idi, ngr, mp_ = _pload(Path(pkg) / "manifest.json")
+            inv_tok = {int(t): i for i, t in enumerate(uv.tolist())}
+            l_ok = p_ok = both = n_ = 0
+            culprit, l_win_p_lose = _C(), _C()
+            for qids, qans in QUERY_BATCHES:
+                _, predq = core_cover_sw(model, model.rules, qids, qans[:, 0], cls,
+                                         torch.arange(len(qids), device=DEV),
+                                         return_pred=True)
+                for r in range(len(qids)):
+                    gold_ = int(qans[r, 0])
+                    lr = int(predq[r]) == gold_
+                    ctxt = [int(uv[c]) for c in qids[r].tolist()]
+                    d_ = _pdec(ctxt, idi, ngr, mp_)
+                    pans = inv_tok.get(d_["answer"], -1) if d_ else -1
+                    pr = pans == gold_
+                    l_ok += lr
+                    p_ok += pr
+                    both += lr and pr
+                    n_ += 1
+                    if lr and not pr:
+                        key_ = (d_.get("circuit") or d_.get("rule")
+                                or f"k={d_.get('k')}" if d_ else "ABSTAIN")
+                        cite_ = (d_.get("citation", "") if d_ else "")
+                        cite_ = cite_ if isinstance(cite_, str) else "; ".join(cite_)
+                        culprit[str(key_)] += 1
+                        l_win_p_lose[cite_[:60]] += 1
+            print(f"  PARITY: learner {l_ok}/{n_} = {l_ok / n_:.3f} | package "
+                  f"{p_ok}/{n_} = {p_ok / n_:.3f} | both {both}")
+            for k_, v_ in culprit.most_common(6):
+                print(f"    learner-right/package-wrong via {k_}: {v_}")
+            for k_, v_ in l_win_p_lose.most_common(4):
+                print(f"      cite: {k_}: {v_}")
 
 
 if __name__ == "__main__":
