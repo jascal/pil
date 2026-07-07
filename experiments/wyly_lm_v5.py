@@ -65,6 +65,7 @@ QUERIES = os.environ.get("WYLY_QUERIES", "")                 # QUERY-SHAPED judg
 QUERY_PAD = 24                                               # queries left-padded to >= max offset
 STRATA = os.environ.get("WYLY_STRATA", "") == "1"            # stratified admission + fall-through
 STRATA_TAU = float(os.environ.get("WYLY_STRATA_TAU", "0.35"))
+ESTATE2 = os.environ.get("WYLY_ESTATE2", "")                 # mined world-state sets (json)
 RULE_SIZE = {}                                               # name -> callable -> table entries
 CONCEPTS_CMAP = [None]                                       # cmap holder for package emission
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
@@ -685,6 +686,95 @@ def estate_feature(ids, ent, val, avoid, within=7, look=3, slot=None):
         ok_slot = (ids[:, -2] == slot[0]) & (ids[:, -1] == slot[1])   # t-1) pair where the
         feat = torch.where(ok_slot, feat, torch.full_like(feat, -1))  # register predicts next
     return feat
+
+
+def estate2_feature(ids, sets, mode="is", hist_slots=8):
+    """WORLD-STATE FOLD (estate2): batched sequential simulation -- loc[entity] from movements,
+    holder/loc[object] from mined take/drop verbs (drops freeze location), location HISTORY per
+    object for "before"-queries. mode="is": feature = current object location; mode="before":
+    feature = the history predecessor of the reference location. Probes: qa2 1000/1000,
+    qa3 998/1000 (probe_estate2.py)."""
+    B, n = ids.shape
+    dev = ids.device
+    ent, loc, obj = sets["ent"], sets["loc"], sets["obj"]
+    mv, tk, dp = sets["move"], sets["take"], sets["drop"]
+    nE = int(ent.sum())
+    nO = int(obj.sum())
+    eidx = torch.full((len(ent),), -1, dtype=torch.long, device=dev)
+    eidx[torch.where(ent)[0]] = torch.arange(nE, device=dev)
+    oidx = torch.full((len(obj),), -1, dtype=torch.long, device=dev)
+    oidx[torch.where(obj)[0]] = torch.arange(nO, device=dev)
+    locE = torch.full((B, nE), -1, dtype=torch.long, device=dev)
+    holder = torch.full((B, nO), -1, dtype=torch.long, device=dev)
+    locO = torch.full((B, nO), -1, dtype=torch.long, device=dev)
+    hist = torch.full((B, nO, hist_slots), -1, dtype=torch.long, device=dev)
+    rows = torch.arange(B, device=dev)
+
+    def push_hist(omask_rows, osel, newloc):
+        # shift the history of (row, obj) pairs where location changes
+        changed = omask_rows & (locO[rows, osel] != newloc)
+        if not bool(changed.any()):
+            return
+        r = rows[changed]
+        o = osel[changed]
+        hist[r, o, 1:] = hist[r, o, :-1].clone()
+        hist[r, o, 0] = locO[r, o]
+        locO[r, o] = newloc[changed]
+
+    for i in range(n - 1):
+        w = ids[:, i]
+        v = ids[:, i + 1]
+        we = eidx[w]                                          # -1 if not entity
+        is_ent = we >= 0
+        # movement destination: first location token in i+2..i+6
+        dest = torch.full((B,), -1, dtype=torch.long, device=dev)
+        for j in range(min(6, n - 1 - i), 1, -1):
+            cand = ids[:, i + j]
+            dest = torch.where(loc[cand], cand, dest)
+        m_move = is_ent & mv[v] & (dest >= 0)
+        if bool(m_move.any()):
+            locE[rows[m_move], we[m_move]] = dest[m_move]
+            for o in range(nO):                               # held objects follow
+                held = m_move & (holder[rows, o] == we)
+                if bool(held.any()):
+                    push_hist(held, torch.full((B,), o, device=dev), dest)
+        # grab object: first object token in i+2..i+5
+        gobj = torch.full((B,), -1, dtype=torch.long, device=dev)
+        for j in range(min(5, n - 1 - i), 1, -1):
+            cand = ids[:, i + j]
+            gobj = torch.where(obj[cand], cand, gobj)
+        wo = torch.where(gobj >= 0, oidx[gobj.clamp(min=0)], torch.full_like(gobj, -1))
+        m_take = is_ent & tk[v] & (wo >= 0)
+        if bool(m_take.any()):
+            holder[rows[m_take], wo[m_take]] = we[m_take]
+            eloc = locE[rows, we.clamp(min=0)]
+            known = m_take & (eloc >= 0)
+            if bool(known.any()):
+                push_hist(known, wo, eloc)
+        m_drop = is_ent & dp[v] & (wo >= 0)
+        if bool(m_drop.any()):
+            holder[rows[m_drop], wo[m_drop]] = -1
+    # query: the LAST object token = the queried object
+    idxs = torch.arange(n, device=dev)
+    om = obj[ids]
+    qopos = torch.where(om, idxs, torch.full_like(idxs, -1).expand_as(om)).max(1).values
+    qo = torch.where(qopos >= 0, oidx[ids[rows, qopos.clamp(min=0)]],
+                     torch.full_like(qopos, -1))
+    if mode == "is":
+        feat = torch.where(qo >= 0, locO[rows, qo.clamp(min=0)], torch.full_like(qo, -1))
+        return feat
+    # mode "before": reference = the last location token AFTER the queried object
+    lm = loc[ids] & (idxs[None, :] > qopos[:, None])
+    refpos = torch.where(lm, idxs, torch.full_like(idxs, -1).expand_as(lm)).max(1).values
+    ref = torch.where(refpos >= 0, ids[rows, refpos.clamp(min=0)],
+                      torch.full_like(refpos, -1))
+    full = torch.cat([hist[rows, qo.clamp(min=0)].flip(1),
+                      locO[rows, qo.clamp(min=0)].unsqueeze(1)], 1)   # oldest..current
+    feat = torch.full((B,), -1, dtype=torch.long, device=dev)
+    for k in range(full.shape[1] - 1, 0, -1):                 # last match of ref, predecessor
+        hit = (full[:, k] == ref) & (feat < 0) & (ref >= 0)
+        feat = torch.where(hit, full[:, k - 1], feat)
+    return torch.where(qo >= 0, feat, torch.full_like(feat, -1))
 
 
 def next_member_after(ids, pos, member):
@@ -1471,6 +1561,12 @@ def emit_full(model, cls, uv, ts, vocab):
                     derived_defs.append({"id": base_id, "kind": "recent-member",
                                          "members": [int(uv[i]) for i in torch.where(
                                              params["of_members"])[0].tolist()]})
+                elif kindname == "estate2":
+                    dd2 = dict(params["sets"])
+                    dd2.update({"id": fid, "kind": "estate2", "mode": params["mode"],
+                                "slot": [int(uv[t]) for t in params["slot"]]})
+                    derived_defs.append(dd2)
+                    params = {}
                 elif kindname == "estate":
                     derived_defs.append(
                         {"id": fid, "kind": "estate",
@@ -1499,9 +1595,9 @@ def emit_full(model, cls, uv, ts, vocab):
                         dd[pk] = [int(uv[i]) for i in torch.where(pv)[0].tolist()]
                     else:
                         dd[pk] = pv
-                if kindname not in ("prev-occ", "estate"):
+                if kindname not in ("prev-occ", "estate", "estate2"):
                     derived_defs.append(dd)
-                tokfeat = kindname.startswith("recent") or kindname == "estate"
+                tokfeat = kindname.startswith("recent") or kindname in ("estate", "estate2")
                 table, confs = {}, {}
                 for key, v, c in zip(tab_.k.tolist(), tab_.v.tolist(), tab_.c.tolist(),
                                      strict=True):
@@ -1911,6 +2007,38 @@ def main():
                                               "value_members": val_set,
                                               "avoid": avoid_set, "within": 7,
                                               "slot": slot}), min_keys=4)
+            if ESTATE2 and "estate2" not in " ".join(n_ for n_, _ in candidates):
+                import json as _json
+                e2 = _json.loads(Path(ESTATE2).read_text())
+                tokmap = {}
+                for i in range(vocab):
+                    tokmap.setdefault(_ts.token_str(int(uv[i])).strip(), i)
+                def mkset(names):
+                    m_ = torch.zeros(vocab, dtype=torch.bool, device=DEV)
+                    for nm_ in names:
+                        if nm_ in tokmap:
+                            m_[tokmap[nm_]] = True
+                    return m_
+                e2sets = {"ent": mkset(e2["entities"]), "loc": mkset(e2["locations"]),
+                          "obj": mkset(e2["objects"]), "move": mkset(e2["move_verbs"]),
+                          "take": mkset(e2["take_verbs"]), "drop": mkset(e2["drop_verbs"])}
+                if all(int(v_.sum()) >= 2 for v_ in e2sets.values()):
+                    for mode in ("is", "before"):
+                        samp2 = fit[:20000]
+                        f_s2 = estate2_feature(ids[samp2], e2sets, mode=mode)
+                        hit2 = f_s2 == yv[samp2]
+                        if int(hit2.sum()) < 30:
+                            continue
+                        pr2 = ids[samp2][hit2][:, -2] * (vocab + 1) + ids[samp2][hit2][:, -1]
+                        t2 = pr2.bincount().argmax()
+                        sl2 = (int(t2) // (vocab + 1), int(t2) % (vocab + 1))
+                        def e2fn(w, sets_=e2sets, mode_=mode, sl_=sl2):
+                            f_ = estate2_feature(w, sets_, mode=mode_)
+                            oks = (w[:, -2] == sl_[0]) & (w[:, -1] == sl_[1])
+                            return torch.where(oks, f_, torch.full_like(f_, -1))
+                        add_dgate(f"estate2/{mode} (world-state fold)", e2fn,
+                                  ("estate2", {"sets": e2, "mode": mode, "slot": sl2}),
+                                  min_keys=4)
             if int(cap_set.sum()) >= 20 and int(avoid_set.sum()) >= 1:
                 for sc in (3, 4, 5):
                     add_dgate(f"move-echo s{sc} gate",
@@ -2134,6 +2262,67 @@ def main():
             sleep_admit_v5(model, ids, y, val, ep, cands, log)
         print(f"{ep:>8}{v2.top1(model, ids, y, te):>15.3f}{v2.top1(model, ids, y, cs):>12.3f}"
               f"{len(model.rules):>6}", flush=True)
+    if QUERY_BATCHES and SWCOVER:
+        # BACKWARD ELIMINATION on deployment queries: greedy forward admission can install a
+        # locally-better heuristic that permanently SHADOWS a globally-better rule (qa2: the
+        # pointer's stale-copy beat estate2 +0.301 vs +0.234 at sleep 0, then held its slot by
+        # arbitration confidence). Stepwise selection: drop incumbents that the query folds say
+        # the cover is better off without, then re-run admission for the unshadowed candidates.
+        # OPTIMIZE THE EMITTED COVER: rules without EMIT_INFO never reach the package, so
+        # selection over the in-learner cover optimizes an artifact we don't ship (babi2:
+        # moveloc [0] held the in-learner numbers up while the served package sat at 0.498).
+        dropped = [n_ for n_, _ in model.rules if n_ not in EMIT_INFO]
+        if dropped:
+            model.rules = [r_ for r_ in model.rules if r_[0] in EMIT_INFO]
+            log.append(f"    dropped unemittable from selection: {dropped}")
+        # rank unadmitted EMITTABLE candidates by STANDALONE query value (cheap pre-filter)
+        inn = {n_ for n_, _ in model.rules}
+        pool = []
+        for cn_, cf_ in cands:
+            if cn_ in inn or cn_ not in EMIT_INFO:
+                continue
+            qa_ = query_agree(model, [(cn_, cf_)], cls, QUERY_BATCHES)
+            pool.append((qa_, cn_, cf_))
+        pool.sort(reverse=True)
+        pool = pool[:5]
+        changed = True
+        sweeps = 0
+        while changed and sweeps < 6:
+            changed = False
+            sweeps += 1
+            base_q = query_agree(model, model.rules, cls, QUERY_BATCHES)
+            for nm_, _ in list(model.rules):                 # single-rule removals
+                if len(model.rules) <= 1:
+                    break
+                trial = [r_ for r_ in model.rules if r_[0] != nm_]
+                q2_ = query_agree(model, trial, cls, QUERY_BATCHES)
+                if q2_ > base_q + 1e-9:
+                    model.rules = trial
+                    log.append(f"    backward-eliminated {nm_} "
+                               f"(queries {base_q:.3f} -> {q2_:.3f})")
+                    changed = True
+                    break
+            if not changed:                                  # SWAP moves: remove an incumbent
+                done = False                                 # AND add a candidate jointly --
+                for nm_, _ in list(model.rules):             # add-only and remove-only steps
+                    for _qa, cn_, cf_ in pool:               # cannot escape the tie-shadowing
+                        if cn_ in {n_ for n_, _ in model.rules}:
+                            continue                         # local optimum (qa2 pointer vs
+                        trial = [r_ for r_ in model.rules    # estate2 at conf 1.0)
+                                 if r_[0] != nm_] + [(cn_, cf_)]
+                        q2_ = query_agree(model, trial, cls, QUERY_BATCHES)
+                        if q2_ > base_q + 0.005:
+                            model.rules = trial
+                            log.append(f"    swapped {nm_} -> {cn_} "
+                                       f"(queries {base_q:.3f} -> {q2_:.3f})")
+                            changed, done = True, True
+                            break
+                    if done:
+                        break
+            if changed:
+                readd = sleep_admit_cover(model, ids, yv, cls, y, val, 90 + sweeps,
+                                          cands, log)
+                changed = changed or bool(readd)
     print("\n" + "\n".join(log))
     full = v2.top1(model, ids, y, te)
     norules = v2.top1(model, ids, y, te, use_rules=False)

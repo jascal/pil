@@ -9,7 +9,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
-from serve_package import decide, load_package  # noqa: E402
+from serve_package import canonicalize, decide, load_package  # noqa: E402
 
 from pil.tokens import TokenSpace  # noqa: E402
 
@@ -29,6 +29,15 @@ class H(BaseHTTPRequestHandler):
         for msg in body.get("messages", []):
             if msg.get("role") == "user":
                 q = msg.get("content", "")
+        canon_info = None
+        if m.get("canon"):
+            c = canonicalize(q, m["canon"])
+            if c is None:
+                a = {"answer": "", "kind": "abstain",
+                     "reason": "no template parse (canonicalization)"}
+                self._reply(a)
+                return
+            q, canon_info = c
         ctx = list(ts.encode(" " + q if not q.startswith(" ") else q))
         out, cite, route, minconf = [], "", "", 1e9
         for step in range(12):
@@ -47,6 +56,12 @@ class H(BaseHTTPRequestHandler):
         txt = ts.decode(out).strip() if out else ""
         a = ({"answer": txt, "kind": "distilled", "citation": cite, "route": route,
               "confidence": round(minconf, 4)} if txt else {"answer": "", "kind": "abstain"})
+        if canon_info:
+            a["canonical"] = q                               # TRANSPARENCY: the question
+            a["bindings"] = canon_info                       # actually answered
+        self._reply(a)
+
+    def _reply(self, a):
         resp = {"model": "pyspoke", "choices": [{"index": 0, "finish_reason": "stop",
                 "message": {"role": "assistant", "content": json.dumps(a)}}]}
         b = json.dumps(resp).encode()
