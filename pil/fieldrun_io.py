@@ -28,6 +28,7 @@ Per-position ``J`` may vary; if a ragged dump is provided as object arrays, pad 
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -245,3 +246,115 @@ def load_source_dump(path: str | Path) -> SourceBundle:
     margin = np.array([r["margin"] for r in recs], dtype=np.float32)
     blocks = list(recs[0]["blocks"])
     return SourceBundle(D=D, r=D.sum(axis=1), cands=cands, target=target, margin=margin, blocks=blocks)
+
+
+# ── J-lens correction: read a per-block DLA vector through the layer's averaged causal Jacobian ──────
+# Where the plain DLA/logit-lens incidence ``c_b^v = ⟨d̃_b, U_v⟩`` scores block b as if it reached the output
+# UNCHANGED (the identity-downstream assumption), it routes b through ``J[l] = E[∂h_final/∂h_l]`` first,
+# so it scores b's TOTAL (direct + downstream) linearised effect. J is the averaged Jacobian
+# fieldrun fits and exports (PR #124, ``--jlens-export``; Anthropic "Verbalizable Representations as Global
+# Workspace"). This is the pil-side consumer of that export — the "J-corrected incidences" fieldrun→pil seam.
+#
+# Tag: ``empirical`` throughout. J is a first-order approximation, never a certificate; whether the correction
+# sharpens pil's mid-stack read is decided by a λ-sweep against the λ=0 (plain logit-lens) baseline, and stays
+# ``open`` until that sweep runs on real dumps.
+
+_JLENS_BLOCK = re.compile(r"^L(\d+)\.(?:attn|mlp)$")
+
+
+def load_jlens(path: str | Path) -> tuple[np.ndarray, np.ndarray, dict]:
+    """Load a ``fieldrun --jlens-export`` output (PR #124) — the per-layer averaged causal Jacobian the J-lens
+    routes a mid-stack residual through before unembed, instead of the logit-lens's ``J[l] = I``.
+
+    Returns ``(J, fitted, meta)``:
+        J      : float32 (n_layer, dim, dim)  averaged Jacobian per layer (row-major); ``J[n_layer-1] = I``
+        fitted : bool    (n_layer,)           True where a Jacobian was fit; False ⇒ identity (logit-lens)
+        meta   : dict                         the ``.meta.json`` sidecar (``capture_point``, ``apply``, …)
+
+    ``meta['capture_point']`` pins which tensor ``J[l]`` maps FROM: ``h_l`` = POST-block residual of layer l
+    (after the attn+MLP add, PRE final-norm). That fixes the block→layer map in :func:`jcorrect_sources`."""
+    path = Path(path)
+    data = np.load(path)
+    if "J" not in data or "fitted" not in data:
+        raise KeyError(f"{path} missing 'J'/'fitted'; got {list(data.keys())} — not a --jlens-export .npz?")
+    J = np.asarray(data["J"], dtype=np.float32)
+    fitted = np.asarray(data["fitted"]).astype(bool)
+    s = str(path)                                            # sidecar: model.npz → model.meta.json (fieldrun)
+    meta_path = Path(s[:-4] + ".meta.json") if s.endswith(".npz") else Path(s + ".meta.json")
+    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}   # {} if no sidecar
+    return J, fitted, meta
+
+
+def _block_layer(label: str, n_layer: int) -> int | None:
+    """A ``--source-dump`` block label → the ``J[l]`` whose capture point (``h_l`` = post-block residual of
+    layer l) the block's contribution lands at, or ``None`` to leave it as the identity (logit-lens) read.
+
+    Per ``capture_point`` (``h_l`` = POST-block residual of layer l, after the attn+MLP add):
+      ``L{l}.mlp``  → ``l``   (EXACT: the MLP output is the last add that forms ``h_l``)
+      ``L{l}.attn`` → ``l``   (nearest downstream captured point; drops only the single attn→mlp_l hop)
+      ``embed`` / anything else → ``None`` (pre-layer-0 has no captured J ⇒ identity)."""
+    m = _JLENS_BLOCK.match(label)
+    if not m:
+        return None
+    layer = int(m.group(1))                          # int() tolerates any decimal form (e.g. "L00")
+    return layer if 0 <= layer < n_layer else None
+
+
+def jcorrect_sources(
+    D: np.ndarray,
+    blocks: list[str],
+    J: np.ndarray,
+    fitted: np.ndarray,
+    lam: float = 1.0,
+    gamma: np.ndarray | None = None,
+) -> np.ndarray:
+    """J-lens correction of a :class:`SourceBundle`'s per-block vectors: route each contribution through
+    its layer's averaged causal Jacobian so ``c_b^v = ⟨J[l(b)] d̃_b, U_v⟩`` measures block b's TOTAL (direct +
+    downstream) linearised effect on token v, not just its direct-logit-attribution.
+
+    ``D``      : (N, nb, dim) — ``SourceBundle.D`` (per-block contribution vectors ``d̃_b``)
+    ``blocks`` : the (nb,) labels — ``SourceBundle.blocks`` (``embed, L0.attn, L0.mlp, …``)
+    ``J``, ``fitted`` : from :func:`load_jlens`
+    ``lam``    : shrinkage toward identity, ``J' = (1-λ)I + λJ`` (fieldrun ``--jlens-shrink``). The raw fit
+                 (λ=1) is noise-dominated — fieldrun's eval found **λ≈0.25–0.5** best; **λ=0 reproduces the
+                 plain logit-lens incidences exactly** and is the baseline any correction must beat. SWEEP it.
+    ``gamma``  : optional (dim,) final-norm gain ``γ``. ``SourceBundle.D`` is *final-norm folded* (post-norm,
+                 unembed space) but ``J`` is fit in the *pre-norm* residual basis, so the operator in the
+                 folded basis is the conjugation ``diag(γ) J diag(1/γ)`` (the per-position rms scale cancels;
+                 only ``γ`` remains). Pass ``γ`` — a constant per-model vector (a follow-up fieldrun dump)
+                 — for the EXACT operator; ``None`` applies ``J`` directly, exact up to ``γ``-conjugation.
+
+    Returns a corrected copy of ``D`` (same shape); feed to :func:`pil.geometry.incidences`. Blocks with no
+    mapped or fitted layer are left UNCHANGED (identity ⇒ plain logit-lens), never scrambled.
+
+    Usage::
+
+        sb = load_source_dump(path)                 # sb.D (N,nb,dim), sb.blocks
+        J, fitted, meta = load_jlens(npz_path)      # meta['capture_point'] pins the block→layer map
+        Dc = jcorrect_sources(sb.D, sb.blocks, J, fitted, lam=0.3)   # sweep lam vs the lam=0 baseline
+        inc = geometry.incidences(torch.from_numpy(Dc), U)          # (N, nb, V) J-corrected incidences
+    """
+    if J.ndim != 3 or J.shape[1] != J.shape[2]:
+        raise ValueError(f"J must be (n_layer, dim, dim); got {J.shape}")
+    n_layer, dim, _ = J.shape
+    if D.shape[-1] != dim:
+        raise ValueError(f"D dim {D.shape[-1]} != J dim {dim} (different bundle/model?)")
+    if len(blocks) != D.shape[1]:
+        raise ValueError(f"blocks ({len(blocks)}) != D nb ({D.shape[1]})")
+    eye = np.eye(dim, dtype=np.float32)
+    g = None
+    if gamma is not None:
+        g = np.asarray(gamma, dtype=np.float32).reshape(-1)
+        if g.shape[0] != dim:
+            raise ValueError(f"gamma dim {g.shape[0]} != {dim}")
+    out = D.astype(np.float32, copy=True)
+    for b, label in enumerate(blocks):
+        layer = _block_layer(label, n_layer)
+        if layer is None or not bool(fitted[layer]):
+            continue                                         # unmapped / unfit → identity (logit-lens)
+        jl = J[layer]
+        if g is not None:                                    # folded-basis operator: diag(γ) J diag(1/γ)
+            jl = (g[:, None] * jl) * (1.0 / g)[None, :]
+        jl = (1.0 - lam) * eye + lam * jl                    # shrink toward identity
+        out[:, b, :] = D[:, b, :] @ jl.T                     # fieldrun convention: J @ d  ==  d @ J.T
+    return out
