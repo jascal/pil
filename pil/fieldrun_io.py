@@ -281,7 +281,7 @@ def load_jlens(path: str | Path) -> tuple[np.ndarray, np.ndarray, dict]:
     fitted = np.asarray(data["fitted"]).astype(bool)
     s = str(path)                                            # sidecar: model.npz → model.meta.json (fieldrun)
     meta_path = Path(s[:-4] + ".meta.json") if s.endswith(".npz") else Path(s + ".meta.json")
-    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}   # {} if no sidecar
     return J, fitted, meta
 
 
@@ -296,7 +296,7 @@ def _block_layer(label: str, n_layer: int) -> int | None:
     m = _JLENS_BLOCK.match(label)
     if not m:
         return None
-    layer = int(m.group(1))
+    layer = int(m.group(1))                          # int() tolerates any decimal form (e.g. "L00")
     return layer if 0 <= layer < n_layer else None
 
 
@@ -325,7 +325,15 @@ def jcorrect_sources(
                  — for the EXACT operator; ``None`` applies ``J`` directly, exact up to ``γ``-conjugation.
 
     Returns a corrected copy of ``D`` (same shape); feed to :func:`pil.geometry.incidences`. Blocks with no
-    mapped or fitted layer are left UNCHANGED (identity ⇒ plain logit-lens), never scrambled."""
+    mapped or fitted layer are left UNCHANGED (identity ⇒ plain logit-lens), never scrambled.
+
+    Usage::
+
+        sb = load_source_dump(path)                 # sb.D (N,nb,dim), sb.blocks
+        J, fitted, meta = load_jlens(npz_path)      # meta['capture_point'] pins the block→layer map
+        Dc = jcorrect_sources(sb.D, sb.blocks, J, fitted, lam=0.3)   # sweep lam vs the lam=0 baseline
+        inc = geometry.incidences(torch.from_numpy(Dc), U)          # (N, nb, V) J-corrected incidences
+    """
     if J.ndim != 3 or J.shape[1] != J.shape[2]:
         raise ValueError(f"J must be (n_layer, dim, dim); got {J.shape}")
     n_layer, dim, _ = J.shape
