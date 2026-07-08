@@ -98,7 +98,7 @@ def main():
 
     sb = load_source_dump(a.source_dump)
     J, fitted, meta = load_jlens(a.jlens)
-    U = _load_matrix(a.U, key="U")                       # fieldrun --tensors-export keys: U, gamma (same .npz ok)
+    U = _load_matrix(a.U, key="U")                       # fieldrun --tensors-export keys: U, gamma
     gamma = _load_matrix(a.gamma, key="gamma").reshape(-1) if a.gamma else None
     lams = [float(x) for x in a.lams.split(",")]
     if U.shape[1] != sb.dim or J.shape[1] != sb.dim:
