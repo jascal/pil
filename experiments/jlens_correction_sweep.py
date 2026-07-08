@@ -98,8 +98,8 @@ def main():
 
     sb = load_source_dump(a.source_dump)
     J, fitted, meta = load_jlens(a.jlens)
-    U = _load_matrix(a.U)
-    gamma = _load_matrix(a.gamma).reshape(-1) if a.gamma else None
+    U = _load_matrix(a.U, key="U")                       # fieldrun --tensors-export keys: U, gamma (same .npz ok)
+    gamma = _load_matrix(a.gamma, key="gamma").reshape(-1) if a.gamma else None
     lams = [float(x) for x in a.lams.split(",")]
     if U.shape[1] != sb.dim or J.shape[1] != sb.dim:
         raise SystemExit(f"dim mismatch: source-dump {sb.dim}, U {U.shape[1]}, J {J.shape[1]}")
