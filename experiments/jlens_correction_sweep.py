@@ -16,7 +16,8 @@ Tag: ``empirical`` -- J is a probe, not a certificate. Needs a REAL pair (a ``--
 ``--jlens`` for the same model) and the model unembedding ``U`` ((V,dim) .npy/.npz); absent those the seam
 is exercised only by ``tests/test_jlens_sweep.py`` on synthetic data. Usage::
 
-    python experiments/jlens_correction_sweep.py run.source.jsonl --jlens m.npz --U U.npy --lams 0,0.25,0.5,1
+    fieldrun --bundle m --recursion-explain --tensors-export m.tensors.npz   # emit U + gamma
+    python experiments/jlens_correction_sweep.py run.source.jsonl --jlens m.npz --tensors m.tensors.npz
 """
 from __future__ import annotations
 
@@ -57,7 +58,8 @@ def _metrics(dc, cands, U, depths, n_layer):
         full = dc[i].sum(0) @ uc.T                   # (K,) summed corrected read over the candidate set
         hit[i] = int(np.argmax(full)) == 0           # cands[:,0] is the model decode -> index 0
         margin[i] = full[0] - np.max(np.delete(full, 0))  # decoded vs strongest competitor
-        for layer in range(n_layer):                 # first depth whose cumulative read locks to the decode
+        # resolve = first l whose cumulative-to-l read argmaxes to the decode (first crossing, NOT sustained)
+        for layer in range(n_layer):
             if int(np.argmax(dc[i, depths <= layer].sum(0) @ uc.T)) == 0:
                 resolve[i] = layer
                 break
@@ -91,15 +93,22 @@ def main():
     ap = argparse.ArgumentParser(description="lambda-sweep of the J-lens DLA correction (vs lam=0)")
     ap.add_argument("source_dump", help="a fieldrun --source-dump JSON-lines file (SourceBundle)")
     ap.add_argument("--jlens", required=True, help="a fieldrun --jlens-export .npz (J, fitted)")
-    ap.add_argument("--U", required=True, help="the model unembedding (V, dim) as .npy or .npz (key 'U')")
-    ap.add_argument("--gamma", help="optional final-norm gain (dim,) .npy/.npz for the exact folded operator")
+    ap.add_argument("--tensors", help="fieldrun --tensors-export .npz (U+gamma keys); sets both at once")
+    ap.add_argument("--U", help="model unembedding (V, dim) .npy/.npz (key 'U'); overrides --tensors")
+    ap.add_argument("--gamma", help="final-norm gain (dim,) .npy/.npz (key 'gamma'); overrides --tensors")
     ap.add_argument("--lams", default="0,0.25,0.5,1.0", help="comma-separated lambdas (0 first)")
     a = ap.parse_args()
 
     sb = load_source_dump(a.source_dump)
     J, fitted, meta = load_jlens(a.jlens)
-    U = _load_matrix(a.U, key="U")                       # fieldrun --tensors-export keys: U, gamma
-    gamma = _load_matrix(a.gamma, key="gamma").reshape(-1) if a.gamma else None
+    U = _load_matrix(a.tensors, key="U") if a.tensors else None            # one --tensors .npz carries both
+    gamma = _load_matrix(a.tensors, key="gamma").reshape(-1) if a.tensors else None
+    if a.U:
+        U = _load_matrix(a.U, key="U")
+    if a.gamma:
+        gamma = _load_matrix(a.gamma, key="gamma").reshape(-1)
+    if U is None:
+        raise SystemExit("need --U or --tensors (the model unembedding)")
     lams = [float(x) for x in a.lams.split(",")]
     if U.shape[1] != sb.dim or J.shape[1] != sb.dim:
         raise SystemExit(f"dim mismatch: source-dump {sb.dim}, U {U.shape[1]}, J {J.shape[1]}")
