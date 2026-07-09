@@ -22,10 +22,22 @@ is exercised only by ``tests/test_jlens_sweep.py`` on synthetic data. Usage::
 from __future__ import annotations
 
 import argparse
+import json
+from pathlib import Path
 
 import numpy as np
 
 from pil.fieldrun_io import _block_layer, jcorrect_sources, load_jlens, load_source_dump
+
+
+def _tensors_meta(path) -> dict:
+    """Read the sibling ``.meta.json`` of a ``--tensors-export`` .npz (norm_type, gamma_exact, ...)."""
+    s = str(path)
+    mp = Path(s[:-4] + ".meta.json") if s.endswith(".npz") else Path(s + ".meta.json")
+    try:
+        return json.loads(mp.read_text())
+    except OSError:
+        return {}
 
 
 def _load_matrix(path: str, key: str = "U") -> np.ndarray:
@@ -66,13 +78,13 @@ def _metrics(dc, cands, U, depths, n_layer):
     return float(hit.mean()), float(margin.mean()), float((resolve / denom).mean())
 
 
-def sweep(sb, J, fitted, U, lams, gamma=None):
+def sweep(sb, J, fitted, U, lams, gamma=None, layernorm=False):
     """Run the sweep. Returns ``{lam, recon, margin, resolve}`` dicts (pass lam=0 first = the baseline)."""
     n_layer = J.shape[0]
     depths = _block_depths(sb.blocks, n_layer)
     rows = []
     for lam in lams:
-        dc = jcorrect_sources(sb.D, sb.blocks, J, fitted, lam=lam, gamma=gamma)
+        dc = jcorrect_sources(sb.D, sb.blocks, J, fitted, lam=lam, gamma=gamma, layernorm=layernorm)
         recon, margin, resolve = _metrics(dc, sb.cands, U, depths, n_layer)
         rows.append({"lam": float(lam), "recon": recon, "margin": margin, "resolve": resolve})
     return rows
@@ -96,6 +108,8 @@ def main():
     ap.add_argument("--tensors", help="fieldrun --tensors-export .npz (U+gamma keys); sets both at once")
     ap.add_argument("--U", help="model unembedding (V, dim) .npy/.npz (key 'U'); overrides --tensors")
     ap.add_argument("--gamma", help="final-norm gain (dim,) .npy/.npz (key 'gamma'); overrides --tensors")
+    ap.add_argument("--norm", choices=["auto", "rmsnorm", "layernorm"], default="auto",
+                    help="final-norm fold (auto = from --tensors meta norm_type)")
     ap.add_argument("--lams", default="0,0.25,0.5,1.0", help="comma-separated lambdas (0 first)")
     a = ap.parse_args()
 
@@ -113,12 +127,18 @@ def main():
     if U.shape[1] != sb.dim or J.shape[1] != sb.dim:
         raise SystemExit(f"dim mismatch: source-dump {sb.dim}, U {U.shape[1]}, J {J.shape[1]}")
 
+    norm = a.norm
+    if norm == "auto":
+        norm = _tensors_meta(a.tensors).get("norm_type", "rmsnorm") if a.tensors else "rmsnorm"
+    layernorm = norm == "layernorm"
+    fold = "none" if gamma is None else (f"{norm}+P" if layernorm else norm)
+
     nfit = int(fitted.sum())
     print(f"[jlens-sweep] {sb.N} positions, nb={sb.nb}, dim={sb.dim}, {nfit}/{J.shape[0]} layers fitted"
-          f"{' (gamma-conj)' if gamma is not None else ''}")
+          f" · gamma-fold={fold}")
     if meta.get("capture_point"):
         print(f"[jlens-sweep] capture_point: {meta['capture_point']}")
-    _print_table(sweep(sb, J, fitted, U, lams, gamma=gamma))
+    _print_table(sweep(sb, J, fitted, U, lams, gamma=gamma, layernorm=layernorm))
 
 
 if __name__ == "__main__":
