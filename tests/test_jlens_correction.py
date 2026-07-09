@@ -70,6 +70,24 @@ def test_gamma_conjugation_exact_folded_basis():
     assert np.allclose(out_ones, jcorrect_sources(D, BLOCKS, J, fitted, lam=1.0), atol=1e-6)
 
 
+def test_layernorm_inserts_mean_centering():
+    """LayerNorm fold is diag(γ) P J diag(1/γ), P = I - 11ᵀ/d; λ=0 still identity; differs from RMSNorm."""
+    D, J, fitted = _synthetic()
+    g = np.array([2.0, 0.5, 1.0, 4.0], dtype=np.float32)
+    out = jcorrect_sources(D, BLOCKS, J, fitted, lam=1.0, gamma=g, layernorm=True)
+    idx = BLOCKS.index("L0.mlp")
+    a = J[0] * (1.0 / g)[None, :]                     # J diag(1/γ)
+    a = a - a.mean(axis=0, keepdims=True)             # P (mean-center rows)
+    jl = g[:, None] * a                               # diag(γ) P J diag(1/γ)
+    assert np.allclose(out[:, idx, :], D[:, idx, :] @ jl.T, atol=1e-5)
+    # λ=0 remains the exact logit-lens baseline even with the LayerNorm fold
+    assert np.array_equal(jcorrect_sources(D, BLOCKS, J, fitted, lam=0.0, gamma=g, layernorm=True),
+                          D.astype(np.float32))
+    # P genuinely changes the operator vs the plain RMSNorm conjugation
+    rms = jcorrect_sources(D, BLOCKS, J, fitted, lam=1.0, gamma=g, layernorm=False)
+    assert not np.allclose(out[:, idx, :], rms[:, idx, :])
+
+
 def test_shape_guards():
     """A wrong-shape J / dim / blocks mismatch fails loudly (a contract mismatch, not a silent bug)."""
     D, J, fitted = _synthetic()

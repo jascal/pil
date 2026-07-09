@@ -307,6 +307,7 @@ def jcorrect_sources(
     fitted: np.ndarray,
     lam: float = 1.0,
     gamma: np.ndarray | None = None,
+    layernorm: bool = False,
 ) -> np.ndarray:
     """J-lens correction of a :class:`SourceBundle`'s per-block vectors: route each contribution through
     its layer's averaged causal Jacobian so ``c_b^v = ⟨J[l(b)] d̃_b, U_v⟩`` measures block b's TOTAL (direct +
@@ -319,10 +320,11 @@ def jcorrect_sources(
                  (λ=1) is noise-dominated — fieldrun's eval found **λ≈0.25–0.5** best; **λ=0 reproduces the
                  plain logit-lens incidences exactly** and is the baseline any correction must beat. SWEEP it.
     ``gamma``  : optional (dim,) final-norm gain ``γ``. ``SourceBundle.D`` is *final-norm folded* (post-norm,
-                 unembed space) but ``J`` is fit in the *pre-norm* residual basis, so the operator in the
-                 folded basis is the conjugation ``diag(γ) J diag(1/γ)`` (the per-position rms scale cancels;
-                 only ``γ`` remains). Pass ``γ`` — a constant per-model vector (a follow-up fieldrun dump)
-                 — for the EXACT operator; ``None`` applies ``J`` directly, exact up to ``γ``-conjugation.
+                 unembed space) but ``J`` is fit in the *pre-norm* basis, so the folded-basis operator is
+                 ``diag(γ) J diag(1/γ)`` (the per-position rms scale cancels; only ``γ`` remains). ``None``
+                 applies ``J`` directly (exact up to that conjugation).
+    ``layernorm``: LayerNorm final norm ⇒ insert the mean-centering ``P = I - 11ᵀ/d``; the exact operator is
+                 ``diag(γ) P J diag(1/γ)`` (ln_f bias + inv_std are logit-inert). RMSNorm ⇒ ``False``.
 
     Returns a corrected copy of ``D`` (same shape); feed to :func:`pil.geometry.incidences`. Blocks with no
     mapped or fitted layer are left UNCHANGED (identity ⇒ plain logit-lens), never scrambled.
@@ -353,8 +355,11 @@ def jcorrect_sources(
         if layer is None or not bool(fitted[layer]):
             continue                                         # unmapped / unfit → identity (logit-lens)
         jl = J[layer]
-        if g is not None:                                    # folded-basis operator: diag(γ) J diag(1/γ)
-            jl = (g[:, None] * jl) * (1.0 / g)[None, :]
+        if g is not None:                                    # folded-basis operator: diag(γ) [P] J diag(1/γ)
+            jl = jl * (1.0 / g)[None, :]                      # J diag(1/γ)
+            if layernorm:                                    # P: mean-center rows (LayerNorm fold)
+                jl = jl - jl.mean(axis=0, keepdims=True)
+            jl = g[:, None] * jl                             # diag(γ) [P] J diag(1/γ)
         jl = (1.0 - lam) * eye + lam * jl                    # shrink toward identity
         out[:, b, :] = D[:, b, :] @ jl.T                     # fieldrun convention: J @ d  ==  d @ J.T
     return out
