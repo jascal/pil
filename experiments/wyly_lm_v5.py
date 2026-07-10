@@ -24,6 +24,7 @@ Env (selected):
   WYLY_ALPHABET_PATH            -- path to alphabet_*.json when alphabet=word
   WYLY_ORIGIN                   -- package provenance override (e.g. standalone)
   WYLY_PKG_SUFFIX               -- optional package dir suffix (e.g. _standalone)
+  WYLY_QUERY_SOURCE=file|corpus_mined -- hand JSON vs mine from corpus (P2)
   bAbI DS tags also auto-default cover-sw, QUERIES/ESTATE2 paths, QUERY_PACK (see module body)
 
 Run: cd pil && WYLY_TAG=pythia70m .venv/bin/python experiments/wyly_lm_v5.py
@@ -87,9 +88,17 @@ def _babi_paths(ds):
 
 
 _q_default, _e2_default = _babi_paths(DS)
+# P2: corpus_mined = wyly_queries_mined_{DS}.json (from build_word_babi / query_mine);
+# file = hand wyly_queries_*.json (legacy).
+QUERY_SOURCE = os.environ.get("WYLY_QUERY_SOURCE", "file")   # file | corpus_mined
 QUERIES = os.environ.get("WYLY_QUERIES", "")                 # QUERY-SHAPED judging: val = deployment
-if not QUERIES and _q_default and _q_default.exists():
-    QUERIES = str(_q_default)
+if not QUERIES:
+    if QUERY_SOURCE == "corpus_mined":
+        _qm = REPO / "data" / f"wyly_queries_mined_{DS}.json"
+        if _qm.exists():
+            QUERIES = str(_qm)
+    elif _q_default and _q_default.exists():
+        QUERIES = str(_q_default)
 QUERY_PAD = 24                                               # queries left-padded to >= max offset
 # Pack length-groups into one left-padded batch (default on for bAbI): admission/query_agree
 # were O(n_groups) host launches; packing preserves semantics and makes estate2 tractable.
@@ -1419,7 +1428,8 @@ def load_queries(ts, uv, cls):
                     torch.tensor([a_ + [-1] * (maxa - len(a_)) for _, a_ in items],
                                  device=DEV)))
     n = sum(len(b[1]) for b in out)
-    print(f"query judge: {n} deployment-shaped queries in {len(out)} length groups")
+    print(f"query judge: {n} deployment-shaped queries in {len(out)} length groups "
+          f"(source={QUERY_SOURCE})", flush=True)
     return out
 
 
@@ -1854,6 +1864,7 @@ def emit_full(model, cls, uv, ts, vocab):
            "origin_model": "corpus" if LABELS == "corpus" else TAG,
            "labels": LABELS, "concept_init": CONCEPT_INIT if SOFT else "none",
            "soft_student": SOFT, "alphabet": ALPHABET,
+           "query_source": QUERY_SOURCE,
            "grounding": "grounding.txt",
            "strata_tau": STRATA_TAU if STRATA else None, "rules": rules_out}
     if ALPHABET == "word" and ALPHABET_PATH:
