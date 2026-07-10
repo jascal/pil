@@ -116,15 +116,16 @@ def encode_toks(codec: WordCodec, toks: list[str]) -> list[int] | None:
     return out
 
 
-def mine_scan_grammar(train_in, train_out, codec: WordCodec):
-    """Induce prims + verify unary/binary composition from train pairs.
+def mine_scan_grammar(train_in, train_out, codec: WordCodec, *, residual_leaves: bool = True):
+    """Induce prims + optional residual bare leaves from train pairs.
 
     Grammar (classic SCAN fragment):
       C := U | C 'and' C | C 'after' C
       U := P | U 'twice' | U 'thrice' | U 'around' D | 'turn' D | ...
       P := walk|jump|look|run | turn left|turn right | P 'left'|P 'right'|P 'opposite' D
-    We learn leaf prim maps from unigram/bigram train commands and implement the standard
-    combinators so addprim/length probe *systematic* use of known leaves.
+    Short maps (len ≤ 2) are mined directly. Residual templates recover bare action
+    leaves from composite short maps (e.g. ``run twice`` → ``run``) when the bare
+    form never appears alone in train — the simple-split residual, not depth theatre.
     """
     prims: dict[tuple[str, ...], list[str]] = {}
     for ci, ao in zip(train_in, train_out, strict=True):
@@ -132,7 +133,51 @@ def mine_scan_grammar(train_in, train_out, codec: WordCodec):
         at = decode_toks(codec, ao)
         if len(ct) <= 2:
             prims[ct] = at
+    if residual_leaves:
+        prims = {**prims, **induce_residual_leaves(prims)}
     return prims
+
+
+def induce_residual_leaves(
+    prims: dict[tuple[str, ...], list[str]],
+) -> dict[tuple[str, ...], list[str]]:
+    """Block-private residual templates: bare leaves recovered from short composites.
+
+    From train-mined maps only (no test leakage):
+      - ``(verb, twice|thrice)`` → ``(verb,)`` unit action if exact n-fold
+      - ``(verb, left|right)`` → ``(verb,)`` body after the leading turn
+      - always ensure ``turn left`` / ``turn right`` leaves
+
+    These fire only as lexicon residuals (B0 family); combinators stay joint.
+    """
+    out: dict[tuple[str, ...], list[str]] = {}
+    for key, acts in prims.items():
+        if len(key) == 2 and key[1] in ("twice", "thrice") and acts:
+            n = 2 if key[1] == "twice" else 3
+            if len(acts) % n == 0:
+                unit_len = len(acts) // n
+                unit = acts[:unit_len]
+                if all(acts[i * unit_len:(i + 1) * unit_len] == unit for i in range(n)):
+                    leaf = (key[0],)
+                    if leaf not in prims and leaf not in out:
+                        out[leaf] = list(unit)
+        if (
+            len(key) == 2
+            and key[1] in ("left", "right")
+            and acts
+            and acts[0] in ("I_TURN_LEFT", "I_TURN_RIGHT")
+            and len(acts) > 1
+        ):
+            leaf = (key[0],)
+            body = list(acts[1:])
+            if leaf not in prims and leaf not in out:
+                out[leaf] = body
+    # turn leaves are structural (always available as residual templates)
+    for k, v in (("turn", "left"), ("turn", "right")):
+        leaf = (k, v)
+        if leaf not in prims and leaf not in out:
+            out[leaf] = _turn(v)
+    return out
 
 
 def _turn(d: str) -> list[str]:
@@ -147,7 +192,9 @@ def expand(tokens: list[str], prims: dict[tuple[str, ...], list[str]]) -> list[s
     """Recursive expansion of a SCAN-like command; None if stuck.
 
     Combinators bind tighter than and/after; we split and/after at the top level first
-    (leftmost), then peel unary suffixes, then direction-modified primitives.
+    (leftmost), then exact prim match, then peel unary suffixes / direction phrases.
+    Exact prim-before-unary avoids shadowing mined ``run thrice`` etc. when bare
+    ``run`` is still missing (pre-residual) or when dir peel would demand bare leaves.
     """
     if not tokens:
         return []
@@ -168,6 +215,10 @@ def expand(tokens: list[str], prims: dict[tuple[str, ...], list[str]]) -> list[s
             if left is None or right is None:
                 return None
             return right + left
+    # exact prim map before unary/dir peel (residual + short maps)
+    key = tuple(tokens)
+    if key in prims:
+        return list(prims[key])
     # unary suffixes (twice/thrice bind after direction phrases)
     if len(tokens) >= 2 and tokens[-1] == "twice":
         base = expand(tokens[:-1], prims)

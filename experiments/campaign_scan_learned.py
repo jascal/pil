@@ -80,6 +80,10 @@ def expand_gated(
                 if left is None or right is None:
                     return None
                 return right + left
+    # exact prim before unary/dir peel (matches base.expand)
+    key = tuple(tokens)
+    if key in prims:
+        return list(prims[key])
     if "twice" in enabled and len(tokens) >= 2 and tokens[-1] == "twice":
         base_e = expand_gated(tokens[:-1], prims, enabled)
         return None if base_e is None else base_e + base_e

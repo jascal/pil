@@ -67,14 +67,34 @@ Hard splits: **learned stack = prim_compose = 1.0**. Staged unary→binary still
 fails on addprim (0.224) — joint admit required. Simple stack lag is fit-leaf
 coverage (90/10 only admits look/walk), not missing combinators.
 
+### Residual templates (not depth theatre)
+
+Campaign: `experiments/campaign_scan_residual.py`  
+API: `induce_residual_leaves` in `campaign_scan_standalone.py`
+
+**Simple failure mode:** bare verbs sometimes never appear alone in train
+(e.g. only `run twice` / `run left`). Combinators peel to bare `run` and fail.
+
+**B0 residual:** recover bare leaves from short composites only:
+- `(verb, twice|thrice)` → `(verb,)` unit if exact n-fold
+- `(verb, left|right)` → `(verb,)` body after leading turn
+- structural `turn left` / `turn right`
+
+Admitted by val marginal under full combinators. **Not** a new empty block —
+block-private lexicon residual.
+
+| split | prim_compose raw | + residual leaves | stack no residual | **stack + residual** |
+|---|---:|---:|---:|---:|
+| length | 1.000 | 1.000 | 1.000 | **1.000** |
+| addprim_jump | 1.000 | 1.000 | 1.000 | **1.000** |
+| simple | 0.768 | **1.000** | 0.519 | **1.000** (admits residual `jump`,`run`) |
+
 ### Identified gaps
 
-1. **Simple residual (~0.37 miss)** — remaining unparsed surface forms (binding
-   order, multi-operator nests, missing fit leaves under 90/10). Needs richer
-   residual templates or fit-all-leaf mining, not more depth theatre.
+1. ~~**Simple residual**~~ — closed by residual leaf templates (above).
 2. **Depth without residual rules** — partitioning unary/binary into B1/B2 alone
-   does not beat joint flat admit. Next gains need **block-private residual
-   candidates** (templates that only fire after upstream paths exist).
+   does not beat joint flat admit. Residual leaves are the first real B0-private
+   family; next is CFQ join templates.
 3. **Class-space vs sequence** — WylyBlock cover is class-token oriented; SCAN
    exact-match is full action sequences. Bridge: residual dict + expand scoring
    (current) or next-action KeyTables inside a block.
@@ -95,10 +115,9 @@ coverage (90/10 only admits look/walk), not missing combinators.
 
 ## Next
 
-1. Block-private residual templates on simple residual failures.
+1. CFQ triple-template / join residual admit on MCD.
 2. Estate2-style shared world state in residual for plan/position tasks.
-3. CFQ triple-template admit on MCD.
-4. Strata / rule_learner cross-block references for hierarchical edits.
+3. Strata / rule_learner cross-block references for hierarchical edits.
 
 Cross-links: `scan_standalone.md`, `cfq_standalone.md`,
 `campaign_scan_multiblock.py`, `campaign_scan_prims.py`.
