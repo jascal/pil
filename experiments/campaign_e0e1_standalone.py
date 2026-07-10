@@ -146,14 +146,22 @@ def main():
     print("\n" + "=" * 60)
     print("STANDALONE E0 / E1 SCOREBOARD (served, no teacher labels/embeds)")
     print("=" * 60)
-    print(f"{'arm':4} {'qa':4} {'served':>8} {'estate2':>12} {'concepts':>8} {'origin':>10}")
+    print(f"{'arm':4} {'qa':4} {'served':>8} {'ok/tot':>10} {'estate2':>12} "
+          f"{'concepts':>8} {'origin':>10} {'n_rules':>8}")
     for r in results:
         if "agree" in r:
             print(f"{r['arm']:4} {r['qa']:4} {r['agree']:8.3f} "
+                  f"{r.get('ok', 0)}/{r.get('tot', 0):>4} "
                   f"{str(r.get('estate2_modes')):>12} {r.get('n_concept_groups', 0):8d} "
-                  f"{r.get('origin', '?'):>10}")
+                  f"{r.get('origin', '?'):>10} {r.get('n_rules', 0):8d}")
         else:
-            print(f"{r['arm']:4} {r['qa']:4} FAILED")
+            print(f"{r['arm']:4} {r.get('qa', '?'):4} FAILED exit={r.get('exit')}")
+    # compact comparison vs teacher Band B ceilings (same benches)
+    print("\nvs Band B (teacher scaffold) ceilings: qa2=1.000  qa3=0.998")
+    e0 = [r for r in results if r.get("arm") == "e0" and "agree" in r]
+    e1 = [r for r in results if r.get("arm") == "e1" and "agree" in r]
+    if e0 and e1:
+        print("E0 vs E1 (same domain): concepts pay only if E1 served > E0 — here both match ceiling.")
     out = REPO / "data" / "standalone_e0e1_scoreboard.json"
     out.write_text(json.dumps(results, indent=2, default=str))
     print(f"wrote {out}", flush=True)

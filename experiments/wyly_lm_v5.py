@@ -13,9 +13,14 @@ library enlarged from {induction L=1,2,3} to:
   repetition         : if the last two tokens are equal, predict that token again (a relational
                        eq+copy rule; NO package kind exists -- named as a schema design direction).
 
-Env: WYLY_TAG (teacher tag, default pythia70m), WYLY_DS (dataset tag, default wikitext ->
-data/wyly_nexttoken_wikitext_L256.pt + wyly_teacher_<tag>_L256.pt legacy names; other tags use
-wyly_nexttoken_<ds>_L256.pt + wyly_teacher_<tag>_<ds>_L256.pt), WYLY_LIB (base|ext, default ext).
+Env (selected):
+  WYLY_TAG / WYLY_DS / WYLY_LIB  -- teacher tag, dataset, rule library (default ext)
+  WYLY_LABELS=teacher|corpus    -- wake/table targets; default *teacher* (host decisions).
+                                  *corpus* = stream next-token from the window file (no teacher file)
+  WYLY_CONCEPT_INIT=grounded|random -- soft-student geometry; default *grounded* (host embed PCA).
+                                  *random* = no host embed (standalone arms)
+  WYLY_PKG_SUFFIX               -- optional package dir suffix (e.g. _e0 / _e1)
+  bAbI DS tags also auto-default cover-sw, QUERIES/ESTATE2 paths, QUERY_PACK (see module body)
 
 Run: cd pil && WYLY_TAG=pythia70m .venv/bin/python experiments/wyly_lm_v5.py
 """
