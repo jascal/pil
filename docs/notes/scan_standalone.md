@@ -32,15 +32,18 @@ grammar (train/test partition unique commands). Composition is the only path.
 
 | split | exact | lcp | prim_compose | parse cover | n_test |
 |---|---:|---:|---:|---:|---:|
-| length | 0.000 | 0.000 | **0.916** | 0.916 | 3920 |
-| addprim_jump | 0.000 | 0.000 | **0.935** | 0.935 | 7706 |
-| simple | 0.000 | 0.000 | 0.539 | 0.539 | 4182 |
+| length | 0.000 | 0.000 | **1.000** | 1.000 | 3920 |
+| addprim_jump | 0.000 | 0.000 | **1.000** | 1.000 | 7706 |
+| simple | 0.000 | 0.000 | **0.629** | 0.629 | 4182 |
+
+*(After `turn around L/R` = four turns in `expand`; prior residual was ~0.916 / 0.935 / 0.539.)*
 
 Exact is ~0 even on `simple` because full command strings are unique in the generative
 grammar (no train/test command collision). Composition is mandatory.
 
-`prim_compose` is a **semi-symbolic upper bound** (train-mined prims + fixed combinators), not
-yet a learned Wyly admit path. Residual gaps are the multi-layer learning target.
+`prim_compose` is the **fixed-combinator ceiling** (train-mined prims + SCAN combinators).
+Learned multi-block admit matches it on hard splits; remaining simple gap is unparsed
+surface forms / fit-leaf coverage — see `docs/notes/wyly_multilayer.md`.
 
 ## Data setup
 
@@ -162,11 +165,19 @@ the only path that closes hard splits.
 .venv/bin/python -u experiments/campaign_scan_seq.py
 ```
 
+## Multi-block learned stack
+
+Campaign: `experiments/campaign_scan_multiblock.py`  
+Foundation: `pil/wyly_block.py` (`scan_stack_spec`, carry modes, `admit_layer`)  
+Notes: `docs/notes/wyly_multilayer.md`
+
 ## Next
 
-1. CFQ for nested relational composition.
-2. Residual block rules that differ by depth (not only partitioned provenance).
+1. Block-private residual templates on simple residual (~0.37 miss).
+2. CFQ relational admit (`docs/notes/cfq_standalone.md`).
+3. Estate2-style shared world state in block residual.
 
 Cross-links: `pil/wyly_block.py`, `experiments/campaign_wyly_blocks.py`,
 `experiments/campaign_scan_learned.py`, `experiments/campaign_scan_prims.py`,
-`experiments/campaign_scan_seq.py`.
+`experiments/campaign_scan_multiblock.py`, `experiments/campaign_scan_seq.py`,
+`docs/notes/cfq_standalone.md`, `docs/notes/wyly_multilayer.md`.
