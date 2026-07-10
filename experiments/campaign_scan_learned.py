@@ -92,10 +92,14 @@ def expand_gated(
         and tokens[-2] == "around"
         and tokens[-1] in ("left", "right")
     ):
-        body = expand_gated(tokens[:-2], prims, enabled)
+        body_toks = tokens[:-2]
+        td = base._turn(tokens[-1])
+        # "turn around left" = four turns (bare turn is not a mined prim leaf)
+        if body_toks == ["turn"]:
+            return td * 4
+        body = expand_gated(body_toks, prims, enabled)
         if body is None:
             return None
-        td = base._turn(tokens[-1])
         return (td + body) * 4
     if (
         "opposite" in enabled

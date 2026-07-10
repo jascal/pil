@@ -177,10 +177,14 @@ def expand(tokens: list[str], prims: dict[tuple[str, ...], list[str]]) -> list[s
         return None if base is None else base + base + base
     # around / opposite D
     if len(tokens) >= 3 and tokens[-2] == "around" and tokens[-1] in ("left", "right"):
-        body = expand(tokens[:-2], prims)
+        body_toks = tokens[:-2]
+        td = _turn(tokens[-1])
+        # "turn around left" = four turns (body is bare turn, not a prim leaf)
+        if body_toks == ["turn"]:
+            return td * 4
+        body = expand(body_toks, prims)
         if body is None:
             return None
-        td = _turn(tokens[-1])
         unit = td + body
         return unit * 4
     if len(tokens) >= 3 and tokens[-2] == "opposite" and tokens[-1] in ("left", "right"):
