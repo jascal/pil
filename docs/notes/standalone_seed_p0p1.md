@@ -50,8 +50,23 @@ Matches E0/E1 and Band B ceilings **without** host BPE and without SGD.
 code), external gold query JSON, Rosetta thin runtime. Next: induced schema / corpus-mined
 queries (roadmap Phase 2–3).
 
+**WordCodec / estate consistency.** Scanner is the same regex as `probe_estate2.py`
+(`[\w']+|[.?:]`), so member sets in `wyly_estate2_*.json` (plain words) map 1:1 into the
+alphabet — no multi-token “first-token signature” hole from host BPE (`journeyed` etc.).
+Case is preserved as in the corpus (bAbI names are capitalized).
+
+**Alphabet ladder (future):** `word` (this PR) → `corpus_bpe` (fit merges on this corpus only)
+→ optional byte/adaptive dictionary for morphology-heavy domains. Extensibility hook:
+new codecs implement `encode` / `token_str` / `from_file` / `save` / `hash` like `WordCodec`.
+
 ## Packages
 
 - `data/wyly_expert_package_v5_babi2_word_standalone/`
 - `data/wyly_expert_package_v5_babi3x_word_standalone/`
 - each ships `alphabet.json` (+ hash in manifest) and `origin=standalone`
+
+## Next P* targets (recommended order)
+
+1. **P2** — corpus-mined queries under VALREG (drop hand `wyly_queries_*.json`)
+2. **P3** — induce estate member sets + take/drop without `WYLY_ESTATE2` json
+3. **P4** — `FoldOp` registry (estate as first citizen among inducible folds)
