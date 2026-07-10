@@ -55,8 +55,9 @@ TASKS = {
 def bench_package(pkg: Path, bench_path: Path) -> dict:
     sys.path.insert(0, str(REPO))
     sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
-    from pil.tokens import TokenSpace
     from serve_package import decide, load_package
+
+    from pil.tokens import TokenSpace
 
     man = json.loads((pkg / "manifest.json").read_text())
     kinds = {}

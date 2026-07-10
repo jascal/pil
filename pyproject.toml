@@ -37,5 +37,9 @@ extend-exclude = ["paper"]   # the LaTeX paper + its figure script are out of th
 select = ["E", "F", "I", "UP", "B"]
 ignore = ["E741"]  # ambiguous name l/L/I -- L_v is the logit, kept for math fidelity
 
+[tool.ruff.lint.per-file-ignores]
+# Experiment drivers set WYLY_* env before importing wyly_lm_v5 (module-level config).
+"experiments/**" = ["E402"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

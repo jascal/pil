@@ -65,8 +65,9 @@ def rebuild_data():
 def bench_package(pkg: Path, bench_path: Path, alphabet_path: Path) -> dict:
     sys.path.insert(0, str(REPO))
     sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
-    from pil.alphabet import WordCodec
     from serve_package import decide, load_package
+
+    from pil.alphabet import WordCodec
 
     man = json.loads((pkg / "manifest.json").read_text())
     kinds = {}

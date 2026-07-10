@@ -26,11 +26,11 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "experiments"))
 
 import torch
-import torch.nn.functional as F
 import wyly_lm_v5 as v5
-from pil.tokens import TokenSpace
 from wyly_lm_grounded import grounded_init
 from wyly_lm_v3 import WylyV3
+
+from pil.tokens import TokenSpace
 
 
 def log(m=""):
@@ -134,7 +134,8 @@ def main():
     v5.CONF_FNS[nm] = e2conf
     v5.EMIT_INFO[nm] = ("dfeat", ("estate2",
                         {"sets": e2sets, "mode": mode, "slot": sl2}), tab_e, B2e)
-    v5.RULE_SIZE[nm] = lambda n_=len(keys_l): n_
+    _nkeys = len(keys_l)
+    v5.RULE_SIZE[nm] = lambda n_=_nkeys: n_
     v5.SWCOVER = True
     v5.STRATA = False
     v5.FOLDS = 0
@@ -143,7 +144,6 @@ def main():
     ground = grounded_init(uv).to(DEV)
     ground = ground / ground.shape[1] ** 0.5
     model = WylyV3(ground, cls.cpu(), ell).to(DEV)
-    n_cls = len(cls)
     # fill counts from a train chunk
     ch = tr[:8000]
     model.update_counts(ids[ch], y[ch], model.lut)

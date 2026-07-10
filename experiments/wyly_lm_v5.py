@@ -187,7 +187,7 @@ def concept_init(uv: torch.Tensor) -> torch.Tensor:
         c = (c - c.mean(0)) / c.std(0).clamp_min(1e-6)
         print(f"CONCEPT_INIT=random ({tuple(c.shape)}; alphabet={ALPHABET})", flush=True)
         return c
-    print(f"CONCEPT_INIT=grounded (host embed PCA)", flush=True)
+    print("CONCEPT_INIT=grounded (host embed PCA)", flush=True)
     return grounded_init(uv)
 
 
