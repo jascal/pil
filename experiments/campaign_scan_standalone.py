@@ -5,12 +5,17 @@ action-sequence accuracy on official SCAN splits:
 
   length       — train short, test long (productivity / length)
   addprim_jump — "jump" held out as a primitive at train (systematicity)
-  simple       — i.i.d. control (should be easy for lookup)
+  simple       — i.i.d. control (unique commands; exact still ~0)
 
 Baselines:
-  exact     — full-command dictionary from train (memorization ceiling)
+  exact     — full-command dictionary from train (always ~0: unique commands)
   lcp       — longest train command that is a contiguous subseq of test cmd
   prim_comp — prims + unary/binary composition induced from train (tiny SCAN grammar)
+  gap       — prim_comp − exact  (learning room for Wyly admit / multi-block)
+
+Multi-layer path (not yet learned admit): ``pil/wyly_block.py`` +
+``docs/notes/scan_standalone.md``. Next: admit combinators under cover-marginal on
+hard splits, then BlockStack B0→B1→B2 on SCAN.
 
 Run:
   cd pil && .venv/bin/python experiments/build_scan.py
@@ -246,11 +251,15 @@ def run_split(tag: str) -> dict:
     acc_lcp = eval_lcp(m, te_in_s, te_out_s)
     prims = mine_scan_grammar(tr_in, tr_out, codec)
     acc_pc, cov_pc = eval_prim_comp(prims, te_in, te_out, codec)
+    gap = acc_pc - acc_exact
     log(f"\n=== SCAN/{tag} ===")
     log(f"  train={len(tr_in)} test={len(te_in)} vocab={codec.vocab_size} prims={len(prims)}")
     log(f"  exact_lookup     {acc_exact:.3f}")
     log(f"  longest_subcmd   {acc_lcp:.3f}  (on {len(te_in_s)} test)")
     log(f"  prim_compose     {acc_pc:.3f}  (parse cover {cov_pc:.3f})")
+    log(f"  learning_gap     {gap:+.3f}  (prim_compose − exact; target for Wyly admit)")
+    # Stub: learned flat admit not wired yet — keep a slot in the scoreboard for the next PR.
+    learned_admit = None
     return {
         "split": tag,
         "n_train": len(tr_in),
@@ -261,6 +270,8 @@ def run_split(tag: str) -> dict:
         "lcp": acc_lcp,
         "prim_compose": acc_pc,
         "prim_cover": cov_pc,
+        "learning_gap": gap,
+        "learned_admit": learned_admit,  # filled when cover-marginal admit is wired on SCAN
         "origin": "standalone",
         "alphabet": "word",
     }
@@ -279,16 +290,20 @@ def main():
     log("\n" + "=" * 60)
     log("SCAN STANDALONE SCOREBOARD (exact-match action sequences)")
     log("=" * 60)
-    log(f"{'split':14} {'exact':>8} {'lcp':>8} {'prim_comp':>10} {'cover':>8} {'n_test':>8}")
+    log(f"{'split':14} {'exact':>8} {'lcp':>8} {'prim_comp':>10} {'gap':>8} "
+        f"{'learned':>8} {'n_test':>8}")
     for r in results:
+        learned = r.get("learned_admit")
+        learned_s = f"{learned:.3f}" if learned is not None else "  n/a"
         log(f"{r['split']:14} {r['exact']:8.3f} {r['lcp']:8.3f} {r['prim_compose']:10.3f} "
-            f"{r['prim_cover']:8.3f} {r['n_test']:8d}")
+            f"{r['learning_gap']:+8.3f} {learned_s:>8} {r['n_test']:8d}")
     out = REPO / "data" / "scan_standalone_scoreboard.json"
     out.write_text(json.dumps(results, indent=2))
     log(f"wrote {out}")
     log("\nNote: SCAN commands are unique — exact lookup is ~0 even on simple (no repeated "
         "full commands). prim_compose uses train-mined prims + SCAN combinators; length/jump "
-        "splits probe systematic use. WylyBlock multi-layer is the next learning target.")
+        "splits probe systematic use. learned_admit is a stub until Wyly cover-marginal admit "
+        "is wired (see pil/wyly_block.py, docs/notes/scan_standalone.md).")
 
 
 if __name__ == "__main__":

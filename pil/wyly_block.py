@@ -11,6 +11,26 @@ feature tensors and predictions without opaque neural residuals.
 
 Standalone-compatible: no teacher/embed/soft assumptions; callers supply corpus labels,
 WordCodec ids, and query batches.
+
+Minimal 2-block usage (see also ``experiments/campaign_wyly_blocks.py`` and SCAN notes
+``docs/notes/scan_standalone.md``)::
+
+    from pil.wyly_block import WylyBlock, BlockStack
+
+    b0 = WylyBlock(0, "lexicon")
+    b0.add_feature("prim", prim_feat_fn)
+    b0.add_candidate("walk->WALK", pred_fn, conf_fn)
+    b0.admit_greedy(score_fn)          # local cover on deployment queries
+
+    b1 = WylyBlock(1, "compose", depends_on=[0])
+    b1.add_feature("b0_pred", lambda ids, up: up.pred, needs_upstream=True)
+    b1.add_candidate("twice", twice_fn, twice_conf)
+    # score stack = B0 rules ∪ B1 trial (freeze B0, admit B1 by stack marginal)
+    b1.admit_greedy(lambda rules: score_stack(b0.rules + rules))
+
+    stack = BlockStack([b0, b1])
+    states = stack.forward(ids, counts_row_fn=counts_fn)
+    pred, conf = stack.final_pred(states)   # deepest confident block wins
 """
 
 from __future__ import annotations

@@ -67,6 +67,8 @@ admitted compositional rules. bAbI could not show that (B1 empty at ceiling).
 
 ## Next
 
-1. Admit combinators from data (not fixed expand) under cover-marginal on hard splits.
-2. Wire `pil/wyly_block.py` stack B0→B1→B2 on SCAN.
+1. Fill `learned_admit` in `campaign_scan_standalone.py` (flat Wyly cover-marginal on pairs).
+2. Wire `pil/wyly_block.py` stack B0→B1→B2 on SCAN (`campaign_wyly_blocks.py` is the bAbI prototype).
 3. CFQ later for nested relational composition.
+
+Cross-links: `pil/wyly_block.py` (stack API), `experiments/campaign_wyly_blocks.py` (2-block pattern).
