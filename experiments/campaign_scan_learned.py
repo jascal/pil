@@ -37,7 +37,11 @@ import campaign_scan_standalone as base  # noqa: E402
 
 SPLITS = ["length", "addprim_jump", "simple"]
 # Combinators that can be admitted (fixed operational semantics; admission is data-driven).
-COMBINATOR_POOL = ("and", "after", "twice", "thrice", "around", "opposite", "dir")
+# ``dir`` (P left/right phrase formation) is leaf syntax, not a combinator — val never
+# sees held-out systematic uses (addprim_jump: jump left), so gating dir kills
+# systematicity. See campaign_scan_prims.py / docs/notes/scan_standalone.md.
+COMBINATOR_POOL = ("and", "after", "twice", "thrice", "around", "opposite")
+LEAF_ALWAYS = frozenset({"dir"})
 
 
 def log(m=""):
@@ -137,11 +141,12 @@ def score_exact(
     prims: dict,
     enabled: set[str],
 ) -> float:
+    en = set(enabled) | set(LEAF_ALWAYS)
     ok = tot = 0
     for ci, ao in pairs:
         ct = base.decode_toks(codec, ci)
         gold = base.decode_toks(codec, ao)
-        pred = expand_gated(ct, prims, enabled)
+        pred = expand_gated(ct, prims, en)
         if pred is not None and pred == gold:
             ok += 1
         tot += 1
