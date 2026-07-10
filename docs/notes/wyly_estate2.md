@@ -163,6 +163,35 @@ candidate that mines slots or confs from deployment (`ensure_query_batches` in
 Package: `data/wyly_expert_package_v5_babi3x_estate2` (estate2 dgate + counts). Scoreboard:
 **qa1 = 1.000 / qa2 = 0.778 / qa3 = 0.998**.
 
-**Named next frontier:** qa2 residual **0.778 → ceiling** (arbitration / multi-rule cover, not
-the estate2 form). Full mined multi-rule campaign with this load-order fix so estate2 lands
-beside pointer/kgrams rather than in an estate2-only package.
+## Postscript 5: Band B — multi-rule packages + frozen bAbI defaults
+
+**B1 (multi-rule qa3).** Full mined admit with load-order fix + packed query batches:
+`estate2/before` admitted at sleep 0 (**+0.502** cover-marginal), multi-rule package
+`data/wyly_expert_package_v5_babi3x` (estate2 dgate + skip + counts). Learner↔package parity
+1000/1000. **Served bench 998/1000 = 0.998**.
+
+**B2 (qa2 residual closed).** Same protocol on `babi2`: `estate2/is` admitted first
+(**+0.507**), then skip + sincedot. **Served bench 1000/1000 = 1.000** (was 0.778). The residual
+was the dead gate path + cover competition, not the fold form.
+
+**B3 (frozen defaults for `WYLY_DS` containing `babi`).** In `wyly_lm_v5.py` when env is unset:
+
+| knob | bAbI default | non-bAbI default |
+|---|---|---|
+| `WYLY_JUDGE` | `cover` | `soft` |
+| `WYLY_COVER` | `sw` | off |
+| `WYLY_POINTER` / `WYLY_CX` | on | off |
+| `WYLY_QUERIES` / `WYLY_ESTATE2` | auto-wire known paths | unset |
+| `WYLY_QUERY_PACK` | on (1 batch) | off |
+| qwen tokenizer/embed | auto if `TAG` has qwen | — |
+
+`ensure_query_batches` + `pack_query_batches` keep deployment-first mining fast and fail-loud.
+Campaign: `experiments/campaign_babi_bandb.py` → `data/bandb_scoreboard.json`.
+
+**Scoreboard (served, multi-rule packages):**
+
+| task | before Band B | after |
+|---|---|---|
+| qa1 (estate) | 1.000 | 1.000 |
+| qa2 (estate2/is) | **0.778** | **1.000** |
+| qa3 (estate2/before) | **0.429** → 0.998 alone | **0.998** multi-rule |
