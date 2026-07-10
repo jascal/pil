@@ -65,10 +65,37 @@ Block 2  — binary composition (and, after)
 Hard splits (length, addprim_jump) should show a **flat exact gap** and reward
 admitted compositional rules. bAbI could not show that (B1 empty at ceiling).
 
+## Learned admit + 2-block (follow-up)
+
+Campaign: `experiments/campaign_scan_learned.py`
+
+| Method | What |
+|---|---|
+| **prims (fit)** | Short commands on 90% of train |
+| **learned_admit** | Greedy cover-marginal admission of combinators on 10% val |
+| **block0** | Prims only |
+| **block_stack** | B0 prims + B1 admitted combinators (`pil/wyly_block.py`) |
+
+### Scoreboard (exact-match action sequences)
+
+| split | exact | prim_compose | learned_admit | B0 prims | 2-block stack |
+|---|---:|---:|---:|---:|---:|
+| length | 0.000 | 0.916 | **0.916** | 0.000 | **0.916** |
+| addprim_jump | 0.000 | 0.935 | **0.644** | 0.000 | **0.644** |
+| simple | 0.000 | 0.539 | **0.399** | 0.000 | **0.399** |
+
+Combinators typically admitted (val order varies): `and`, `twice`/`thrice`, `opposite`,
+`after`, `around`. `dir` often not selected once others cover.
+
+**Reading:** length matches full prim_compose (combinators fully recoverable from val).
+addprim_jump gap (0.644 vs 0.935) is the systematicity hit — fit prims lack free `jump`.
+Block stack = flat learned (depth is organizational until residual rules differ by block).
+
 ## Next
 
-1. Fill `learned_admit` in `campaign_scan_standalone.py` (flat Wyly cover-marginal on pairs).
-2. Wire `pil/wyly_block.py` stack B0→B1→B2 on SCAN (`campaign_wyly_blocks.py` is the bAbI prototype).
-3. CFQ later for nested relational composition.
+1. Admit **prims** (not only combinators) by marginal; residual B2 for nested and/after.
+2. Action-sequence tables / next-action KeyTables as flat neural-free seq2seq baseline.
+3. CFQ for nested relational composition.
 
-Cross-links: `pil/wyly_block.py` (stack API), `experiments/campaign_wyly_blocks.py` (2-block pattern).
+Cross-links: `pil/wyly_block.py`, `experiments/campaign_wyly_blocks.py`,
+`experiments/campaign_scan_learned.py`.
