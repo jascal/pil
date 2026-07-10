@@ -1,8 +1,11 @@
 """Corpus-induced alphabets for standalone Wyly packages (no host LLM tokenizer).
 
 WordCodec: whitespace/punct word stream matching the estate probe convention
-(``[\\w']+|[.?:]``). Vocab is fit only on the training corpus; the codec JSON is
-shipped with the package so serve/bench need no host BPE.
+(``[\\w']+|[.?:]`` — same as ``probe_estate2.py``). Vocab is fit only on the training
+corpus; the codec JSON is shipped with the package so serve/bench need no host BPE.
+
+Future codecs (corpus BPE, byte/adaptive dictionary) should implement the same surface:
+``encode``, ``token_str``, ``from_file``, ``save``, ``hash`` — see roadmap Phase 1 L2/L3.
 """
 
 from __future__ import annotations

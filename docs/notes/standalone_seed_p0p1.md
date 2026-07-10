@@ -3,6 +3,16 @@
 **Goal.** Kill remaining host-LLM scaffold on bAbI: no soft SGD, no host BPE
 tokenizer, no teacher labels/embeds — still host-free package at serve.
 
+**Roadmap position** (S2-full phases from the standalone design thread):
+
+| Phase | Focus | This PR |
+|---|---|---|
+| 0 | Soft-off (counts+sleep) | **P0 done** |
+| 1a/1b | Geometry random + alphabet | **P1 word done**; L2 corpus-BPE later for open text |
+| 2 | Induced relational/world forms | next (estate without hand json) |
+| 3 | Corpus-mined / self queries | next |
+| 4 | Full formal independence | trail |
+
 ## Configuration
 
 | knob | value |
