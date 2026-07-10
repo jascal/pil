@@ -95,7 +95,15 @@ if not TOKJ and "qwen" in TAG.lower():
     _tok = REPO / "data" / "qwen3b.tokenizer.json"
     if _tok.exists():
         TOKJ = str(_tok)
-if "qwen" in TAG.lower() and not os.environ.get("WYLY_EMBED"):
+# Label source for wake / tables: "teacher" = host LM decisions (distillation);
+# "corpus" = stream next-token from the window file (standalone: no teacher file).
+LABELS = os.environ.get("WYLY_LABELS", "teacher")
+# Soft-student concept geometry: "grounded" = host embed PCA; "random" = no host geometry.
+CONCEPT_INIT = os.environ.get("WYLY_CONCEPT_INIT", "grounded")
+PKG_SUFFIX = os.environ.get("WYLY_PKG_SUFFIX", "")           # e.g. _e0 / _e1 package dirs
+# Only auto-wire host embeds when grounded init is requested (standalone arms use random).
+if (CONCEPT_INIT == "grounded" and "qwen" in TAG.lower()
+        and not os.environ.get("WYLY_EMBED")):
     _emb = REPO / "data" / "qwen3b_embed.npy"
     if _emb.exists():
         os.environ["WYLY_EMBED"] = str(_emb)
@@ -111,18 +119,27 @@ STATE = REPO / "data" / (f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' e
                          f"{'_cn' if CONCEPTS else ''}{'_pt' if POINTER else ''}"
                          f"{'_tp' if TPOINTER else ''}{'_dx' if DX else ''}"
                          f"{'_cx' if CX else ''}{'_gr' if GROW else ''}"
-                         f"{'_f' + str(FOLDS) if FOLDS else ''}.pt")
+                         f"{'_f' + str(FOLDS) if FOLDS else ''}"
+                         f"{'_corp' if LABELS == 'corpus' else ''}"
+                         f"{'_rnd' if CONCEPT_INIT == 'random' else ''}.pt")
 ADMIT_F = REPO / "data" / f"wyly_v5_{LIB}_{TAG}_{DS}{'_cov' if JUDGE == 'cover' else ''}_admitted.json"
 DEV, V = v2.DEV, v2.V
 
 
 def load_ds():
     d = torch.load(DATA, map_location="cpu")
-    ids, teacher = d["kept_ids"], torch.load(TEACH, map_location="cpu")["teacher"]
-    keep = torch.isin(teacher, torch.bincount(teacher).argsort(descending=True)[:V])
-    ids, teacher = ids[keep], teacher[keep]
+    ids = d["kept_ids"]
+    if LABELS == "corpus":
+        labels = d["target"]                                 # gold next-token in the stream
+        print(f"LABELS=corpus (stream next-token from {DATA.name}; no teacher file)",
+              flush=True)
+    else:
+        labels = torch.load(TEACH, map_location="cpu")["teacher"]
+        print(f"LABELS=teacher from {TEACH.name}", flush=True)
+    keep = torch.isin(labels, torch.bincount(labels).argsort(descending=True)[:V])
+    ids, labels = ids[keep], labels[keep]
     n, ell = ids.shape
-    flat = torch.cat([ids.reshape(-1), teacher])
+    flat = torch.cat([ids.reshape(-1), labels])
     uv, inv = flat.unique(return_inverse=True)
     ids, yv = inv[:n * ell].reshape(n, ell), inv[n * ell:]
     cls, y = yv.unique(return_inverse=True)
@@ -130,6 +147,19 @@ def load_ds():
     tr = torch.arange(int(0.85 * n), device=DEV)
     te = torch.arange(int(0.85 * n), n, device=DEV)
     return ids, y, cls, uv, tr, te
+
+
+def concept_init(uv: torch.Tensor) -> torch.Tensor:
+    """Soft-student concept rows: grounded (host embed PCA) or random (standalone)."""
+    from wyly_lm_bench import K0
+    if CONCEPT_INIT == "random":
+        g = torch.Generator().manual_seed(0)
+        c = torch.randn(len(uv), K0, generator=g)
+        c = (c - c.mean(0)) / c.std(0).clamp_min(1e-6)
+        print(f"CONCEPT_INIT=random ({tuple(c.shape)}; no host embed)", flush=True)
+        return c
+    print(f"CONCEPT_INIT=grounded (host embed PCA)", flush=True)
+    return grounded_init(uv)
 
 
 class KeyTable:
@@ -1778,7 +1808,9 @@ def emit_full(model, cls, uv, ts, vocab):
                           f"{ts.token_str(int(uv[cls[am[t]]]))!r} (n={int(mx[t])}/{int(tot[t])})"]})
     W = max((len(r["ctx"]) for r in rules_out if r.get("kind") == "ngram"), default=1)
     man = {"model": src, "cover": "support-weighted", "W": W, "n_rules": len(rules_out),
-           "origin": "teacher", "origin_model": TAG,          # unified-spec provenance axis
+           "origin": "document" if LABELS == "corpus" else "teacher",
+           "origin_model": "corpus" if LABELS == "corpus" else TAG,
+           "labels": LABELS, "concept_init": CONCEPT_INIT,
            "grounding": "grounding.txt",
            "strata_tau": STRATA_TAU if STRATA else None, "rules": rules_out}
     if derived_defs:
@@ -2316,12 +2348,12 @@ def main():
         print(f"gate grid ({len(gate_cands)}, proposer-selected at sleep): "
               f"{[n for n, _ in gate_cands]}")
 
-    ground = grounded_init(uv).to(DEV)
+    ground = concept_init(uv).to(DEV)
     ground = ground / ground.shape[1] ** 0.5
     torch.manual_seed(0)
     model = (WylyGrow if GROW else WylyV3)(ground, cls.cpu(), ell).to(DEV)
     log = []
-    print(f"\n{'episode':>8}{'teacher-agree':>15}{'copy-agree':>12}{'tier':>6}")
+    print(f"\n{'episode':>8}{'label-agree':>15}{'copy-agree':>12}{'tier':>6}")
     for ep, ch in enumerate(torch.chunk(fit, v2.EPISODES)):
         model.update_counts(ids[ch], y[ch], model.lut)
         for of in online_frames:
@@ -2551,8 +2583,8 @@ def main():
     full = v2.top1(model, ids, y, te)
     norules = v2.top1(model, ids, y, te, use_rules=False)
     cs_full, cs_norules = v2.top1(model, ids, y, cs), v2.top1(model, ids, y, cs, use_rules=False)
-    print(f"\nv5[{LIB}/{JUDGE}] {TAG}/{DS}: teacher-agreement {full:.3f} (ablated {norules:.3f}, "
-          f"marginal {full - norules:+.3f})")
+    print(f"\nv5[{LIB}/{JUDGE}] {TAG}/{DS}: label-agreement[{LABELS}] {full:.3f} "
+          f"(ablated {norules:.3f}, marginal {full - norules:+.3f})")
     print(f"  copy-subset {cs_full:.3f} (ablated {cs_norules:.3f}, marginal "
           f"{cs_full - cs_norules:+.3f})")
     print(f"  admitted: {[r[0] for r in model.rules]}")
@@ -2574,7 +2606,7 @@ def main():
         ts = TokenSpace.from_file(tok)
         man, skipped = emit_full(model, cls, uv, ts, vocab)
         pkg = REPO / "data" / ("wyly_expert_package_v5" if DS == "wikitext"
-                              else f"wyly_expert_package_v5_{DS}")
+                              else f"wyly_expert_package_v5_{DS}{PKG_SUFFIX}")
         pkg.mkdir(parents=True, exist_ok=True)
         (pkg / "manifest.json").write_text(json.dumps(man))
         shutil.copy(tok, pkg / "bundle.tokenizer.json")
