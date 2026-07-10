@@ -1315,6 +1315,34 @@ def load_queries(ts, uv, cls):
     return out
 
 
+def ensure_query_batches(uv, cls, *, required=False):
+    """Idempotent load of QUERY_BATCHES. Call before any candidate that mines slots/confs from
+    deployment (estate2, query-calibrated tables, ...). The qa3 Band-A residual was exactly this
+    ordering bug: construction ran while QUERY_BATCHES was still empty.
+
+    required=True asserts that WYLY_QUERIES is set and at least one batch is loaded -- use at
+    the head of deployment-first candidate builders to fail loud on future regressions.
+    """
+    global QUERY_BATCHES
+    if QUERY_BATCHES:
+        return QUERY_BATCHES
+    if not QUERIES:
+        if required:
+            raise RuntimeError(
+                "ensure_query_batches(required=True) but WYLY_QUERIES is unset; "
+                "deployment-first candidates need query batches before construction")
+        return QUERY_BATCHES
+    sys.path.insert(0, str(REPO))
+    from pil.tokens import TokenSpace as _TS
+    _qts = _TS.from_file(TOKJ if TOKJ else str(REPO.parent / "rosetta" / "models"
+                                               / "pythia70m" / "bundle.tokenizer.json"))
+    QUERY_BATCHES.extend(load_queries(_qts, uv, cls))
+    if required and not QUERY_BATCHES:
+        raise RuntimeError(
+            f"ensure_query_batches(required=True): loaded 0 batches from {QUERIES}")
+    return QUERY_BATCHES
+
+
 def query_agree(model, rules, cls, batches, fold=None, nfolds=3):
     """CHAIN-scored agreement on deployment queries: greedy-slide through the full answer and
     require every answer token to match -- first-token scoring is blind to generation-time
@@ -1729,12 +1757,7 @@ def main():
     # Loading them after candidate construction left QUERY_BATCHES empty at estate2 build time,
     # so "deployment-first" fell through to fit-window slots (' to'/' the') that fire on 0/1000
     # query tails -- perfect feature, ~0 cover-marginal (qa3 Band-A residual).
-    if QUERIES:
-        sys.path.insert(0, str(REPO))
-        from pil.tokens import TokenSpace as _TS
-        _qts = _TS.from_file(TOKJ if TOKJ else str(REPO.parent / "rosetta" / "models"
-                                                   / "pythia70m" / "bundle.tokenizer.json"))
-        QUERY_BATCHES.extend(load_queries(_qts, uv, cls))
+    ensure_query_batches(uv, cls)
     online_frames = []
     candidates = [(f"induction L={lm}", mir_induction_L(lm)) for lm in (1, 2, 3)]
     if LIB == "ext":                                         # tr (which contains val) leaks the val
@@ -2047,6 +2070,10 @@ def main():
                                               "avoid": avoid_set, "within": 7,
                                               "slot": slot}), min_keys=4)
             if ESTATE2 and "estate2" not in " ".join(n_ for n_, _ in candidates):
+                # Fail loud if WYLY_ESTATE2 is set but queries never loaded -- the exact
+                # regression that produced qa3 0.429 (fit-window slots on 0/1000 tails).
+                if QUERIES:
+                    ensure_query_batches(uv, cls, required=True)
                 import json as _json
                 e2 = _json.loads(Path(ESTATE2).read_text())
                 tokmap = {}

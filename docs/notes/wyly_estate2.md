@@ -140,10 +140,19 @@ So the feature was perfect (raw estate2/before 1.000 on judge queries) while the
 candidate never fired on deployment — cover-marginal ~0, served package stuck at 0.429.
 
 **Fix.** Load `WYLY_QUERIES` into `QUERY_BATCHES` immediately after fit/val split, **before** any
-candidate that mines slots or confs from deployment. Log line now prints
+candidate that mines slots or confs from deployment (`ensure_query_batches` in
+`experiments/wyly_lm_v5.py`; estate2 construction asserts `required=True` when both
+`WYLY_ESTATE2` and `WYLY_QUERIES` are set). Log line now prints
 `ESTATE2 mode=… slot=(…) from query|fit-window`.
 
-**Verification** (`experiments/diag_estate2_qa3.py`, `experiments/admit_estate2_qa3.py`):
+**Verification scripts** (reproducible repro of the broken path and the fix):
+
+- [`experiments/diag_estate2_qa3.py`](../../experiments/diag_estate2_qa3.py) — feature / gated /
+  table / arbitration matrix for mode=`is` and `before`
+- [`experiments/diag_estate2_tie.py`](../../experiments/diag_estate2_tie.py) — conf=1.0
+  tie-shadowing of estate2 by an earlier wrong rule (`c > conf` is strict)
+- [`experiments/admit_estate2_qa3.py`](../../experiments/admit_estate2_qa3.py) — minimal
+  admit → emit → serve bench
 
 | metric | before | after |
 |---|---|---|
@@ -153,3 +162,7 @@ candidate that mines slots or confs from deployment. Log line now prints
 
 Package: `data/wyly_expert_package_v5_babi3x_estate2` (estate2 dgate + counts). Scoreboard:
 **qa1 = 1.000 / qa2 = 0.778 / qa3 = 0.998**.
+
+**Named next frontier:** qa2 residual **0.778 → ceiling** (arbitration / multi-rule cover, not
+the estate2 form). Full mined multi-rule campaign with this load-order fix so estate2 lands
+beside pointer/kgrams rather than in an estate2-only package.
