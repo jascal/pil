@@ -67,6 +67,6 @@ new codecs implement `encode` / `token_str` / `from_file` / `save` / `hash` like
 
 ## Next P* targets (recommended order)
 
-1. **P2** — corpus-mined queries under VALREG (drop hand `wyly_queries_*.json`)
+1. **P2** — corpus-mined queries — **done** (see `standalone_p2_queries.md`)
 2. **P3** — induce estate member sets + take/drop without `WYLY_ESTATE2` json
 3. **P4** — `FoldOp` registry (estate as first citizen among inducible folds)
