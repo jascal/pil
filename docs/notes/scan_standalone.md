@@ -65,37 +65,75 @@ Block 2  — binary composition (and, after)
 Hard splits (length, addprim_jump) should show a **flat exact gap** and reward
 admitted compositional rules. bAbI could not show that (B1 empty at ceiling).
 
-## Learned admit + 2-block (follow-up)
+## Learned admit + 2-block
 
 Campaign: `experiments/campaign_scan_learned.py`
 
 | Method | What |
 |---|---|
-| **prims (fit)** | Short commands on 90% of train |
-| **learned_admit** | Greedy cover-marginal admission of combinators on 10% val |
+| **prims (fit)** | Short commands on 90% of train (bulk) |
+| **learned_admit** | Greedy val-marginal combinators; **`dir` always-on** (leaf syntax) |
 | **block0** | Prims only |
 | **block_stack** | B0 prims + B1 admitted combinators (`pil/wyly_block.py`) |
 
-### Scoreboard (exact-match action sequences)
+### Scoreboard (with leaf `dir` always-on)
 
 | split | exact | prim_compose | learned_admit | B0 prims | 2-block stack |
 |---|---:|---:|---:|---:|---:|
 | length | 0.000 | 0.916 | **0.916** | 0.000 | **0.916** |
-| addprim_jump | 0.000 | 0.935 | **0.644** | 0.000 | **0.644** |
-| simple | 0.000 | 0.539 | **0.399** | 0.000 | **0.399** |
+| addprim_jump | 0.000 | 0.935 | **0.935** | 0.000 | **0.935** |
+| simple | 0.000 | 0.539 | 0.291† | 0.000 | 0.291† |
 
-Combinators typically admitted (val order varies): `and`, `twice`/`thrice`, `opposite`,
-`after`, `around`. `dir` often not selected once others cover.
+† True-leaf + combinator path on simple is lower than bulk short-map prims (0.399) because
+fit misses some unigram leaves (`jump`/`run` land in val); bulk `len≤2` maps shortcut
+composition. Hard splits match prim_compose once `dir` is leaf syntax.
 
-**Reading:** length matches full prim_compose (combinators fully recoverable from val).
-addprim_jump gap (0.644 vs 0.935) is the systematicity hit — fit prims lack free `jump`.
-Block stack = flat learned (depth is organizational until residual rules differ by block).
+**Lesson (dir):** Gating `P left/right` as an admit-able combinator collapses addprim
+systematicity (0.644): val never contains `jump left`, only bare `jump`, so `dir` has
+zero val marginal but is required at test. Phrase formation is B0 lexicon syntax, not B1.
+
+## Prim admit + 3-block
+
+Campaign: `experiments/campaign_scan_prims.py`
+
+| Layer | What |
+|---|---|
+| **B0** | Greedy admit true leaves (unigram + `turn L/R`) scored under full combinator grammar |
+| **B1+B2** | Joint greedy admit over unary∪binary; partition into B1 unary / B2 binary for provenance |
+| **staged diag** | Unary-then-binary without joint pool (credit-assignment stress test) |
+
+### Scoreboard
+
+| split | exact | prim_compose | flat+dir | B0+full | **stack** | staged B1→B2 | fit leaves |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| length | 0.000 | 0.916 | 0.916 | 0.916 | **0.916** | 0.916 | 0.916 |
+| addprim_jump | 0.000 | 0.935 | 0.935 | 0.935 | **0.935** | **0.079** | 0.935 |
+| simple | 0.000 | 0.539 | 0.291 | 0.291 | **0.291** | 0.177 | 0.291 |
+
+Admitted prims (hard splits): `jump`, `look`, `run`, `walk`. Unary: `twice/thrice/around/opposite`.
+Binary: `and`, `after`.
+
+**Lessons:**
+
+1. **Prims need the grammar to show marginal.** Isolated B0 (no combinators) admits almost
+   nothing on composed val; score leaves under full unary∪binary.
+2. **Unary/binary synergy.** On addprim, nearly every `around` val command also needs
+   `and`/`after`, so staged unary-then-binary stalls at 0.079; joint combinator admit
+   recovers 0.935. Blocks are structured provenance; admission must be joint when
+   operators co-occur.
+3. **Hard splits closed** to the train-mined prim_compose ceiling. Remaining simple gap
+   is fit-leaf coverage (90/10), not composition operators.
+
+```bash
+.venv/bin/python -u experiments/campaign_scan_learned.py
+.venv/bin/python -u experiments/campaign_scan_prims.py
+```
 
 ## Next
 
-1. Admit **prims** (not only combinators) by marginal; residual B2 for nested and/after.
-2. Action-sequence tables / next-action KeyTables as flat neural-free seq2seq baseline.
-3. CFQ for nested relational composition.
+1. Action-sequence tables / next-action KeyTables as flat neural-free seq2seq baseline.
+2. CFQ for nested relational composition.
+3. Residual block rules that differ by depth (not only partitioned provenance).
 
 Cross-links: `pil/wyly_block.py`, `experiments/campaign_wyly_blocks.py`,
-`experiments/campaign_scan_learned.py`.
+`experiments/campaign_scan_learned.py`, `experiments/campaign_scan_prims.py`.
