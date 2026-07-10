@@ -195,3 +195,11 @@ Campaign: `experiments/campaign_babi_bandb.py` → `data/bandb_scoreboard.json`.
 | qa1 (estate) | 1.000 | 1.000 |
 | qa2 (estate2/is) | **0.778** | **1.000** |
 | qa3 (estate2/before) | **0.429** → 0.998 alone | **0.998** multi-rule |
+
+## Postscript 6: E0 / E1 — no teacher labels or embeds
+
+See [`standalone_e0e1.md`](standalone_e0e1.md). With `WYLY_LABELS=corpus` and
+`WYLY_CONCEPT_INIT=random` (no teacher file, no host embed), served qa2/qa3 still
+**1.000 / 0.998**. E1 turns on ConceptSpace; concepts form (~27–54) but do not
+enter the final package once estate2 is admitted. Soft label-agree drops without
+the teacher; the certified package does not.
