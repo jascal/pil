@@ -174,7 +174,7 @@ Notes: `docs/notes/wyly_multilayer.md`
 ## Next
 
 1. Block-private residual templates on simple residual (~0.37 miss).
-2. CFQ relational admit (`docs/notes/cfq_standalone.md`).
+2. CFQ relational admit (`docs/notes/cfq_standalone.md`) — nested SPARQL graph patterns.
 3. Estate2-style shared world state in block residual.
 
 Cross-links: `pil/wyly_block.py`, `experiments/campaign_wyly_blocks.py`,
