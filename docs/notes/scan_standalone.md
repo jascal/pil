@@ -129,11 +129,44 @@ Binary: `and`, `after`.
 .venv/bin/python -u experiments/campaign_scan_prims.py
 ```
 
+## Next-action tables (flat seq2seq baseline)
+
+Campaign: `experiments/campaign_scan_seq.py`
+
+Majority next-action tables (Python dict; int64 KeyTable packing overflows for full cmds).
+Autoregressive exact-match vs teacher-forced token accuracy.
+
+| Method | Key → value |
+|---|---|
+| **step** | `(full cmd, t)` → `action[t]` |
+| **hist** | `(full cmd, last-W acts)` → next / EOS |
+| **bag_hist** | `(frozenset(cmd), last-W)` → next |
+| **suf_hist** | `(cmd[-K:], last-W)` → next |
+| **hist_only** | `last-W acts` → next (action LM) |
+
+### Scoreboard (AR exact-match full sequences | selected TF)
+
+| split | exact | prim_compose | AR step/hist | AR bag | AR suf | TF bag | TF suf |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| length | 0.000 | **0.916** | 0.000 | 0.000 | 0.000 | 0.809 | 0.709 |
+| addprim_jump | 0.000 | **0.935** | 0.000 | 0.000 | 0.000 | 0.000 | 0.252 |
+| simple | 0.000 | **0.539** | 0.000 | 0.001 | 0.000 | 0.809 | 0.800 |
+
+**Reading:** Full-command next-action tables never transfer (unique cmds) → AR exact ~0.
+Shared features (bag/suffix) can get **high teacher-forced** next-token acc on length/simple
+but still collapse on full-sequence AR (one miss derails; EOS/length wrong). addprim bags
+with `jump` do not appear in train compositions → TF bag ~0. Compositional admit remains
+the only path that closes hard splits.
+
+```bash
+.venv/bin/python -u experiments/campaign_scan_seq.py
+```
+
 ## Next
 
-1. Action-sequence tables / next-action KeyTables as flat neural-free seq2seq baseline.
-2. CFQ for nested relational composition.
-3. Residual block rules that differ by depth (not only partitioned provenance).
+1. CFQ for nested relational composition.
+2. Residual block rules that differ by depth (not only partitioned provenance).
 
 Cross-links: `pil/wyly_block.py`, `experiments/campaign_wyly_blocks.py`,
-`experiments/campaign_scan_learned.py`, `experiments/campaign_scan_prims.py`.
+`experiments/campaign_scan_learned.py`, `experiments/campaign_scan_prims.py`,
+`experiments/campaign_scan_seq.py`.
