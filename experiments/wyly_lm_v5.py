@@ -36,16 +36,19 @@ from wyly_lm_v3 import WylyV3, mir_induction_L
 REPO = Path(__file__).resolve().parent.parent
 TAG = os.environ.get("WYLY_TAG", "pythia70m")
 DS = os.environ.get("WYLY_DS", "wikitext")
+# B3: bAbI paths freeze deployment-first defaults (cover-sw + query/estate2 paths when files
+# exist). Explicit env still wins. Non-babi keeps historical soft / no-sw defaults.
+_BABI = "babi" in DS
 LIB = os.environ.get("WYLY_LIB", "ext")
-JUDGE = os.environ.get("WYLY_JUDGE", "soft")                 # soft = sec-8.6 baseline; cover = design dir 1
+JUDGE = os.environ.get("WYLY_JUDGE", "cover" if _BABI else "soft")  # soft = sec-8.6; cover = dir 1
 ONLINE = os.environ.get("WYLY_ONLINE", "") == "1"            # design dir 5: online k-gram tiers
-SWCOVER = os.environ.get("WYLY_COVER", "") == "sw"           # design dir 2: support-weighted cover
+SWCOVER = os.environ.get("WYLY_COVER", "sw" if _BABI else "") == "sw"  # design dir 2
 EMIT = os.environ.get("WYLY_EMIT", "") == "1"                # emit the rosetta package (relation kind)
 CONCEPTS = os.environ.get("WYLY_CONCEPTS", "") == "1"        # concept induction + class frames
-POINTER = os.environ.get("WYLY_POINTER", "") == "1"          # pointer rules (build-order 2)
+POINTER = os.environ.get("WYLY_POINTER", "1" if _BABI else "") == "1"  # pointer rules
 TPOINTER = os.environ.get("WYLY_TPOINTER", "") == "1"        # transform-composed pointers (5 o 2)
 GROW = os.environ.get("WYLY_GROW", "") == "1"                # append-only concept growth (13+14)
-CX = os.environ.get("WYLY_CX", "") == "1"                    # concept extensions: cluster-scoped
+CX = os.environ.get("WYLY_CX", "1" if _BABI else "") == "1"  # derived gates (estate2 lives here)
 DX = os.environ.get("WYLY_DX", "") == "1"                    # detection extensions: MDL judge +
 MDL_LAM = float(os.environ.get("WYLY_MDL_LAM", "1e-8"))     # key-level retreat + anti-unification
 FOLDS = int(os.environ.get("WYLY_FOLDS", "0"))               # multi-fold admission (0 = off)
@@ -61,11 +64,41 @@ def SAFE_KGRAMS(vocab):
 ECHO_SUCCS = tuple(int(x) for x in os.environ.get("WYLY_ECHO_SUCCS", "1").split(","))
 VALREG = os.environ.get("WYLY_VAL_REGION", "") == "1"        # judge on a HELD-OUT corpus REGION
 TUPLE = os.environ.get("WYLY_TUPLE", "") == "1"              # tuple-keyed tiers: exact, any reach
+# Auto-wire query / estate2 files for known bAbI dataset tags when env is unset.
+def _babi_paths(ds):
+    if ds in ("babi2",):
+        return (REPO / "data" / "wyly_queries_babi_qa2.json",
+                REPO / "data" / "wyly_estate2_qa2.json")
+    if ds in ("babi3", "babi3x"):
+        return (REPO / "data" / "wyly_queries_babi_qa3.json",
+                REPO / "data" / "wyly_estate2_qa3.json")
+    if ds in ("babi",):
+        return (REPO / "data" / "wyly_queries_babi.json", None)
+    return (None, None)
+
+
+_q_default, _e2_default = _babi_paths(DS)
 QUERIES = os.environ.get("WYLY_QUERIES", "")                 # QUERY-SHAPED judging: val = deployment
+if not QUERIES and _q_default and _q_default.exists():
+    QUERIES = str(_q_default)
 QUERY_PAD = 24                                               # queries left-padded to >= max offset
+# Pack length-groups into one left-padded batch (default on for bAbI): admission/query_agree
+# were O(n_groups) host launches; packing preserves semantics and makes estate2 tractable.
+QUERY_PACK = os.environ.get("WYLY_QUERY_PACK", "1" if _BABI else "0") == "1"
 STRATA = os.environ.get("WYLY_STRATA", "") == "1"            # stratified admission + fall-through
 STRATA_TAU = float(os.environ.get("WYLY_STRATA_TAU", "0.35"))
 ESTATE2 = os.environ.get("WYLY_ESTATE2", "")                 # mined world-state sets (json)
+if not ESTATE2 and _e2_default and _e2_default.exists():
+    ESTATE2 = str(_e2_default)
+# Non-pythia teachers: auto-pick local tokenizer/embed when present (qwen3b bAbI ladder).
+if not TOKJ and "qwen" in TAG.lower():
+    _tok = REPO / "data" / "qwen3b.tokenizer.json"
+    if _tok.exists():
+        TOKJ = str(_tok)
+if "qwen" in TAG.lower() and not os.environ.get("WYLY_EMBED"):
+    _emb = REPO / "data" / "qwen3b_embed.npy"
+    if _emb.exists():
+        os.environ["WYLY_EMBED"] = str(_emb)
 RULE_SIZE = {}                                               # name -> callable -> table entries
 CONCEPTS_CMAP = [None]                                       # cmap holder for package emission
 ALPHA = 2.0                                                  # Laplace shrinkage for confidence
@@ -1315,6 +1348,28 @@ def load_queries(ts, uv, cls):
     return out
 
 
+def pack_query_batches(batches):
+    """Left-pad all length groups into a single batch. Same chain-scoring semantics; far fewer
+    estate2 / cover kernel launches when stories vary widely in length (bAbI qa3: 531 groups)."""
+    if not batches or len(batches) == 1:
+        return batches
+    maxL = max(q.shape[1] for q, _ in batches)
+    maxA = max(a.shape[1] for _, a in batches)
+    qs, ans = [], []
+    for qids, qans in batches:
+        B, L = qids.shape
+        if L < maxL:
+            qids = torch.cat([qids[:, :1].expand(B, maxL - L), qids], 1)
+        if qans.shape[1] < maxA:
+            pad = torch.full((B, maxA - qans.shape[1]), -1, device=qans.device, dtype=qans.dtype)
+            qans = torch.cat([qans, pad], 1)
+        qs.append(qids)
+        ans.append(qans)
+    n = sum(len(a) for a in ans)
+    print(f"query pack: {len(batches)} length groups -> 1 batch (n={n}, L={maxL})")
+    return [(torch.cat(qs), torch.cat(ans))]
+
+
 def ensure_query_batches(uv, cls, *, required=False):
     """Idempotent load of QUERY_BATCHES. Call before any candidate that mines slots/confs from
     deployment (estate2, query-calibrated tables, ...). The qa3 Band-A residual was exactly this
@@ -1336,7 +1391,10 @@ def ensure_query_batches(uv, cls, *, required=False):
     from pil.tokens import TokenSpace as _TS
     _qts = _TS.from_file(TOKJ if TOKJ else str(REPO.parent / "rosetta" / "models"
                                                / "pythia70m" / "bundle.tokenizer.json"))
-    QUERY_BATCHES.extend(load_queries(_qts, uv, cls))
+    loaded = load_queries(_qts, uv, cls)
+    if QUERY_PACK:
+        loaded = pack_query_batches(loaded)
+    QUERY_BATCHES.extend(loaded)
     if required and not QUERY_BATCHES:
         raise RuntimeError(
             f"ensure_query_batches(required=True): loaded 0 batches from {QUERIES}")
