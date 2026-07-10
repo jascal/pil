@@ -1724,6 +1724,17 @@ def main():
     else:
         val = tr[torch.randperm(len(tr), generator=g)[:v2.NVAL]]
         fit = tr[~torch.isin(tr, val)]                       # tables are fit on FIT ONLY -- fitting on
+    # QUERY-SHAPED batches MUST be loaded BEFORE any candidate that mines slots / confs from
+    # deployment (estate2 deployment-first slot, query-calibrated identity tables, etc.).
+    # Loading them after candidate construction left QUERY_BATCHES empty at estate2 build time,
+    # so "deployment-first" fell through to fit-window slots (' to'/' the') that fire on 0/1000
+    # query tails -- perfect feature, ~0 cover-marginal (qa3 Band-A residual).
+    if QUERIES:
+        sys.path.insert(0, str(REPO))
+        from pil.tokens import TokenSpace as _TS
+        _qts = _TS.from_file(TOKJ if TOKJ else str(REPO.parent / "rosetta" / "models"
+                                                   / "pythia70m" / "bundle.tokenizer.json"))
+        QUERY_BATCHES.extend(load_queries(_qts, uv, cls))
     online_frames = []
     candidates = [(f"induction L={lm}", mir_induction_L(lm)) for lm in (1, 2, 3)]
     if LIB == "ext":                                         # tr (which contains val) leaks the val
@@ -2081,6 +2092,10 @@ def main():
                             pr2 = ids[samp2][hit2][:, -2] * (vocab + 1) + ids[samp2][hit2][:, -1]
                         t2 = pr2.bincount().argmax()
                         sl2 = (int(t2) // (vocab + 1), int(t2) % (vocab + 1))
+                        _slot_src = "query" if QUERY_BATCHES else "fit-window"
+                        print(f"ESTATE2 mode={mode}: slot=({_ts.token_str(int(uv[sl2[0]]))!r},"
+                              f"{_ts.token_str(int(uv[sl2[1]]))!r}) from {_slot_src} "
+                              f"({len(pr2)} hits)", flush=True)
                         def e2fn(w, sets_=e2sets, mode_=mode, sl_=sl2):
                             f_ = estate2_feature(w, sets_, mode=mode_)
                             oks = (w[:, -2] == sl_[0]) & (w[:, -1] == sl_[1])
@@ -2216,12 +2231,6 @@ def main():
         print(f"gate grid ({len(gate_cands)}, proposer-selected at sleep): "
               f"{[n for n, _ in gate_cands]}")
 
-    if QUERIES:
-        sys.path.insert(0, str(REPO))
-        from pil.tokens import TokenSpace as _TS
-        _qts = _TS.from_file(TOKJ if TOKJ else str(REPO.parent / "rosetta" / "models"
-                                                   / "pythia70m" / "bundle.tokenizer.json"))
-        QUERY_BATCHES.extend(load_queries(_qts, uv, cls))
     ground = grounded_init(uv).to(DEV)
     ground = ground / ground.shape[1] ** 0.5
     torch.manual_seed(0)

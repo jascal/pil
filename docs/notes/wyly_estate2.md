@@ -123,3 +123,33 @@ And the honest anomaly: with the fix verified in-run, estate2/before STILL propo
 — slot-invariant, over a perfect feature. Served qa3 stays 0.429. The next diagnostic is
 in-run: log the mined slot and a gate-level query_agree inside the proposer. qa1 1.000 /
 qa2 0.778 / qa3 0.429-with-a-perfect-feature-waiting.
+
+## Postscript 4: Band-A residual closed — QUERY_BATCHES load order
+
+**Root cause (2026-07-10).** Deployment-first slot mining was correct *in code* but dead at
+runtime: `QUERY_BATCHES` was populated **after** estate2 candidate construction
+(`wyly_lm_v5.py` main). At build time `QUERY_BATCHES` was always empty, so estate2 fell through
+to fit-window slot mining:
+
+| path | chosen slot | fires on qa3 query tails |
+|---|---|---|
+| fit-window (what actually ran) | `' to'` + `' the'` | **0 / 1000** |
+| query (intended) | `' A'` + `':'` | **1000 / 1000** |
+
+So the feature was perfect (raw estate2/before 1.000 on judge queries) while the **gated**
+candidate never fired on deployment — cover-marginal ~0, served package stuck at 0.429.
+
+**Fix.** Load `WYLY_QUERIES` into `QUERY_BATCHES` immediately after fit/val split, **before** any
+candidate that mines slots or confs from deployment. Log line now prints
+`ESTATE2 mode=… slot=(…) from query|fit-window`.
+
+**Verification** (`experiments/diag_estate2_qa3.py`, `experiments/admit_estate2_qa3.py`):
+
+| metric | before | after |
+|---|---|---|
+| estate2/before COVER marginal (vs counts) | ~+0.005 | **+0.502** |
+| chain query_agree (estate2 cover) | — | **1.000** |
+| **served babi_qa3 bench** | **0.429** | **0.998** (998/1000) |
+
+Package: `data/wyly_expert_package_v5_babi3x_estate2` (estate2 dgate + counts). Scoreboard:
+**qa1 = 1.000 / qa2 = 0.778 / qa3 = 0.998**.
