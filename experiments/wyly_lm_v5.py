@@ -19,7 +19,11 @@ Env (selected):
                                   *corpus* = stream next-token from the window file (no teacher file)
   WYLY_CONCEPT_INIT=grounded|random -- soft-student geometry; default *grounded* (host embed PCA).
                                   *random* = no host embed (standalone arms)
-  WYLY_PKG_SUFFIX               -- optional package dir suffix (e.g. _e0 / _e1)
+  WYLY_SOFT=1|0                 -- soft SGD wake; *0* = counts+sleep only (P0)
+  WYLY_ALPHABET=host|word       -- host BPE TokenSpace vs corpus WordCodec (P1)
+  WYLY_ALPHABET_PATH            -- path to alphabet_*.json when alphabet=word
+  WYLY_ORIGIN                   -- package provenance override (e.g. standalone)
+  WYLY_PKG_SUFFIX               -- optional package dir suffix (e.g. _standalone)
   bAbI DS tags also auto-default cover-sw, QUERIES/ESTATE2 paths, QUERY_PACK (see module body)
 
 Run: cd pil && WYLY_TAG=pythia70m .venv/bin/python experiments/wyly_lm_v5.py
@@ -71,10 +75,10 @@ VALREG = os.environ.get("WYLY_VAL_REGION", "") == "1"        # judge on a HELD-O
 TUPLE = os.environ.get("WYLY_TUPLE", "") == "1"              # tuple-keyed tiers: exact, any reach
 # Auto-wire query / estate2 files for known bAbI dataset tags when env is unset.
 def _babi_paths(ds):
-    if ds in ("babi2",):
+    if ds in ("babi2", "babi2_word"):
         return (REPO / "data" / "wyly_queries_babi_qa2.json",
                 REPO / "data" / "wyly_estate2_qa2.json")
-    if ds in ("babi3", "babi3x"):
+    if ds in ("babi3", "babi3x", "babi3x_word"):
         return (REPO / "data" / "wyly_queries_babi_qa3.json",
                 REPO / "data" / "wyly_estate2_qa3.json")
     if ds in ("babi",):
@@ -95,8 +99,17 @@ STRATA_TAU = float(os.environ.get("WYLY_STRATA_TAU", "0.35"))
 ESTATE2 = os.environ.get("WYLY_ESTATE2", "")                 # mined world-state sets (json)
 if not ESTATE2 and _e2_default and _e2_default.exists():
     ESTATE2 = str(_e2_default)
-# Non-pythia teachers: auto-pick local tokenizer/embed when present (qwen3b bAbI ladder).
-if not TOKJ and "qwen" in TAG.lower():
+# Alphabet: host = HF/BPE TokenSpace; word = corpus WordCodec (P1 standalone).
+ALPHABET = os.environ.get("WYLY_ALPHABET", "host")           # host | word
+ALPHABET_PATH = os.environ.get("WYLY_ALPHABET_PATH", "")
+if not ALPHABET_PATH and ALPHABET == "word":
+    _ap = REPO / "data" / f"alphabet_{DS}.json"
+    if _ap.exists():
+        ALPHABET_PATH = str(_ap)
+# Soft student SGD (P0): 0 = counts + sleep only (no wake backprop).
+SOFT = os.environ.get("WYLY_SOFT", "1") == "1"
+# Non-pythia teachers: auto-pick local tokenizer only for *host* alphabet.
+if ALPHABET == "host" and not TOKJ and "qwen" in TAG.lower():
     _tok = REPO / "data" / "qwen3b.tokenizer.json"
     if _tok.exists():
         TOKJ = str(_tok)
@@ -106,8 +119,9 @@ LABELS = os.environ.get("WYLY_LABELS", "teacher")
 # Soft-student concept geometry: "grounded" = host embed PCA; "random" = no host geometry.
 CONCEPT_INIT = os.environ.get("WYLY_CONCEPT_INIT", "grounded")
 PKG_SUFFIX = os.environ.get("WYLY_PKG_SUFFIX", "")           # e.g. _e0 / _e1 package dirs
+ORIGIN = os.environ.get("WYLY_ORIGIN", "")                   # optional provenance override
 # Only auto-wire host embeds when grounded init is requested (standalone arms use random).
-if (CONCEPT_INIT == "grounded" and "qwen" in TAG.lower()
+if (ALPHABET == "host" and CONCEPT_INIT == "grounded" and "qwen" in TAG.lower()
         and not os.environ.get("WYLY_EMBED")):
     _emb = REPO / "data" / "qwen3b_embed.npy"
     if _emb.exists():
@@ -157,14 +171,40 @@ def load_ds():
 def concept_init(uv: torch.Tensor) -> torch.Tensor:
     """Soft-student concept rows: grounded (host embed PCA) or random (standalone)."""
     from wyly_lm_bench import K0
-    if CONCEPT_INIT == "random":
+    if CONCEPT_INIT == "random" or ALPHABET == "word":
+        # Word alphabet has no host embed table; always random geometry.
         g = torch.Generator().manual_seed(0)
         c = torch.randn(len(uv), K0, generator=g)
         c = (c - c.mean(0)) / c.std(0).clamp_min(1e-6)
-        print(f"CONCEPT_INIT=random ({tuple(c.shape)}; no host embed)", flush=True)
+        print(f"CONCEPT_INIT=random ({tuple(c.shape)}; alphabet={ALPHABET})", flush=True)
         return c
     print(f"CONCEPT_INIT=grounded (host embed PCA)", flush=True)
     return grounded_init(uv)
+
+
+def load_codec():
+    """TokenSpace (host BPE) or WordCodec (corpus word alphabet)."""
+    sys.path.insert(0, str(REPO))
+    if ALPHABET == "word":
+        from pil.alphabet import WordCodec
+        path = ALPHABET_PATH or str(REPO / "data" / f"alphabet_{DS}.json")
+        print(f"ALPHABET=word codec={path}", flush=True)
+        return WordCodec.from_file(path)
+    from pil.tokens import TokenSpace
+    path = TOKJ if TOKJ else str(REPO.parent / "rosetta" / "models" / "pythia70m"
+                                 / "bundle.tokenizer.json")
+    print(f"ALPHABET=host codec={path}", flush=True)
+    return TokenSpace.from_file(path)
+
+
+def provenance_origin() -> str:
+    if ORIGIN:
+        return ORIGIN
+    if LABELS == "corpus" and (CONCEPT_INIT == "random" or ALPHABET == "word") and not SOFT:
+        return "standalone"
+    if LABELS == "corpus":
+        return "document"
+    return "teacher"
 
 
 class KeyTable:
@@ -1422,10 +1462,7 @@ def ensure_query_batches(uv, cls, *, required=False):
                 "ensure_query_batches(required=True) but WYLY_QUERIES is unset; "
                 "deployment-first candidates need query batches before construction")
         return QUERY_BATCHES
-    sys.path.insert(0, str(REPO))
-    from pil.tokens import TokenSpace as _TS
-    _qts = _TS.from_file(TOKJ if TOKJ else str(REPO.parent / "rosetta" / "models"
-                                               / "pythia70m" / "bundle.tokenizer.json"))
+    _qts = load_codec()
     loaded = load_queries(_qts, uv, cls)
     if QUERY_PACK:
         loaded = pack_query_batches(loaded)
@@ -1813,11 +1850,19 @@ def emit_full(model, cls, uv, ts, vocab):
                           f"{ts.token_str(int(uv[cls[am[t]]]))!r} (n={int(mx[t])}/{int(tot[t])})"]})
     W = max((len(r["ctx"]) for r in rules_out if r.get("kind") == "ngram"), default=1)
     man = {"model": src, "cover": "support-weighted", "W": W, "n_rules": len(rules_out),
-           "origin": "document" if LABELS == "corpus" else "teacher",
+           "origin": provenance_origin(),
            "origin_model": "corpus" if LABELS == "corpus" else TAG,
-           "labels": LABELS, "concept_init": CONCEPT_INIT,
+           "labels": LABELS, "concept_init": CONCEPT_INIT if SOFT else "none",
+           "soft_student": SOFT, "alphabet": ALPHABET,
            "grounding": "grounding.txt",
            "strata_tau": STRATA_TAU if STRATA else None, "rules": rules_out}
+    if ALPHABET == "word" and ALPHABET_PATH:
+        man["alphabet_file"] = Path(ALPHABET_PATH).name
+        try:
+            from pil.alphabet import WordCodec as _WC
+            man["alphabet_hash"] = _WC.from_file(ALPHABET_PATH).hash()
+        except Exception:
+            pass
     if derived_defs:
         man["derived"] = derived_defs
     if need_concepts and CONCEPTS_CMAP[0] is not None:
@@ -1946,11 +1991,7 @@ def main():
         else:
             tpointer = None
         if CX:                                               # 15 v1: derived-feature gate (mate)
-            sys.path.insert(0, str(REPO))
-            from pil.tokens import TokenSpace
-            _ts = TokenSpace.from_file(TOKJ if TOKJ else
-                                       REPO.parent / "rosetta" / "models" / "pythia70m"
-                                       / "bundle.tokenizer.json")
+            _ts = load_codec()
             opl, cll = bracket_sets(uv, _ts)
             is_open = torch.zeros(vocab, dtype=torch.bool, device=DEV)
             is_close = torch.zeros(vocab, dtype=torch.bool, device=DEV)
@@ -2358,12 +2399,15 @@ def main():
     torch.manual_seed(0)
     model = (WylyGrow if GROW else WylyV3)(ground, cls.cpu(), ell).to(DEV)
     log = []
+    wake_steps = v2.WAKE_STEPS if SOFT else 0
+    print(f"SOFT={int(SOFT)} wake_steps={wake_steps} alphabet={ALPHABET} "
+          f"origin={provenance_origin()}", flush=True)
     print(f"\n{'episode':>8}{'label-agree':>15}{'copy-agree':>12}{'tier':>6}")
     for ep, ch in enumerate(torch.chunk(fit, v2.EPISODES)):
         model.update_counts(ids[ch], y[ch], model.lut)
         for of in online_frames:
             of.update(ids[ch], yv[ch])
-        for _ in range(v2.WAKE_STEPS):
+        for _ in range(wake_steps):                          # P0: SOFT=0 → counts-only wake
             bi = ch[torch.randint(len(ch), (v2.BATCH,), generator=g)]
             model.zero_grad(set_to_none=True)
             F.cross_entropy(model(ids[bi]), y[bi]).backward()
@@ -2605,19 +2649,29 @@ def main():
     if EMIT:
         import shutil
         sys.path.insert(0, str(REPO))
-        from pil.tokens import TokenSpace
-        tok = Path(TOKJ) if TOKJ else (REPO.parent / "rosetta" / "models" / "pythia70m"
-                                       / "bundle.tokenizer.json")
-        ts = TokenSpace.from_file(tok)
+        ts = load_codec()
         man, skipped = emit_full(model, cls, uv, ts, vocab)
         pkg = REPO / "data" / ("wyly_expert_package_v5" if DS == "wikitext"
                               else f"wyly_expert_package_v5_{DS}{PKG_SUFFIX}")
         pkg.mkdir(parents=True, exist_ok=True)
         (pkg / "manifest.json").write_text(json.dumps(man))
-        shutil.copy(tok, pkg / "bundle.tokenizer.json")
-        corp = REPO / "data" / f"corpus_{DS}.txt"             # grounding sidecar: the source
-        if corp.exists():                                     # text behind the rules --
-            shutil.copy(corp, pkg / "grounding.txt")          # attestation (stratum 0)
+        if ALPHABET == "word" and ALPHABET_PATH:
+            shutil.copy(ALPHABET_PATH, pkg / "alphabet.json")
+            # also as bundle.tokenizer.json name for tools that only look for that file name
+            shutil.copy(ALPHABET_PATH, pkg / "bundle.tokenizer.json")
+        else:
+            tok = Path(TOKJ) if TOKJ else (REPO.parent / "rosetta" / "models" / "pythia70m"
+                                           / "bundle.tokenizer.json")
+            shutil.copy(tok, pkg / "bundle.tokenizer.json")
+        for corp_name in (f"corpus_{DS}.txt",
+                          "corpus_babi_qa2.txt" if "babi2" in DS else "",
+                          "corpus_babi_qa3.txt" if "babi3" in DS else ""):
+            if not corp_name:
+                continue
+            corp = REPO / "data" / corp_name
+            if corp.exists():
+                shutil.copy(corp, pkg / "grounding.txt")
+                break
         kinds = {}
         for r in man["rules"]:
             kinds[r["kind"]] = kinds.get(r["kind"], 0) + 1
