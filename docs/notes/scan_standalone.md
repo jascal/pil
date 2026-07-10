@@ -34,9 +34,10 @@ grammar (train/test partition unique commands). Composition is the only path.
 |---|---:|---:|---:|---:|---:|
 | length | 0.000 | 0.000 | **1.000** | 1.000 | 3920 |
 | addprim_jump | 0.000 | 0.000 | **1.000** | 1.000 | 7706 |
-| simple | 0.000 | 0.000 | **0.629** | 0.629 | 4182 |
+| simple | 0.000 | 0.000 | **1.000** | 1.000 | 4182 |
 
-*(After `turn around L/R` = four turns in `expand`; prior residual was ~0.916 / 0.935 / 0.539.)*
+*(After `turn around L/R` + residual bare leaves from short composites; earlier
+ceilings were ~0.916 / 0.935 / 0.539 then 1.0 / 1.0 / 0.629.)*
 
 Exact is ~0 even on `simple` because full command strings are unique in the generative
 grammar (no train/test command collision). Composition is mandatory.
@@ -171,11 +172,16 @@ Campaign: `experiments/campaign_scan_multiblock.py`
 Foundation: `pil/wyly_block.py` (`scan_stack_spec`, carry modes, `admit_layer`)  
 Notes: `docs/notes/wyly_multilayer.md`
 
+## Residual templates (simple failure modes)
+
+Campaign: `experiments/campaign_scan_residual.py`  
+`induce_residual_leaves`: bare `run` etc. from `run twice` / `run left` short maps.
+Closes simple to **1.000** without extra empty blocks.
+
 ## Next
 
-1. Block-private residual templates on simple residual (~0.37 miss).
-2. CFQ relational admit (`docs/notes/cfq_standalone.md`) — nested SPARQL graph patterns.
-3. Estate2-style shared world state in block residual.
+1. CFQ relational / join residual templates (`docs/notes/cfq_standalone.md`).
+2. Estate2-style shared world state in block residual.
 
 Cross-links: `pil/wyly_block.py`, `experiments/campaign_wyly_blocks.py`,
 `experiments/campaign_scan_learned.py`, `experiments/campaign_scan_prims.py`,
