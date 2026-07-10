@@ -1,9 +1,14 @@
 """Reproduce: estate2 conf=1.0 loses to earlier conf=1.0 wrong rules (strict > tie)."""
 from __future__ import annotations
-import json, os, sys
+
+import json
+import os
+import sys
 from pathlib import Path
+
 import torch
 import torch.nn.functional as F
+
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "experiments"))
 os.environ.setdefault("WYLY_DS", "babi3x")
@@ -13,7 +18,9 @@ os.environ.setdefault("WYLY_QUERIES", str(REPO / "data" / "wyly_queries_babi_qa3
 os.environ.setdefault("WYLY_TOKENIZER", str(REPO / "data" / "qwen3b.tokenizer.json"))
 os.environ.setdefault("WYLY_COVER", "sw")
 import wyly_lm_v5 as v5
+
 from pil.tokens import TokenSpace
+
 
 def log(m=""): print(m, flush=True)
 

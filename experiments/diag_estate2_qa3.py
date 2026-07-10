@@ -26,6 +26,7 @@ os.environ.setdefault("WYLY_COVER", "sw")
 os.environ.setdefault("WYLY_JUDGE", "cover")
 
 import wyly_lm_v5 as v5  # noqa: E402
+
 from pil.tokens import TokenSpace  # noqa: E402
 
 
@@ -143,8 +144,8 @@ def main():
         log(f"  CHOSEN slot: {ts.token_str(int(uv[sl2[0]]))!r}+"
             f"{ts.token_str(int(uv[sl2[1]]))!r}")
 
-        def make_gate(slots):
-            def e2fn(w, sets_=e2sets, mode_=mode, slots_=slots):
+        def make_gate(slots, mode_fixed=mode):
+            def e2fn(w, sets_=e2sets, mode_=mode_fixed, slots_=slots):
                 f_ = v5.estate2_feature(w, sets_, mode=mode_)
                 oks = torch.zeros(len(w), dtype=torch.bool, device=w.device)
                 for s0, s1 in slots_:
