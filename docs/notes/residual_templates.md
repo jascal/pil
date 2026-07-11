@@ -63,11 +63,44 @@ Same propose/admit code on **listops** (synthetic, bare-leaf holdout) and **SCAN
 
 Transfer: **same** `NFoldTemplate` + `ResidualFamily.admit` code; only `DomainAtoms` markers change (`twice/thrice` vs `x2/x3`). SCAN %agnostic 0.50 reflects structural turn seeds (domain-specific).
 
-## Next
+## Marker induction (main line)
 
-1. CFQ pack: relation atoms + join residual template (new pattern, still abstract).
-2. Template *learning* beyond gate: induce new markers from data when n-fold structure is detected without a fixed marker lexicon.
-3. Wire ResidualFamily into `WylyBlock` B0 residual registration automatically.
+```python
+from pil.residual_template import induce_nfold_markers, listops_domain_atoms, ResidualFamily
+
+# No hand markers — discover x2→2, x3→3 from short maps
+fam = ResidualFamily(listops_domain_atoms(induce_only=True))
+```
+
+`RewriteSynthesizer` (`template_id=rewrite_synth`) enumerates repeat_k / strip_prefix
+as a tiny rewrite DSL (opt-in via `enabled_templates`).
+
+`admit(..., celf=False)` is the **default** (naive greedy). Residual val scores are
+generally **not submodular** (complementary leaves), so CELF lazy bounds are not
+Leskovec-optimal — use `celf=True` only as an opt-in speed path when marginals are
+known non-increasing. Admit log rows are admissions only.
+
+## Honest measurement
+
+Transfer on isomorphic listops shows **pattern reusability**, not full method
+generality. The campaign's `honest_suite` holds out operators and poisons residuals:
+
+| check | intent |
+|---|---|
+| operator holdout | train without x3 → test x3 acc < 1.0 |
+| irregular maps | non-fold composites should not invent clean markers blindly |
+| negative control | val-marginal rejects poison leaf, admits good leaf |
+
+Real generality needs an alien domain (CFQ, COGS, …) not built around the templates.
+
+## Roadmap (Fable alignment)
+
+1. **Done (this line):** marker induction, CELF admit, rewrite synth sketch, honest suite.
+2. **Next:** residual leaves as `pil/schemas.py` / rule_learner schemas (unify with PIC learner).
+3. Shared compositional interpreter (operator table + semiring) for SCAN/listops expand.
+4. KeyTable / token-space residual path for LM slices.
+5. CFQ join template on a natural second dataset.
+6. Wire ResidualFamily into WylyBlock B0 automatically.
 
 ## How to add a new domain
 
