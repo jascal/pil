@@ -317,3 +317,99 @@ def join_f1(pred_sigs: list, gold_sigs: list) -> float:
     precision = inter / len(pred_sigs)
     recall = inter / len(gold_sigs)
     return 2 * precision * recall / (precision + recall)
+
+
+# ---------------------------------------------------------------------------
+# Typed-slot incidences (typed-join probe foundation, additive)
+# ---------------------------------------------------------------------------
+#
+# Companion to ``parse_sparql_joins`` for the type-driven join-assembly probe
+# (experiments/campaign_cfq_typed_join.py). Emits per-slot incidences with
+# resolved ``a``-types so a fit-time miner can learn (pred, slot) -> required
+# arg-type without reading gold join signatures.
+
+
+@dataclass(frozen=True)
+class TypedIncidence:
+    """One subject or object endpoint of a non-type SPARQL triple.
+
+    ``var_type`` is the explicit ``a``-type when ``is_var`` and the variable was
+    typed somewhere in the query; otherwise ``None`` (always ``None`` when
+    ``is_var`` is False).
+    """
+
+    pred: str
+    slot: str  # "subj" | "obj"
+    is_var: bool
+    var_type: str | None  # explicit `a`-type if is_var and typed, else None
+
+
+def parse_sparql_typed_slots(sparql: str) -> list[TypedIncidence]:
+    """Parse CFQ SPARQL into per-slot typed incidences (typed-join companion).
+
+    Parsing rules are IDENTICAL to ``parse_sparql_joins``: first ``{`` / last
+    ``}`` body extraction, strip trailing ``.``, skip FILTER lines, exactly-3-
+    token triples (else ``ValueError`` with the same message style), ``a``-
+    triples populate a var→type map and are NOT emitted as incidences. A full
+    scan of all lines runs BEFORE resolving var types so that ``a``-triples
+    appearing AFTER an edge still apply to that edge's typing.
+
+    Emits exactly 2 ``TypedIncidence`` entries per non-type triple (subj then
+    obj), triples in source order. ``is_var`` = token starts with ``?``.
+    ``var_type`` = resolved type from the map if ``is_var`` and typed via an
+    ``a``-triple anywhere in the query, else ``None``.
+    """
+    first = sparql.find("{")
+    last = sparql.rfind("}")
+    if first < 0 or last < 0 or last <= first:
+        raise ValueError(f"SPARQL missing WHERE braces: {sparql!r}")
+    body = sparql[first + 1 : last]
+
+    var_type: dict[str, str] = {}
+    # (subj, pred, obj) non-type triples, source order; resolve types after
+    # full scan so type triples later in the body still apply.
+    raw_edges: list[tuple[str, str, str]] = []
+
+    for line in body.split("\n"):
+        line = line.strip()
+        if line.endswith("."):
+            line = line[:-1].strip()
+        if not line:
+            continue
+        if line.startswith("FILTER"):
+            continue
+        parts = line.split()
+        if len(parts) != 3:
+            raise ValueError(
+                f"expected exactly 3 tokens (subj pred obj), got {len(parts)}: {line!r}"
+            )
+        subj, pred, obj = parts
+        if pred == "a":
+            if _is_var(subj):
+                var_type[subj] = obj
+            # type triple — not an edge incidence
+            continue
+        raw_edges.append((subj, pred, obj))
+
+    out: list[TypedIncidence] = []
+    for subj, pred, obj in raw_edges:
+        subj_is_var = _is_var(subj)
+        obj_is_var = _is_var(obj)
+        out.append(
+            TypedIncidence(
+                pred=pred,
+                slot="subj",
+                is_var=subj_is_var,
+                var_type=var_type.get(subj) if subj_is_var else None,
+            )
+        )
+        out.append(
+            TypedIncidence(
+                pred=pred,
+                slot="obj",
+                is_var=obj_is_var,
+                var_type=var_type.get(obj) if obj_is_var else None,
+            )
+        )
+    return out
+
