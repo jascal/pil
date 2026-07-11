@@ -176,3 +176,144 @@ def edge_f1(pred: list[Edge], gold: list[Edge]) -> float:
     precision = inter / len(pred)
     recall = inter / len(gold)
     return 2 * precision * recall / (precision + recall)
+
+
+# ---------------------------------------------------------------------------
+# Join-variable representation (label-free / isomorphism-invariant)
+# ---------------------------------------------------------------------------
+#
+# Additive Step-B foundation for the join-structure headroom diagnostic.
+#
+# This is a label-free / isomorphism-invariant join-variable representation:
+# each join var is described by (its type-or-VAR, sorted multiset of
+# (predicate, slot) incidences) with no ``?x0``-style variable name in the
+# signature. Scoring is multiset-level over those signatures (Counter F1),
+# not occurrence-aligned / not full graph-isomorphism matching beyond the
+# per-var-signature granularity. Oracle-predicate regime assumptions belong
+# to the diagnostic script, not here.
+#
+# Design intent: a 3-STAR (one var with 3 incidences) and a 3-CYCLE (three
+# vars each with 2 incidences) produce non-colliding signature multisets.
+# Do NOT reduce this to pairwise (var,var) or (pred,pred) co-occurrence —
+# those representations would collide star and cycle.
+
+
+# Per-var join signature: (var_type_or_VAR, sorted multiset of (pred, slot))
+JoinSignature = tuple[str, tuple[tuple[str, str], ...]]
+
+
+@dataclass(frozen=True)
+class JoinQuery:
+    """Label-free join structure of a CFQ SPARQL query.
+
+    ``signatures`` is the multiset of per-join-var signatures (one entry per
+    variable with >=2 non-type incidences), sorted for determinism.
+    ``predicates`` is the multiset of all non-type edge predicates (source
+    order, multiplicity preserved). ``n_join_vars`` / ``n_vars_total`` are
+    derived counts (join vars meeting the threshold vs all distinct vars).
+    """
+
+    signatures: list[tuple]  # multiset of JoinSignature; sorted for determinism
+    predicates: list[str]  # multiset of non-type edge preds; source order
+    n_join_vars: int
+    n_vars_total: int
+
+
+def parse_sparql_joins(sparql: str) -> JoinQuery:
+    """Parse a CFQ SPARQL string into a label-free join-variable representation.
+
+    Body extraction and triple-line parsing match ``parse_sparql_edges``
+    (first ``{`` / last ``}``, strip trailing ``.``, skip FILTER, exactly 3
+    tokens per triple), but **variable identity is preserved**: raw ``?x0``
+    tokens are never rewritten via ``_normalize_role``.
+
+    For each non-type triple, every variable endpoint records an incidence
+    ``(pred, "subj"|"obj")``. A variable is a join var iff it accumulates
+    >=2 incidences (across triples, or twice within one triple). Each join
+    var's signature is::
+
+        (var_type.get(var, "VAR"), tuple(sorted(incidences)))
+
+    which is label-free (no variable name) and isomorphism-invariant.
+    """
+    first = sparql.find("{")
+    last = sparql.rfind("}")
+    if first < 0 or last < 0 or last <= first:
+        raise ValueError(f"SPARQL missing WHERE braces: {sparql!r}")
+    body = sparql[first + 1 : last]
+
+    var_type: dict[str, str] = {}
+    # (subj, pred, obj) non-type triples, source order; normalize after full scan
+    # so type triples later in the body still apply (same as parse_sparql_edges).
+    raw_edges: list[tuple[str, str, str]] = []
+    all_vars: set[str] = set()
+
+    for line in body.split("\n"):
+        line = line.strip()
+        if line.endswith("."):
+            line = line[:-1].strip()
+        if not line:
+            continue
+        if line.startswith("FILTER"):
+            continue
+        parts = line.split()
+        if len(parts) != 3:
+            raise ValueError(
+                f"expected exactly 3 tokens (subj pred obj), got {len(parts)}: {line!r}"
+            )
+        subj, pred, obj = parts
+        if _is_var(subj):
+            all_vars.add(subj)
+        if _is_var(obj):
+            all_vars.add(obj)
+        if pred == "a":
+            if _is_var(subj):
+                var_type[subj] = obj
+            # type triple — not an edge incidence, but subject counts as a var
+            continue
+        raw_edges.append((subj, pred, obj))
+
+    # Collect incidences and predicates (preserve raw var tokens)
+    incidences: dict[str, list[tuple[str, str]]] = {}
+    predicates: list[str] = []
+    for subj, pred, obj in raw_edges:
+        predicates.append(pred)
+        if _is_var(subj):
+            incidences.setdefault(subj, []).append((pred, "subj"))
+        if _is_var(obj):
+            incidences.setdefault(obj, []).append((pred, "obj"))
+
+    # Join vars: >=2 incidences; signature is label-free
+    signatures: list[tuple] = []
+    for var, incs in incidences.items():
+        if len(incs) < 2:
+            continue
+        sig: JoinSignature = (var_type.get(var, "VAR"), tuple(sorted(incs)))
+        signatures.append(sig)
+    signatures.sort()  # deterministic multiset order
+
+    return JoinQuery(
+        signatures=signatures,
+        predicates=predicates,
+        n_join_vars=len(signatures),
+        n_vars_total=len(all_vars),
+    )
+
+
+def join_f1(pred_sigs: list, gold_sigs: list) -> float:
+    """MULTISET F1 over two lists of join-signature tuples.
+
+    Identical shape/logic to ``edge_f1``: both empty -> 1.0; exactly one empty
+    -> 0.0; else Counter intersection, precision/recall, harmonic mean.
+    Elements must be hashable (signature tuples of tuples, not lists).
+    """
+    if not pred_sigs and not gold_sigs:
+        return 1.0
+    if not pred_sigs or not gold_sigs:
+        return 0.0
+    inter = sum((Counter(pred_sigs) & Counter(gold_sigs)).values())
+    if inter == 0:
+        return 0.0
+    precision = inter / len(pred_sigs)
+    recall = inter / len(gold_sigs)
+    return 2 * precision * recall / (precision + recall)
