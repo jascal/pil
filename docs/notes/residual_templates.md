@@ -68,3 +68,24 @@ Transfer: **same** `NFoldTemplate` + `ResidualFamily.admit` code; only `DomainAt
 1. CFQ pack: relation atoms + join residual template (new pattern, still abstract).
 2. Template *learning* beyond gate: induce new markers from data when n-fold structure is detected without a fixed marker lexicon.
 3. Wire ResidualFamily into `WylyBlock` B0 residual registration automatically.
+
+## How to add a new domain
+
+1. **Define atoms** — a `DomainAtoms` pack (or factory) with:
+   - `nfold_markers` if n-fold residual applies (e.g. `{"twice": 2}` / `{"x2": 2}`)
+   - `prefix_tokens` if prefix+body applies
+   - `structural_seeds` only when the domain has fixed structural leaves
+   - `enabled_templates` to restrict which patterns run
+2. **Mine short maps** from train only: `MapDict` of `tuple[str,…] → list[str]` (same shape as SCAN len≤2 maps).
+3. **Propose / admit** with the shared stack:
+   ```python
+   from pil.residual_template import ResidualFamily
+   fam = ResidualFamily(my_domain_atoms())
+   maps, log = fam.admit(short_maps, val_score_fn, thresh=1e-4)
+   # or fam.propose_map(short_maps) for hardcode-all residuals
+   ```
+4. **Task expand/score** — domain-specific (SCAN expand, listops expand, SPARQL join). ResidualFamily does not own expand; it only returns admitted maps.
+5. **Diagnostics** — log `fam.diagnostics(short_maps, admitted_src=…)` and report `% agnostic` + transfer vs a second domain when possible.
+6. **Optional** — new abstract `ResidualTemplate` subclass if the domain needs a *pattern* not covered by nfold/prefix_body/structural (e.g. CFQ join). Prefer a new template class over hard-coding domain logic in the campaign.
+
+Standalone: train maps only, SOFT=0, keep `template_id` on every candidate.
