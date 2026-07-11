@@ -183,6 +183,31 @@ def resolve_prefix_tokens(short_maps: MapDict, domain: DomainAtoms) -> frozenset
     return frozenset(prefs)
 
 
+def candidate_provenance(cand: ResidualCandidate) -> str:
+    """'induced' | 'supplied' | 'template_fixed' -- provenance of a candidate's
+    defining structure.
+
+    induced        = discovered from data (nfold marker induced; prefix
+                      induction-recoverable; rewrite_synth is DSL-enumerated from data)
+    supplied       = from the hand-authored DomainAtoms pack (structural seeds;
+                      supplied marker/prefix)
+    template_fixed = a fixed template over mined content, no induced pattern
+                      (relation_atom)
+    """
+    tid = cand.template_id
+    if tid == "relation_atom":
+        return "template_fixed"
+    if tid == "structural":
+        return "supplied"
+    if tid == "nfold":
+        return "induced" if cand.meta.get("marker_induced") else "supplied"
+    if tid == "prefix_body":
+        return "induced" if cand.meta.get("prefix_induced") else "supplied"
+    if tid == "rewrite_synth":
+        return "induced"
+    return "supplied"
+
+
 # --- abstract templates ------------------------------------------------------
 
 class ResidualTemplate:
@@ -247,6 +272,11 @@ class PrefixBodyTemplate(ResidualTemplate):
         prefs = resolve_prefix_tokens(short_maps, domain)
         if not prefs:
             return []
+        # Provenance signal only: which prefixes were recovered by induction.
+        # Does not change which candidates fire (that still uses ``prefs`` above).
+        induced_prefs = (
+            induce_prefix_tokens(short_maps) if domain.auto_induce_prefixes else frozenset()
+        )
         out: list[ResidualCandidate] = []
         seen: set[tuple[str, ...]] = set()
         for src, tgt in short_maps.items():
@@ -265,7 +295,11 @@ class PrefixBodyTemplate(ResidualTemplate):
                 template_id=self.id,
                 domain=domain.name,
                 pattern_agnostic=True,
-                meta={"from": src, "prefix": tgt[0]},
+                meta={
+                    "from": src,
+                    "prefix": tgt[0],
+                    "prefix_induced": tgt[0] in induced_prefs,
+                },
             ))
         return out
 
@@ -441,16 +475,19 @@ CFQ_TEMPLATES: tuple[ResidualTemplate, ...] = (
 # --- domain packs ------------------------------------------------------------
 
 def scan_domain_atoms(*, induce_only: bool = False) -> DomainAtoms:
-    """SCAN pack. ``induce_only=True`` leaves nfold_markers empty (pure induction)."""
+    """SCAN pack. ``induce_only=True`` empties hand markers/prefixes (pure induction)."""
     return DomainAtoms(
         name="scan",
         nfold_markers={} if induce_only else {"twice": 2, "thrice": 3},
-        prefix_tokens=frozenset({"I_TURN_LEFT", "I_TURN_RIGHT"}),
+        prefix_tokens=(
+            frozenset() if induce_only else frozenset({"I_TURN_LEFT", "I_TURN_RIGHT"})
+        ),
         structural_seeds={
             ("turn", "left"): ["I_TURN_LEFT"],
             ("turn", "right"): ["I_TURN_RIGHT"],
         },
         auto_induce_markers=True,
+        auto_induce_prefixes=bool(induce_only),
     )
 
 
@@ -772,6 +809,11 @@ class ResidualFamily:
                 return 0.0
             return sum(1 for c in xs if pred(c)) / len(xs)
 
+        prov_proposed = _count_by(proposed, candidate_provenance)
+        prov_admitted = _count_by(admitted_c, candidate_provenance)
+        n_prop_ind = prov_proposed.get("induced", 0)
+        n_adm_ind = prov_admitted.get("induced", 0)
+
         return {
             "domain": self.domain.name,
             "n_short_maps": len(short_maps),
@@ -785,6 +827,15 @@ class ResidualFamily:
             "supplied_nfold_markers": dict(self.domain.nfold_markers),
             "marker_conflicts": list(conflicts),
             "active_templates": [t.id for t in self.active_templates()],
+            # Honest provenance metrics (additive; pattern-class agnostic is NOT provenance).
+            "provenance_proposed": prov_proposed,
+            "provenance_admitted": prov_admitted,
+            "frac_admitted_induced": (n_adm_ind / len(admitted_c)) if admitted_c else 0.0,
+            "frac_proposed_induced": (n_prop_ind / len(proposed)) if proposed else 0.0,
+            "note": (
+                "frac_*_agnostic is pattern-CLASS, not provenance; "
+                "frac_*_induced is the honest induced-vs-supplied generality number."
+            ),
         }
 
 

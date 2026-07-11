@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pil.residual_template import (
+    CFQ_TEMPLATES,
     SYNTH_TEMPLATES,
     DomainAtoms,
     NFoldTemplate,
@@ -10,6 +11,8 @@ from pil.residual_template import (
     ResidualFamily,
     RewriteSynthesizer,
     StructuralSeedTemplate,
+    candidate_provenance,
+    cfq_domain_atoms,
     induce_nfold_markers,
     listops_domain_atoms,
     resolve_nfold_markers,
@@ -343,3 +346,126 @@ def test_relation_atom_from_multi_votes():
     assert ("marry", "ns:people.person.spouse") not in srcs  # already in base
     assert all(c.template_id == "relation_atom" for c in cands)
     assert all(c.pattern_agnostic for c in cands)
+
+
+# --- honest provenance metrics -----------------------------------------------
+
+def _rc(
+    *,
+    template_id: str,
+    meta: dict | None = None,
+    src: tuple[str, ...] = ("x",),
+    tgt: tuple[str, ...] = ("X",),
+) -> ResidualCandidate:
+    return ResidualCandidate(
+        src=src, tgt=tgt, template_id=template_id, domain="t", meta=meta or {},
+    )
+
+
+def test_candidate_provenance_nfold_induced():
+    assert candidate_provenance(
+        _rc(template_id="nfold", meta={"marker_induced": True}),
+    ) == "induced"
+
+
+def test_candidate_provenance_nfold_supplied():
+    assert candidate_provenance(
+        _rc(template_id="nfold", meta={"marker_induced": False}),
+    ) == "supplied"
+
+
+def test_candidate_provenance_structural():
+    assert candidate_provenance(_rc(template_id="structural")) == "supplied"
+
+
+def test_candidate_provenance_relation_atom():
+    assert candidate_provenance(_rc(template_id="relation_atom")) == "template_fixed"
+
+
+def test_candidate_provenance_prefix_body_induced():
+    assert candidate_provenance(
+        _rc(template_id="prefix_body", meta={"prefix_induced": True}),
+    ) == "induced"
+
+
+def test_candidate_provenance_prefix_body_supplied():
+    assert candidate_provenance(
+        _rc(template_id="prefix_body", meta={"prefix_induced": False}),
+    ) == "supplied"
+
+
+def test_candidate_provenance_rewrite_synth():
+    assert candidate_provenance(_rc(template_id="rewrite_synth")) == "induced"
+
+
+def test_cfq_agnostic_overstates_vs_honest_induced():
+    """relation_atom is pattern-agnostic but template_fixed — honesty correction."""
+    base = {("marry", "ns:people.person.spouse"): ["ns:people.person.spouse"]}
+    multi = {
+        ("influence", "ns:influence.influence_node.influenced"): 4,
+        ("directed", "ns:film.director.film"): 5,
+    }
+    fam = ResidualFamily(
+        cfq_domain_atoms(multi_word_path_votes=multi, atom_min_support=3),
+        templates=CFQ_TEMPLATES,
+    )
+    cands = fam.propose(base)
+    assert cands  # at least one relation_atom residual
+    diag = fam.diagnostics(base, admitted_src=[c.src for c in cands])
+    assert diag["frac_admitted_agnostic"] == 1.0
+    assert diag["frac_admitted_induced"] == 0.0
+    assert diag["provenance_admitted"].get("template_fixed", 0) == len(cands)
+
+
+def test_listops_frac_admitted_induced_is_one():
+    short = {
+        ("c", "x2"): ["C", "C"],
+        ("d", "x2"): ["D", "D"],
+        ("a",): ["A"],
+    }
+    fam = ResidualFamily(listops_domain_atoms(induce_only=True))
+    cands = fam.propose(short)
+    nfold = [c for c in cands if c.template_id == "nfold"]
+    assert nfold
+    assert all(c.meta.get("marker_induced") for c in nfold)
+    diag = fam.diagnostics(short, admitted_src=[c.src for c in nfold])
+    assert diag["frac_admitted_induced"] == 1.0
+
+
+def test_scan_domain_atoms_induce_only_flags():
+    ind = scan_domain_atoms(induce_only=True)
+    assert ind.prefix_tokens == frozenset()
+    assert ind.auto_induce_prefixes is True
+    assert ind.nfold_markers == {}
+
+    hand = scan_domain_atoms()  # default: byte-identical hand pack
+    assert hand.prefix_tokens == frozenset({"I_TURN_LEFT", "I_TURN_RIGHT"})
+    assert hand.auto_induce_prefixes is False
+    assert hand.nfold_markers == {"twice": 2, "thrice": 3}
+
+
+def test_prefix_induced_meta_under_auto_induce():
+    """With empty hand prefixes + auto_induce, prefix_induced is True on recovered prefs."""
+    maps = {
+        ("run", "left"): ["I_TURN_LEFT", "I_RUN"],
+        ("walk", "left"): ["I_TURN_LEFT", "I_WALK"],
+        ("look", "right"): ["I_TURN_RIGHT", "I_LOOK"],
+        ("jump", "right"): ["I_TURN_RIGHT", "I_JUMP"],
+    }
+    dom = DomainAtoms(
+        name="t",
+        prefix_tokens=frozenset(),
+        auto_induce_prefixes=True,
+        auto_induce_markers=False,
+    )
+    cands = PrefixBodyTemplate().propose(maps, dom)
+    assert cands
+    assert all(c.meta.get("prefix_induced") is True for c in cands)
+    # also recoverable via scan induce_only pack path
+    fam = ResidualFamily(scan_domain_atoms(induce_only=True))
+    scan_cands = [
+        c for c in fam.propose(maps)
+        if c.template_id == "prefix_body"
+    ]
+    assert scan_cands
+    assert all(c.meta.get("prefix_induced") is True for c in scan_cands)

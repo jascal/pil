@@ -43,9 +43,12 @@ Same propose/admit code on **listops** (synthetic, bare-leaf holdout) and **SCAN
 
 ### Diagnostics
 
-- `frac_proposed_agnostic` — share of candidates from domain-agnostic patterns (nfold/prefix_body)
-- `proposed_by_template` / `admitted_by_template`
-- structural seeds count as **not** pattern_agnostic
+- `frac_proposed_agnostic` — share of candidates from domain-agnostic pattern *classes*
+  (nfold/prefix_body). **Pattern-class only — NOT provenance** (see "Provenance" below).
+- `frac_admitted_induced` / `frac_proposed_induced` — the **honest** generality number:
+  share of structure that is data-**induced** (via `candidate_provenance`)
+- `provenance_admitted` / `provenance_proposed` — counts over {induced, supplied, template_fixed}
+- `proposed_by_template` / `admitted_by_template`; structural seeds are `supplied`, not induced
 
 ## Design rules
 
@@ -62,6 +65,10 @@ Same propose/admit code on **listops** (synthetic, bare-leaf holdout) and **SCAN
 | SCAN/simple | 0.519 | **1.000** | **1.000** | **1.000** | 0.50 | nfold |
 
 Transfer: **same** `NFoldTemplate` + `ResidualFamily.admit` code; only `DomainAtoms` markers change (`twice/thrice` vs `x2/x3`). SCAN %agnostic 0.50 reflects structural turn seeds (domain-specific).
+
+> **`% agnostic` is pattern-*class*, not provenance** — it can overstate generality (e.g. CFQ
+> reads 1.00 agnostic but 0.00 induced). See [Provenance: agnostic ≠ induced](#provenance-agnostic--induced-audit)
+> for the honest `frac_induced` numbers.
 
 ## Marker induction (main line)
 
@@ -93,9 +100,44 @@ generality. The campaign's `honest_suite` holds out operators and poisons residu
 
 Real generality needs an alien domain (CFQ, COGS, …) not built around the templates.
 
+### Provenance: agnostic ≠ induced (audit)
+
+`frac_*_agnostic` measures agnostic pattern-*class*, **not** whether structure was
+discovered from data. `candidate_provenance` splits admitted structure into **induced**
+(nfold marker induced / prefix induction-recoverable / rewrite_synth), **supplied**
+(hand pack: structural seeds, supplied marker/prefix), and **template_fixed** (a fixed
+template over mined content — `relation_atom`, which detects no pattern). `frac_*_induced`
+is the honest generality number. `experiments/campaign_generality_audit.py` (CFQ = mcd1):
+
+| domain | agnostic (old) | **induced (honest)** | provenance admitted |
+|---|---:|---:|---|
+| listops | 1.00 | **1.00** | induced ×2 |
+| SCAN (hand pack) | 1.00 | **0.00** | supplied ×2 |
+| SCAN (induce_only) | 1.00 | **1.00** | induced ×2 |
+| CFQ mcd1 | 1.00 | **0.00** | template_fixed ×16 |
+
+**The correction:** CFQ's `frac_agnostic = 1.00` overstated generality — all 16 admitted
+atoms are `relation_atom` content pass-throughs that induce **no** structure, so the
+honest `frac_induced = 0.00`. A pattern-agnostic *class* is not a generality claim.
+
+**Prefix induction (pack removal):** `scan_domain_atoms(induce_only=True)` empties the
+hand `prefix_tokens` and turns on the previously-dormant prefix inducer. The residual
+leaves SCAN admits then read as **induced** (0.00 → 1.00), with test exact-match held at
+**1.0000** (no regression). Honest caveats: (a) `structural_seeds` (turn left/right)
+remain in the pack but are **not admitted** in this config — so the claim is *"admitted
+structure is fully induced,"* not *"zero packs"*; (b) prefix induction over-generates
+(`I_JUMP`/`I_LOOK` alongside the turn tokens) — harmless here (extra unused candidates,
+accuracy holds), but a tighter validation gate would sharpen it.
+
+Tags: honest `frac_*_induced` metric + audit — **empirical** (CFQ mcd1, SCAN/simple).
+CFQ induces zero structure — **empirical**. SCAN prefix pack removed, no regression —
+**empirical**. "Method-general on an alien domain" — **open** (CFQ induced = 0; needs a
+domain whose structure the templates actually induce).
+
 ## Roadmap (Fable alignment)
 
-1. **Done:** marker induction, naive-default admit, rewrite synth sketch, honest suite.
+1. **Done:** marker induction, naive-default admit, rewrite synth sketch, honest suite,
+   honest `frac_induced` provenance metric + SCAN prefix induction (this slice).
 2. **Done (CFQ):** `relation_atom` join residuals on real MCD — see `cfq_residual.md`
    (set-F1 help + exact SPARQL=0).
 3. **Done (bridge slice):** residual → schema bridge + Datalog export in
