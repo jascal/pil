@@ -27,7 +27,8 @@ import torch
 REPO = Path(__file__).resolve().parent.parent
 DATA = REPO / "data" / "wyly_nexttoken_wikitext_L256.pt"
 MODELS = [("pythia14m", 14), ("pythia70m", 70), ("pythia160m", 160), ("pythia410m", 410),
-          ("pythia1b", 1000), ("pythia1.4b", 1400), ("pythia2.8b", 2800)]
+          ("pythia1b", 1000), ("pythia1.4b", 1400), ("pythia2.8b", 2800),
+          ("pythia6.9b", 6900)]
 
 
 def teacher_file(tag):

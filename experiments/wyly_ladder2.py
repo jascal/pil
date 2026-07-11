@@ -21,10 +21,12 @@ import torch
 REPO = Path(__file__).resolve().parent.parent
 DATASETS = ["wikitext", "code", "wt103"]
 TEACHERS = ["pythia14m", "pythia70m", "pythia160m", "pythia410m", "pythia1b", "pythia1.4b",
-            "pythia2.8b"]
-# sec-8.5 base (induction-only) certified cores, from wyly_ladder.py @ commit 9a3ffeb
+            "pythia2.8b", "pythia6.9b"]
+# sec-8.5 base (induction-only) certified cores, from wyly_ladder.py @ commit 9a3ffeb;
+# pythia6.9b rung added from wyly_ladder.py @ commit f5eb6d4 (int8 teacher dump — see
+# docs/notes/wyly_ladder_6p9b.md for the dtype-comparability check)
 BASE85 = {"pythia14m": 0.285, "pythia70m": 0.276, "pythia160m": 0.258, "pythia410m": 0.245,
-          "pythia1b": 0.242, "pythia1.4b": 0.231, "pythia2.8b": 0.230}
+          "pythia1b": 0.242, "pythia1.4b": 0.231, "pythia2.8b": 0.230, "pythia6.9b": 0.224}
 
 
 def dfile(ds):
