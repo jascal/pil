@@ -1,20 +1,19 @@
-"""Cross-domain residual template transfer (standalone).
+"""Cross-domain residual template transfer + honest measurement (standalone).
 
 Same ``ResidualFamily`` propose/admit code on two domains:
 
-  1. **SCAN/simple** — nfold + prefix_body + structural (existing residual leaves)
-  2. **listops** — synthetic item language with x2/x3 n-fold and ``and`` concat;
-     only short composites in train for some atoms (hold out bare leaves) so residual
-     n-fold is required for test composition.
+  1. **SCAN/simple** — nfold (markers induced or supplied) + structural
+  2. **listops** — x2/x3 via **marker induction** (no hand nfold_markers by default)
 
-Ablations
-  - hardcode: apply all proposed residuals (no val admit)
-  - leaf_admit: greedy val-marginal on residual candidates (SCAN residual campaign)
-  - template_admit: meta-admit whole template_ids, then apply their candidates
+Ablations: hardcode / leaf admit (CELF) / template admit.
 
-Diagnostics: frac of proposed residuals with pattern_agnostic=True (reusable patterns).
+Honest suite (numbers < 1.0 are informative):
+  - operator holdout: train without x3 composites; test uses x3
+  - irregular fold: non n-fold noise maps should not induce bad markers
+  - negative control: poisoned residual rejected by val-marginal admit
 
-Standalone: synthetic + SCAN corpus, SOFT=0, no teacher.
+Headline honesty: listops is isomorphic transfer (pattern reusability), not full
+method generality — see residual_templates.md.
 
 Run:
   cd pil && .venv/bin/python -u experiments/campaign_residual_transfer.py
@@ -32,7 +31,9 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 from pil.residual_template import (  # noqa: E402
     MapDict,
+    ResidualCandidate,
     ResidualFamily,
+    induce_nfold_markers,
     listops_domain_atoms,
     scan_domain_atoms,
 )
@@ -194,8 +195,9 @@ def run_listops() -> dict:
         leaves = {k: v for k, v in maps.items() if len(k) == 1}
         return listops_score(leaves, val_pairs)
 
-    family = ResidualFamily(listops_domain_atoms())
+    family = ResidualFamily(listops_domain_atoms(induce_only=True))
     cands = family.propose(short_fit)
+    induced = induce_nfold_markers(short_fit)
     # hardcode: expand_base + all residual proposals
     res_map = family.propose_map(short_fit)
     maps_hard = {**expand_base, **res_map}
@@ -214,12 +216,13 @@ def run_listops() -> dict:
         admitted_src=[c.src for c in cands if c.src in leaves_leaf and c.src not in expand_base],
     )
 
-    log("\n=== listops residual transfer ===")
+    log("\n=== listops residual transfer (marker induction) ===")
     log(f"  induction={len(induction)} expand_base={len(expand_base)} "
         f"proposed={len(cands)} holdout={data['holdout_bare']}")
+    log(f"  induced markers     {induced}")
     log(f"  base (no residual)  {acc_base:.3f}")
     log(f"  hardcode residuals  {acc_hard:.3f}")
-    log(f"  leaf admit          {acc_leaf:.3f}")
+    log(f"  leaf admit (CELF)   {acc_leaf:.3f}")
     log(f"  template admit      {acc_tmpl:.3f}  enabled={sorted(en_t)}")
     log(f"  frac_proposed_agnostic {diag['frac_proposed_agnostic']:.2f}")
 
@@ -228,6 +231,7 @@ def run_listops() -> dict:
         "n_test": len(test_pairs),
         "n_induction": len(induction),
         "n_expand_base": len(expand_base),
+        "induced_markers": induced,
         "acc_base": acc_base,
         "acc_hardcode": acc_hard,
         "acc_leaf_admit": acc_leaf,
@@ -241,6 +245,105 @@ def run_listops() -> dict:
         "diagnostics": diag,
         "admit_log_leaf": log_leaf[:20],
         "admit_log_template": log_tmpl[:20],
+        "origin": "standalone",
+        "note": "isomorphic transfer (pattern reusability), not full method generality",
+    }
+
+
+def _listops_expand_dynamic(
+    tokens: list[str], leaves: MapDict, markers: dict[str, int],
+) -> list[str] | None:
+    """Expand using only induced/supplied fold markers (honest operator holdout)."""
+    if not tokens:
+        return []
+    for i, t in enumerate(tokens):
+        if t == "and":
+            left = _listops_expand_dynamic(tokens[:i], leaves, markers)
+            right = _listops_expand_dynamic(tokens[i + 1 :], leaves, markers)
+            if left is None or right is None:
+                return None
+            return left + right
+    key = tuple(tokens)
+    if key in leaves:
+        return list(leaves[key])
+    if len(tokens) >= 2 and tokens[-1] in markers:
+        n = markers[tokens[-1]]
+        body = _listops_expand_dynamic(tokens[:-1], leaves, markers)
+        if body is None:
+            return None
+        out: list[str] = []
+        for _ in range(n):
+            out.extend(body)
+        return out
+    return None
+
+
+def run_honest_suite() -> dict:
+    """Holdouts that break templates + negative control (informative <1.0 numbers)."""
+    # --- operator holdout: no x3 in train induction; expand only peels induced markers ---
+    data = build_listops(n_train=600, n_test=300, seed=1)
+    induction_no_x3 = {k: v for k, v in data["induction"].items() if k[-1] != "x3"}
+    expand_base = data["expand_base"]
+    short_fit = {**induction_no_x3, **expand_base}
+    fam = ResidualFamily(listops_domain_atoms(induce_only=True))
+    induced_op = induce_nfold_markers(short_fit)  # should be {x2: 2} only
+    res = fam.propose_map(short_fit)
+    leaves = {**expand_base, **{k: v for k, v in res.items() if len(k) == 1}}
+    test_x3 = [
+        (cmd, gold) for cmd, gold in zip(data["test_in"], data["test_out"], strict=True)
+        if "x3" in cmd
+    ]
+    if not test_x3:
+        test_x3 = [(["c", "x3"], ["C", "C", "C"])]
+    ok = tot = 0
+    for cmd, gold in test_x3:
+        pred = _listops_expand_dynamic(cmd, leaves, induced_op)
+        if pred is not None and pred == gold:
+            ok += 1
+        tot += 1
+    acc_op = ok / max(tot, 1)
+
+    # --- irregular: x2 maps that are NOT n-fold should not induce x2→2 from them alone ---
+    # Only irregular maps (non-fold / inconsistent k under same marker)
+    only_irreg = {("z", "x2"): ["Z", "NOISE"], ("y", "x2"): ["Y", "Y", "Y"]}
+    induced_only_irreg = induce_nfold_markers(only_irreg)
+
+    # --- negative control: poison vs good for same new leaf ---
+    short = {("a",): ["A"], ("b",): ["B"]}
+    bad = ResidualCandidate(
+        src=("c",), tgt=("POISON",), template_id="poison", domain="neg", meta={},
+    )
+    good = ResidualCandidate(
+        src=("c",), tgt=("C",), template_id="nfold", domain="neg", meta={},
+    )
+    val = [(["a"], ["A"]), (["c"], ["C"])]
+
+    def score_neg(maps: MapDict) -> float:
+        return sum(1 for cmd, g in val if maps.get(tuple(cmd)) == g) / len(val)
+
+    maps_neg, log_neg = ResidualFamily(listops_domain_atoms()).admit(
+        short, score_neg, candidates=[bad, good], thresh=1e-4,
+    )
+    rejected_poison = maps_neg.get(("c",)) != ["POISON"]
+    admitted_good = maps_neg.get(("c",)) == ["C"]
+
+    log("\n=== honest measurement suite ===")
+    log(f"  operator holdout (no x3 in train, test x3): acc={acc_op:.3f} "
+        f"induced={induced_op}")
+    log(f"  irregular-only maps induced markers: {induced_only_irreg}")
+    log(f"  negative control: reject poison={rejected_poison} admit good={admitted_good}")
+
+    return {
+        "domain": "honest_suite",
+        "operator_holdout_acc": acc_op,
+        "operator_holdout_induced": induced_op,
+        "irregular_induced_markers": induced_only_irreg,
+        "negative_control_reject_poison": rejected_poison,
+        "negative_control_admit_good": admitted_good,
+        "note": (
+            "operator_holdout_acc < 1.0 expected when x3 never seen; "
+            "isomorphic listops transfer is pattern reusability, not full generality"
+        ),
         "origin": "standalone",
     }
 
@@ -259,7 +362,8 @@ def run_scan_simple() -> dict:
     full_comb = set(UNARY) | set(BINARY)
 
     short = base.mine_scan_grammar(fit_in, fit_out, codec, residual_leaves=False)
-    family = ResidualFamily(scan_domain_atoms())
+    # induce_only: empty hand nfold_markers — twice/thrice discovered from maps
+    family = ResidualFamily(scan_domain_atoms(induce_only=True))
     cands = family.propose(short)
 
     def score_maps(maps: MapDict) -> float:
@@ -331,24 +435,31 @@ def main():
     results.append(run_listops())
     if os.environ.get("SKIP_SCAN", "") != "1":
         results.append(run_scan_simple())
+    results.append(run_honest_suite())
 
     log("\n" + "=" * 72)
     log("RESIDUAL TEMPLATE TRANSFER SCOREBOARD")
     log("=" * 72)
     log(f"{'domain':14} {'base':>7} {'hard':>7} {'leafAd':>7} {'tmplAd':>7} "
-        f"{'%agn':>7} {'templates':>20}")
+        f"{'%agn':>7} {'markers':>16}")
     for r in results:
+        if r["domain"] == "honest_suite":
+            log(f"{'honest':14} opHold={r['operator_holdout_acc']:.3f} "
+                f"poison_ok={r['negative_control_reject_poison']} "
+                f"good_ok={r['negative_control_admit_good']} "
+                f"irreg={r['irregular_induced_markers']}")
+            continue
         agn = r["diagnostics"]["frac_proposed_agnostic"]
-        tmpls = ",".join(r.get("enabled_templates") or [])[:20]
+        markers = r.get("induced_markers") or r["diagnostics"].get("induced_nfold_markers", {})
         log(f"{r['domain']:14} {r['acc_base']:7.3f} {r['acc_hardcode']:7.3f} "
             f"{r['acc_leaf_admit']:7.3f} {r['acc_template_admit']:7.3f} "
-            f"{agn:7.2f} {tmpls:>20}")
+            f"{agn:7.2f} {str(markers)[:16]:>16}")
     out = REPO / "data" / "residual_transfer_scoreboard.json"
     out.write_text(json.dumps(results, indent=2, default=str))
     log(f"wrote {out}")
-    log("\nReading: same ResidualFamily code on listops (x2/x3) and SCAN (twice/thrice). "
-        "pattern_agnostic frac ≈ reusable template share; structural seeds are "
-        "domain-specific. Ablation hardcode vs leaf/template admit.")
+    log("\nReading: marker induction (no hand nfold_markers) + CELF admit. "
+        "listops is isomorphic pattern transfer; honest_suite holds out operators / "
+        "poisons residuals so scores below 1.0 are informative.")
 
 
 if __name__ == "__main__":
