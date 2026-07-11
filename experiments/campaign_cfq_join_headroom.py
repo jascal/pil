@@ -201,9 +201,15 @@ def run_split(tag: str) -> dict:
     maj_join, n_parse_fail_fit_maj = fit_majority_join_prior(fit_pairs)
     word_maps, n_parse_fail_fit_mine = mine_join_sig_atoms(fit_pairs, min_support=2)
     n_parse_fail_fit = max(n_parse_fail_fit_maj, n_parse_fail_fit_mine)
+    # Stable refs for leak-guard identity checks in the score loop (must stay
+    # the same fit-time objects; a future edit that rebuilds them from gold
+    # per query would rebind the locals and trip the asserts below).
+    _fit_maj_join = maj_join
+    _fit_word_maps = word_maps
 
     # --- score test (oracle-predicate regime) ---
     scores_a: list[float] = []
+    scores_a_seen: list[float] = []
     scores_b: list[float] = []
     n_join_vars_list: list[int] = []
     n_unseen_key = 0
@@ -220,12 +226,25 @@ def run_split(tag: str) -> dict:
         n_scored += 1
         n_join_vars_list.append(gold.n_join_vars)
 
+        # INVARIANT: predictors below read ONLY the predicate-multiset key
+        # (predictor A) or the question text (predictor B), plus fit-derived
+        # maps (maj_join / word_maps) built from FIT data only. They must
+        # NEVER read gold.signatures (that would be a leak of the exact thing
+        # being predicted). The assertions below make that structurally
+        # visible: the fit maps passed in are the fit-time objects, not
+        # anything derived from the current test query's gold.
+        # (gold.signatures is never passed as a predictor argument — by
+        # construction of the call sites below.)
+
         # (a) majority-join prior — oracle predicates only; empty on unseen key
         key = tuple(sorted(gold.predicates))
         pred_a = predict_majority_join(key, maj_join)
         if key not in maj_join:
             n_unseen_key += 1
-        scores_a.append(join_f1(pred_a, gold.signatures))
+        a_f1 = join_f1(pred_a, gold.signatures)
+        scores_a.append(a_f1)
+        if key in maj_join:
+            scores_a_seen.append(a_f1)
 
         # (b) question-feature predictor — question + optional oracle-pred filter
         # Restrict candidates to signatures whose incidence preds ⊆ oracle
@@ -235,10 +254,14 @@ def run_split(tag: str) -> dict:
         )
         scores_b.append(join_f1(pred_b, gold.signatures))
 
+        assert maj_join is _fit_maj_join
+        assert word_maps is _fit_word_maps
+
     def _mean(xs: list[float]) -> float:
         return sum(xs) / len(xs) if xs else 0.0
 
     a_mean = _mean(scores_a)
+    a_seen_mean = _mean(scores_a_seen)
     b_mean = _mean(scores_b)
     unseen_key_rate = n_unseen_key / n_scored if n_scored else 0.0
     frac_queries_with_join = (
@@ -276,6 +299,10 @@ def run_split(tag: str) -> dict:
         f"n_parse_fail_fit={n_parse_fail_fit}  n_parse_fail_test={n_parse_fail_test}"
     )
     log(f"  A majority-join-prior mean join_f1: {a_mean:.4f}")
+    log(
+        f"  A_seen_keys_only mean join_f1 (excl. unseen-key queries): "
+        f"{a_seen_mean:.4f}"
+    )
     log(f"  B question-feature mean join_f1:    {b_mean:.4f}")
     log(f"  unseen_key_rate: {unseen_key_rate:.4f}")
     log(f"  frac_queries_with_join: {frac_queries_with_join:.4f}")
@@ -291,6 +318,7 @@ def run_split(tag: str) -> dict:
         "n_parse_fail_fit": n_parse_fail_fit,
         "n_parse_fail_test": n_parse_fail_test,
         "majority_join_prior_mean": a_mean,  # A — empirical
+        "a_seen_keys_only_mean": a_seen_mean,  # empirical (seen-key subset)
         "question_feature_mean": b_mean,  # B — empirical
         "unseen_key_rate": unseen_key_rate,  # empirical
         "frac_queries_with_join": frac_queries_with_join,  # empirical
@@ -320,13 +348,14 @@ def main() -> None:
     log("CFQ JOIN HEADROOM SCOREBOARD (oracle-predicate; multiset join_f1)")
     log("=" * 90)
     log(
-        f"{'split':8} {'n_te':>5} {'A_maj':>7} {'B_q':>7} "
+        f"{'split':8} {'n_te':>5} {'A_maj':>7} {'A_seen':>7} {'B_q':>7} "
         f"{'unseen':>7} {'wJoin':>7} {'mnJV':>7}"
     )
     for r in results:
         log(
             f"{r['split']:8} {r['n_test']:5d} "
             f"{r['majority_join_prior_mean']:7.3f} "
+            f"{r['a_seen_keys_only_mean']:7.3f} "
             f"{r['question_feature_mean']:7.3f} "
             f"{r['unseen_key_rate']:7.3f} "
             f"{r['frac_queries_with_join']:7.3f} "

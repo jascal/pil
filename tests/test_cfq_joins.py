@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import sys
+from collections import Counter
 from pathlib import Path
 
 from pil.cfq_edges import join_f1, parse_sparql_joins
@@ -200,3 +201,57 @@ def test_predicates_and_n_vars():
     # ?x0, ?x1 from type triples + non-type
     assert typed.n_vars_total == 2
     assert typed.predicates == ["ns:p1", "ns:p2"]
+
+
+# ---------------------------------------------------------------------------
+# Self-join (same pred, two slots) + multiset duplicate (pred, slot)
+# ---------------------------------------------------------------------------
+
+# A var cannot be both subject and object of a single triple line (each triple
+# is subj/pred/obj with one occurrence of each token per line). The realistic
+# constructible self-join is two distinct triples sharing the same predicate
+# with the var in different slots:
+#   ?x0 ns:p1 ?y1 .   -> incidence (ns:p1, "subj")
+#   ?y2 ns:p1 ?x0 .   -> incidence (ns:p1, "obj")
+SELF_JOIN_SAME_PRED = """SELECT count(*) WHERE {
+?x0 ns:p1 ?y1 .
+?y2 ns:p1 ?x0 .
+}"""
+
+# CFQ grammar CAN literally produce a duplicate (pred, slot) incidence: two
+# distinct triples sharing the same subject var and same predicate. That is the
+# direct multiset case (not a "closest constructible" fallback). A set would
+# collapse the two identical (ns:p1,"subj") entries to one (length 2 total);
+# a multiset preserves both (length 3 with Counter count 2 for that pair).
+MULTISET_DUP_PRED_SLOT = """SELECT count(*) WHERE {
+?x0 ns:p1 ?y1 .
+?x0 ns:p1 ?y2 .
+?x0 ns:p2 ?y3 .
+}"""
+
+
+def test_self_join_same_pred_two_slots():
+    """Same var as subj and obj of the same predicate across two triples."""
+    pq = parse_sparql_joins(SELF_JOIN_SAME_PRED)
+    assert pq.n_join_vars == 1
+    assert len(pq.signatures) == 1
+    sig = pq.signatures[0]
+    incs = sig[1]
+    assert len(incs) == 2
+    assert set(incs) == {("ns:p1", "subj"), ("ns:p1", "obj")}
+    # two distinct entries (not deduped to one)
+    assert incs.count(("ns:p1", "subj")) == 1
+    assert incs.count(("ns:p1", "obj")) == 1
+
+
+def test_join_multiset_duplicate_pred_slot_preserved():
+    """Repeated (pred, slot) incidences are a multiset, not a set."""
+    pq = parse_sparql_joins(MULTISET_DUP_PRED_SLOT)
+    assert pq.n_join_vars == 1
+    assert len(pq.signatures) == 1
+    incs = pq.signatures[0][1]
+    # three incidences; set would collapse the two (ns:p1,"subj") → length 2
+    assert len(incs) == 3
+    ctr = Counter(incs)
+    assert ctr[("ns:p1", "subj")] == 2
+    assert ctr[("ns:p2", "subj")] == 1
