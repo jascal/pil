@@ -1,6 +1,9 @@
 # Residual candidates as PIC schemas (design note)
 
-**Status:** design only (this PR). First implementation slice in a follow-up.
+**Status:** first slice landed — the **bridge + Datalog export** (steps 2 & 5)
+are implemented in `pil/residual_schema.py` (token-presence residuals; souffle
+round-trip verified). Selection reuses single-token `propose_schemas` (step 3,
+partial); CFQ set-F1 parity (step 4) stays **open**. Original design below.
 
 **Goal:** Stop maintaining a parallel symbolic admit loop forever. Residual
 leaves/joins should become **schemas** selected by the existing
@@ -59,20 +62,28 @@ relation_atom[word, path]:
 ablation death is O(K) per probe and does not assume submodularity — preferred
 over CELF for CFQ joins.
 
-## First concrete integration slice (next implement PR)
+## First concrete integration slice
 
-Smallest end-to-end path:
+Smallest end-to-end path (status per step):
 
 1. **Offline:** keep `ResidualFamily.propose` to emit candidates (nfold / relation_atom).
-2. **Bridge:** `residual_candidates_to_schemas(cands, stoi) -> list[Schema]` with
-   predict firing on bag-of-word / marker presence in a fixed window.
-3. **Select:** run `propose_schemas`-style train exact-match (or set-F1 for CFQ
-   structure ids) threshold accept into a tiny `SchemaBank`.
-4. **Metric:** same campaign scoreboards (SCAN simple / CFQ set-F1) with and without
-   SchemaBank — must match residual admit within ε on structure metrics.
-5. **Export:** one Datalog clause per admitted residual schema (certification).
+   *(unchanged — already lands residual candidates)*
+2. ✅ **Bridge — done:** `residual_candidates_to_schemas(cands, stoi) -> (list[Schema], skipped)`
+   in `pil/residual_schema.py`. Predict fires the single target token when the
+   source word is present anywhere in the window (`(x == word_id).any`); multi-token
+   `tgt` (n-fold) and unknown symbols are skipped with a reason, not swallowed.
+3. ◐ **Select — partial:** reuses `propose_schemas` single-token exact-match
+   (`test_propose_schemas_selects_relation_atoms`). Set-F1 selection for CFQ bag
+   prediction is **not** wired yet — that is the open half of step 4.
+4. ○ **Metric — open:** CFQ needs a shared `stoi` (question words + `ns:` paths
+   in one vocab) and a set-F1 selector before SchemaBank-vs-residual parity is
+   measurable. No CFQ parity number is claimed yet.
+5. ✅ **Export — done:** one presence clause per schema (`tok(I,_,word), C=path`);
+   `test_export_datalog_roundtrips_via_souffle` confirms the exported program
+   decodes identically to the tensor forward (agreement 1.0).
 
-Out of scope for the first slice: full soft NLL training of residual weights,
+Out of scope for this slice: CFQ `stoi` construction + set-F1 selection (step 4),
+full soft NLL training of residual weights, n-fold unit schemas (multi-token tgt),
 KeyTable path, rewriting all of expand into a semiring interpreter.
 
 ## Tag discipline
@@ -80,7 +91,9 @@ KeyTable path, rewriting all of expand into a semiring interpreter.
 | Claim | Tag |
 |---|---|
 | ResidualFamily on SCAN/listops/CFQ structure | **empirical** |
-| Schema bridge design | **open** until implement PR |
+| Schema bridge (candidate → presence Schema) | **empirical** (unit-tested) |
+| Bridge Datalog clause ≡ tensor predict | **proved** (souffle round-trip, agreement 1.0) |
+| SchemaBank matches residual admit on CFQ set-F1 | **open** (step 4 unwired) |
 | CELF for residual admit | **proved unsound** as default; opt-in only |
 | Full SPARQL generation from atoms | **open** (exact SPARQL stays ~0) |
 
