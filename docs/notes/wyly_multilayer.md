@@ -113,9 +113,14 @@ block-private lexicon residual.
 | Freeze-upstream admit | Stable lower layers | Can miss co-adapted rules |
 | Grammar residual fix | Hard splits → 1.0 | Must stay explicit/certified |
 
+## Residual template API
+
+See `docs/notes/residual_templates.md` and `pil/residual_template.py`.
+SCAN residual leaves and synthetic listops share the same n-fold template.
+
 ## Next
 
-1. CFQ triple-template / join residual admit on MCD.
+1. CFQ pack: relation atoms + join residual template on MCD.
 2. Estate2-style shared world state in residual for plan/position tasks.
 3. Strata / rule_learner cross-block references for hierarchical edits.
 
