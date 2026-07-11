@@ -408,18 +408,30 @@ class ResidualFamily:
     templates: Sequence[ResidualTemplate] = DEFAULT_TEMPLATES
     # last propose/admit diagnostics (marker conflicts, score calls, …)
     last_marker_conflicts: list[dict[str, Any]] = field(default_factory=list)
-    _marker_cache: dict[int, tuple[dict[str, int], list[dict[str, Any]]]] = field(
-        default_factory=dict, repr=False,
+    # content-keyed (not id()) — safe across GC reuse; single-slot LRU for one family
+    _marker_cache_key: str | None = field(default=None, repr=False)
+    _marker_cache_val: tuple[dict[str, int], list[dict[str, Any]]] | None = field(
+        default=None, repr=False,
     )
 
     def active_templates(self) -> list[ResidualTemplate]:
         return [t for t in self.templates if self.domain.wants(t.id)]
 
+    @staticmethod
+    def _maps_signature(short_maps: MapDict) -> str:
+        """Stable content signature for marker-cache keys (avoids id() reuse after GC)."""
+        parts = []
+        for src in sorted(short_maps.keys()):
+            tgt = short_maps[src]
+            parts.append("\t".join(src) + "\0" + "\t".join(tgt))
+        return "\n".join(parts)
+
     def _cached_markers(self, short_maps: MapDict) -> tuple[dict[str, int], list[dict[str, Any]]]:
-        key = id(short_maps)
-        if key not in self._marker_cache:
-            self._marker_cache[key] = resolve_nfold_markers(short_maps, self.domain)
-        return self._marker_cache[key]
+        key = self._maps_signature(short_maps)
+        if self._marker_cache_key != key or self._marker_cache_val is None:
+            self._marker_cache_key = key
+            self._marker_cache_val = resolve_nfold_markers(short_maps, self.domain)
+        return self._marker_cache_val
 
     def propose(self, short_maps: MapDict) -> list[ResidualCandidate]:
         """Propose residual candidates; first template wins on duplicate src."""

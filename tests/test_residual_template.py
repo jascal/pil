@@ -168,7 +168,7 @@ def test_complementary_leaves_naive_recovers_both():
     """Non-submodular: leaf x pays only after a is admitted.
 
     Score: empty=0, {a}=0.3, {x}=0, {a,x}=0.8 — x's marginal rises after a.
-    Default (naive) must admit both. CELF is opt-in and may approximate.
+    Default (naive) must admit both. CELF is opt-in/lossy and is not asserted equal.
     """
     short: dict = {}
     a = ResidualCandidate(src=("a",), tgt=("A",), template_id="t", domain="t")
@@ -189,14 +189,36 @@ def test_complementary_leaves_naive_recovers_both():
     m_naive, _ = fam.admit(short, score, candidates=[a, x], thresh=0.05, celf=False)
     assert ("a",) in m_naive and ("x",) in m_naive
     assert score(m_naive) == 0.8
-    # CELF with stale-refresh should also recover both; not Leskovec-guaranteed
-    m_celf, _ = fam.admit(short, score, candidates=[a, x], thresh=0.05, celf=True)
+
+
+def test_celf_is_opt_in_not_correctness_guarantee():
+    """CELF may match naive on some complementary inputs; it is not guaranteed to.
+
+    This is a regression pin for the stale-refresh path (one known input), not a
+    claim that CELF ≡ naive in general (~2% fuzz divergence under complementary scores).
+    """
+    short: dict = {}
+    a = ResidualCandidate(src=("a",), tgt=("A",), template_id="t", domain="t")
+    x = ResidualCandidate(src=("x",), tgt=("X",), template_id="t", domain="t")
+
+    def score(maps):
+        has_a = ("a",) in maps
+        has_x = ("x",) in maps
+        if has_a and has_x:
+            return 0.8
+        if has_a:
+            return 0.3
+        return 0.0
+
+    fam = ResidualFamily(DomainAtoms(name="t"))
+    m_celf, log = fam.admit(short, score, candidates=[a, x], thresh=0.05, celf=True)
+    # pin this input only — do not generalize to "CELF always recovers complements"
     assert score(m_celf) == 0.8
+    assert any(e.get("celf_note") for e in log if e.get("event") == "stop")
 
 
-def test_celf_stop_without_stale_refresh_would_miss_x():
-    """Document why CELF is opt-in: a mid-thresh 'decoy' can bury complementary leaves
-    if stale heap entries are discarded without re-score (guarded in _admit_celf)."""
+def test_naive_admits_complements_with_mid_thresh_decoy():
+    """Naive greedy recovers complementary x even when a low-marg decoy y is present."""
     short: dict = {}
     a = ResidualCandidate(src=("a",), tgt=("A",), template_id="t", domain="t")
     y = ResidualCandidate(src=("y",), tgt=("Y",), template_id="t", domain="t")
@@ -207,18 +229,31 @@ def test_celf_stop_without_stale_refresh_would_miss_x():
         if ("a",) in maps:
             s += 0.3
         if ("y",) in maps:
-            s += 0.1  # small always-positive
+            s += 0.1  # small always-positive decoy
         if ("a",) in maps and ("x",) in maps:
             s += 0.5  # complementary
         return s
 
     fam = ResidualFamily(DomainAtoms(name="t"))
-    # thresh between y's marg (0.1) and x's post-a marg (0.5): naive admits a,x (and y)
     m_naive, _ = fam.admit(
         short, score, candidates=[a, y, x], thresh=0.15, celf=False,
     )
     assert ("a",) in m_naive and ("x",) in m_naive
     assert score(m_naive) >= 0.8
+
+
+def test_marker_cache_uses_content_not_object_id():
+    """Two equal-content MapDicts must share cache; a different map must recompute."""
+    fam = ResidualFamily(listops_domain_atoms(induce_only=True))
+    m1 = {("a", "x2"): ["A", "A"], ("b", "x2"): ["B", "B"]}
+    m2 = {("a", "x2"): ["A", "A"], ("b", "x2"): ["B", "B"]}  # equal content, new object
+    m3 = {("a", "x3"): ["A", "A", "A"], ("b", "x3"): ["B", "B", "B"]}
+    r1 = fam._cached_markers(m1)
+    r2 = fam._cached_markers(m2)
+    assert r1[0] == r2[0] and r1[0].get("x2") == 2
+    r3 = fam._cached_markers(m3)
+    assert r3[0].get("x3") == 3
+    assert "x2" not in r3[0]
 
 
 def test_admit_rejects_bad_residual_negative_control():
