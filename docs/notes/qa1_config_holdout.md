@@ -61,6 +61,23 @@ memorizing family cannot cover unseen joint configurations and (in this world) k
 | conditional carry helps when the family is partial | **open** — needs a partial-family testbed |
 | family-level composition on *real* (non-generated) text | **open** |
 
+## Post-merge disclosures (from the implementation lane's final report)
+
+- **The pair-memory tier carries the entire IID score.** Counts + kgram k=2,3 alone score
+  ~0 even on block-IID (suffix ngrams cannot disambiguate the 6-way `A:` continuation);
+  B0′ reaches 1.000 IID only via the joint (entity, live-location) memorization tier. This
+  *sharpens* the headline: the tier doing all the memorization work is precisely the one
+  that scores 0.000 on held-out joints.
+- **H2 baseline-pin deviation (disclosed):** admission marginals were computed against B0′
+  *stripped of pair-memory* (the full cover saturates train agreement, leaving zero
+  marginal signal to admit on); evaluation used the full B0′. This violates the letter of
+  the registered "pinned baseline ensemble = B0′" for the admission step. The H2 outcome
+  (ceiling degeneracy, both arms 1.000) is insensitive to it — both arms admitted moveloc
+  either way — but the deviation is recorded, and future registrations must pin the
+  admission-time and evaluation-time ensembles separately.
+- Minor: the reused `entity_from_question` helper is first-match (a shared quirk with the
+  #79 bench loader); the generated test blocks used a last-match variant locally.
+
 ## Lessons (binding on future preregs)
 
 1. (from #79) Pin the baseline ensemble and val distribution — honored here.
