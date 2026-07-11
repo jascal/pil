@@ -293,18 +293,20 @@ class StructuralSeedTemplate(ResidualTemplate):
 
 
 class RelationAtomTemplate(ResidualTemplate):
-    """CFQ-style relation atoms for join residuals (domain-agnostic *pattern*).
+    """Thin pass-through: multi-ns word×path votes → residual atom candidates.
 
-    Short maps use keys ``(word, path)`` → ``[path]`` mined from single-predicate
-    questions. Residual candidates come from **multi-predicate** co-occurrence votes
-    in ``domain.extra['multi_word_path_votes']``: ``{(word, path): count, ...}``.
+    **Does not detect join structure** (unlike NFoldTemplate, which inspects tgt
+    geometry). The campaign precomputes ``domain.extra['multi_word_path_votes']``;
+    this class only filters by min_support and skips keys already in short_maps.
 
-    Scoring (caller) joins atoms by set-union over question words — complementary
-    (non-submodular); use naive admit, never CELF.
+    What transfers to CFQ is the ResidualFamily **admit loop**, not an induced
+    compositional join pattern. Callers score bag-union set-F1 over words — still
+    complementary (non-submodular); use naive admit, never CELF.
     """
 
     id = "relation_atom"
-    pattern_agnostic = True  # pattern is general; Freebase paths are domain content
+    # Pattern is a thin inventory residual; paths are Freebase-specific content.
+    pattern_agnostic = True
 
     def propose(self, short_maps: MapDict, domain: DomainAtoms) -> list[ResidualCandidate]:
         votes: dict[tuple[str, str], int] = domain.extra.get("multi_word_path_votes", {})
@@ -328,7 +330,7 @@ class RelationAtomTemplate(ResidualTemplate):
                     "word": word,
                     "path": path,
                     "support": cnt,
-                    "kind": "join_atom_from_multi_ns",
+                    "kind": "multi_ns_vote_passthrough",
                 },
             ))
         return out

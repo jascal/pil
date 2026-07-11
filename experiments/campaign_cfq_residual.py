@@ -1,26 +1,30 @@
-"""CFQ join residuals — honest generality test for ResidualFamily (standalone).
+"""CFQ residual atoms — API reuse + honest ceiling diagnosis (standalone).
 
-Uses the **same** ``ResidualFamily.propose`` / ``admit`` (naive, not CELF) as SCAN
-and listops. Only the pack differs:
+Uses the same ``ResidualFamily.propose`` / ``admit`` (naive, not CELF) as SCAN
+and listops. This measures **admit-loop portability**, not induced join structure:
 
-  - Base short maps: single-``ns:`` train queries → ``(word, path) → [path]`` atoms
-  - Residual: ``RelationAtomTemplate`` induces more word→path atoms from
-    **multi-ns** co-occurrence (join inventory), admitted by val set-F1 marginal
+  - Base: single-``ns:`` co-occurrence → ``(word, path) → [path]``
+  - Residual: ``RelationAtomTemplate`` is a thin pass-through over multi-ns
+    word×path votes computed by the campaign (no structural pattern detection)
+  - Predict: bag-of-words set-union of atoms — **not** compositional join
 
-Scoring is structure-level (predicate set-F1), not full SPARQL generation —
-exact SPARQL remains ~0 (unique questions). That is intentional honesty.
+Scoring is predicate set-F1 (structure bag). Exact SPARQL = 0 without a generator.
 
-Holdouts (must be able to fail):
-  - relation holdout: drop a frequent path from base atoms → residual may recover
-  - depth holdout: score only deep multi-ns queries (join stress)
-  - no residual vs residual admit (help)
+Baselines (required anchors):
+  - frequency prior: always predict top-K train paths (question-blind)
+  - base / hardcode residual / certified admit
 
-Standalone: HF CFQ via build_cfq, SOFT=0, full template_id provenance.
+Honest findings (mcd1): freq prior can beat base; admit often **underperforms**
+hardcode (val misaligned); set-F1 plateaus ≪ 1 — symbolic word→path is at a ceiling.
+
+Holdouts:
+  - weakened_base: drop a path from base+residual (other atoms may still help)
+  - recovery: drop path from base only; residual votes still carry it (true recovery test)
+  - deep queries (≥6 ns)
 
 Run:
-  cd pil && .venv/bin/python experiments/build_cfq.py   # if needed
   cd pil && .venv/bin/python -u experiments/campaign_cfq_residual.py
-Env: CFQ_SPLITS=mcd1  CFQ_MAX_VAL=2000
+Env: CFQ_SPLITS=mcd1  CFQ_MAX_VAL=2000  CFQ_FREQ_K=20
 """
 from __future__ import annotations
 
@@ -172,6 +176,20 @@ def holdout_path_maps(maps: MapDict, path: str) -> MapDict:
     return {k: v for k, v in maps.items() if path not in v and (len(k) < 2 or k[1] != path)}
 
 
+def frequency_prior_paths(sparqls: list[str], k: int = 20) -> set[str]:
+    """Question-blind prior: top-k most common ns: paths on train."""
+    counts: Counter[str] = Counter()
+    for a in sparqls:
+        counts.update(sparql_ns(a))
+    return {p for p, _ in counts.most_common(k)}
+
+
+def mean_set_f1_constant(pairs: list[tuple[str, str]], const: set[str]) -> float:
+    if not pairs:
+        return 0.0
+    return sum(set_f1(const, sparql_ns(a)) for _, a in pairs) / len(pairs)
+
+
 def run_split(tag: str) -> dict:
     blob = load_split(tag)
     tr_q, tr_a = blob["train_q"], blob["train_sparql"]
@@ -221,29 +239,62 @@ def run_split(tag: str) -> dict:
     f1_hard = mean_set_f1(te_pairs, maps_hard)
     f1_adm = mean_set_f1(te_pairs, maps_adm)
     exact = exact_sparql_rate(te_pairs, maps_adm)
+    freq_k = int(os.environ.get("CFQ_FREQ_K", "20"))
+    freq_paths = frequency_prior_paths(fit_a, k=freq_k)
+    f1_freq = mean_set_f1_constant(te_pairs, freq_paths)
+    admit_vs_hard = f1_adm - f1_hard
+    admit_vs_freq = f1_adm - f1_freq
+    admit_vs_base = f1_adm - f1_base
 
-    # --- holdout: drop most common base path ---
     path_counts = Counter()
     for v in base_maps.values():
         path_counts.update(v)
     hold_path = path_counts.most_common(1)[0][0] if path_counts else ""
-    base_ho = holdout_path_maps(base_maps, hold_path) if hold_path else dict(base_maps)
-    multi_ho = {k: v for k, v in multi_votes.items() if k[1] != hold_path}
-    if len(multi_ho) > top_k:
-        multi_ho = dict(sorted(multi_ho.items(), key=lambda kv: -kv[1])[:top_k])
-    fam_ho = ResidualFamily(
-        cfq_domain_atoms(multi_word_path_votes=multi_ho, atom_min_support=3),
+
+    # --- weakened_base holdout: path removed from base AND residual votes ---
+    # Other atoms may still help; this is NOT "recover the dropped relation".
+    base_weak = holdout_path_maps(base_maps, hold_path) if hold_path else dict(base_maps)
+    multi_weak = {k: v for k, v in multi_votes.items() if k[1] != hold_path}
+    if len(multi_weak) > top_k:
+        multi_weak = dict(sorted(multi_weak.items(), key=lambda kv: -kv[1])[:top_k])
+    fam_weak = ResidualFamily(
+        cfq_domain_atoms(multi_word_path_votes=multi_weak, atom_min_support=3),
         templates=CFQ_TEMPLATES,
     )
-    maps_ho_base_f1 = mean_set_f1(te_pairs, base_ho)
-    maps_ho_adm, _ = fam_ho.admit(base_ho, val_score, thresh=1e-4, max_rules=16, celf=False)
-    maps_ho_adm_f1 = mean_set_f1(te_pairs, maps_ho_adm)
-    residual_helps_holdout = maps_ho_adm_f1 > maps_ho_base_f1 + 1e-6
+    f1_weak_base = mean_set_f1(te_pairs, base_weak)
+    maps_weak_adm, _ = fam_weak.admit(
+        base_weak, val_score, thresh=1e-4, max_rules=16, celf=False)
+    f1_weak_adm = mean_set_f1(te_pairs, maps_weak_adm)
 
-    # --- depth holdout: only test queries with many ns: (join stress) ---
+    # --- recovery holdout: path removed from base only; multi votes still carry it ---
+    multi_rec = dict(multi_votes)  # may still propose held path
+    if len(multi_rec) > top_k:
+        multi_rec = dict(sorted(multi_rec.items(), key=lambda kv: -kv[1])[:top_k])
+    fam_rec = ResidualFamily(
+        cfq_domain_atoms(multi_word_path_votes=multi_rec, atom_min_support=3),
+        templates=CFQ_TEMPLATES,
+    )
+    maps_rec_hard = {**base_weak, **fam_rec.propose_map(base_weak)}
+    f1_rec_hard = mean_set_f1(te_pairs, maps_rec_hard)
+    # did hardcode residual re-introduce the held path into any atom?
+    recovered_in_hard = any(
+        hold_path in v or (len(k) > 1 and k[1] == hold_path)
+        for k, v in maps_rec_hard.items()
+    )
+    maps_rec_adm, _ = fam_rec.admit(
+        base_weak, val_score, thresh=1e-4, max_rules=16, celf=False)
+    f1_rec_adm = mean_set_f1(te_pairs, maps_rec_adm)
+    recovered_in_adm = any(
+        hold_path in v or (len(k) > 1 and k[1] == hold_path)
+        for k, v in maps_rec_adm.items()
+    )
+
+    # --- depth: deep multi-ns queries (join stress / ceiling) ---
     deep = [(q, a) for q, a in te_pairs if len(sparql_ns(a)) >= 6]
     f1_deep_base = mean_set_f1(deep, base_maps) if deep else 0.0
     f1_deep_adm = mean_set_f1(deep, maps_adm) if deep else 0.0
+    f1_deep_hard = mean_set_f1(deep, maps_hard) if deep else 0.0
+    f1_deep_freq = mean_set_f1_constant(deep, freq_paths) if deep else 0.0
 
     n_adm = sum(1 for e in admit_log if e.get("event") == "admit")
     diag = fam.diagnostics(
@@ -251,17 +302,24 @@ def run_split(tag: str) -> dict:
         admitted_src=[c.src for c in cands if c.src in maps_adm and c.src not in base_maps],
     )
 
-    log(f"\n=== CFQ/{tag} join residual ===")
+    log(f"\n=== CFQ/{tag} residual atoms (API portability / ceiling diagnosis) ===")
     log(f"  fit={len(fit_q)} val={len(val_pairs)} test={len(te_pairs)} "
         f"base_atoms={len(base_maps)} residual_cands={len(cands)}")
-    log(f"  set-F1 base          {f1_base:.3f}")
+    log(f"  set-F1 freq prior@{freq_k} {f1_freq:.3f}  (question-blind)")
+    log(f"  set-F1 base          {f1_base:.3f}  (vs freq {f1_base - f1_freq:+.3f})")
     log(f"  set-F1 hardcode res  {f1_hard:.3f}")
-    log(f"  set-F1 leaf admit    {f1_adm:.3f}  (n_admitted={n_adm})")
-    log(f"  exact SPARQL         {exact:.3f}  (atom maps do not emit SPARQL)")
-    log(f"  holdout path {hold_path!r}: base={maps_ho_base_f1:.3f} "
-        f"admit={maps_ho_adm_f1:.3f} helps={residual_helps_holdout}")
-    log(f"  deep (≥6 ns) n={len(deep)}: base={f1_deep_base:.3f} admit={f1_deep_adm:.3f}")
-    log(f"  frac_proposed_agnostic {diag['frac_proposed_agnostic']:.2f}")
+    log(f"  set-F1 certified adm {f1_adm:.3f}  n_adm={n_adm}  "
+        f"vs hard {admit_vs_hard:+.3f}  vs freq {admit_vs_freq:+.3f}")
+    log(f"  exact SPARQL         {exact:.3f}")
+    log(f"  weakened_base (path {hold_path!r} removed from base+res): "
+        f"{f1_weak_base:.3f}→{f1_weak_adm:.3f}")
+    log(f"  recovery (path only out of base; res may re-emit): "
+        f"hard={f1_rec_hard:.3f} adm={f1_rec_adm:.3f} "
+        f"recovered_hard={recovered_in_hard} recovered_adm={recovered_in_adm}")
+    log(f"  deep (≥6 ns) n={len(deep)}: freq={f1_deep_freq:.3f} base={f1_deep_base:.3f} "
+        f"hard={f1_deep_hard:.3f} adm={f1_deep_adm:.3f}")
+    log("  ceiling note: bag set-F1 plateaus ≪1; admit may lose to hardcode "
+        "(val/test misalign)")
 
     return {
         "split": tag,
@@ -271,27 +329,40 @@ def run_split(tag: str) -> dict:
         "n_base_atoms": len(base_maps),
         "n_residual_cands": len(cands),
         "n_admitted": n_adm,
+        "freq_k": freq_k,
+        "set_f1_freq_prior": f1_freq,
         "set_f1_base": f1_base,
         "set_f1_hardcode": f1_hard,
         "set_f1_admit": f1_adm,
+        "admit_minus_hardcode": admit_vs_hard,
+        "admit_minus_freq": admit_vs_freq,
+        "admit_minus_base": admit_vs_base,
         "exact_sparql": exact,
         "holdout_path": hold_path,
-        "holdout_base_f1": maps_ho_base_f1,
-        "holdout_admit_f1": maps_ho_adm_f1,
-        "holdout_residual_helps": residual_helps_holdout,
+        "weakened_base_f1": f1_weak_base,
+        "weakened_admit_f1": f1_weak_adm,
+        "recovery_hard_f1": f1_rec_hard,
+        "recovery_admit_f1": f1_rec_adm,
+        "recovery_path_in_hardcode": recovered_in_hard,
+        "recovery_path_in_admit": recovered_in_adm,
         "deep_n": len(deep),
+        "deep_freq_f1": f1_deep_freq,
         "deep_base_f1": f1_deep_base,
+        "deep_hard_f1": f1_deep_hard,
         "deep_admit_f1": f1_deep_adm,
         "diagnostics": diag,
         "admit_log": admit_log[:30],
-        "sample_admitted": [
-            e for e in admit_log if e.get("event") == "admit"
-        ][:10],
+        "sample_admitted": [e for e in admit_log if e.get("event") == "admit"][:10],
         "origin": "standalone",
         "admit": "naive",
-        "note": (
-            "CFQ is a real non-isomorphic domain. Structure set-F1 is the residual "
-            "metric; exact SPARQL stays ~0 without a SPARQL generator."
+        "claim_scope": (
+            "ResidualFamily API reuse on CFQ; RelationAtomTemplate is a vote pass-through, "
+            "not induced join structure. Predict is bag-union set-F1."
+        ),
+        "negative_result": (
+            "Symbolic word→path set-F1 is near a frequency-prior ceiling (~0.25–0.28); "
+            "certified admit can underperform hardcode; exact SPARQL remains 0. "
+            "Pivot: residual_as_schema / compositional decode, not more atoms."
         ),
     }
 
@@ -307,23 +378,24 @@ def main():
         results.append(run_split(tag))
 
     log("\n" + "=" * 78)
-    log("CFQ JOIN RESIDUAL SCOREBOARD (set-F1 structure / exact SPARQL)")
+    log("CFQ RESIDUAL SCOREBOARD (set-F1 bag / exact SPARQL)")
     log("=" * 78)
-    log(f"{'split':8} {'base':>7} {'hard':>7} {'admit':>7} {'exact':>7} "
-        f"{'hoBase':>7} {'hoAdm':>7} {'helps':>6} {'deepAd':>7}")
+    log(f"{'split':8} {'freq':>7} {'base':>7} {'hard':>7} {'admit':>7} "
+        f"{'ad-hd':>7} {'exact':>7} {'recHd':>7} {'deepH':>7}")
     for r in results:
-        log(f"{r['split']:8} {r['set_f1_base']:7.3f} {r['set_f1_hardcode']:7.3f} "
-            f"{r['set_f1_admit']:7.3f} {r['exact_sparql']:7.3f} "
-            f"{r['holdout_base_f1']:7.3f} {r['holdout_admit_f1']:7.3f} "
-            f"{str(r['holdout_residual_helps']):>6} {r['deep_admit_f1']:7.3f}")
+        log(f"{r['split']:8} {r['set_f1_freq_prior']:7.3f} {r['set_f1_base']:7.3f} "
+            f"{r['set_f1_hardcode']:7.3f} {r['set_f1_admit']:7.3f} "
+            f"{r['admit_minus_hardcode']:+7.3f} {r['exact_sparql']:7.3f} "
+            f"{r['recovery_hard_f1']:7.3f} {r['deep_hard_f1']:7.3f}")
+        log(f"  {r['negative_result']}")
     out_dir = REPO / "data"
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / "cfq_residual_scoreboard.json"
     out.write_text(json.dumps(results, indent=2, default=str))
     log(f"wrote {out}")
-    log("\nReading: same ResidualFamily naive admit as SCAN/listops; CFQ pack adds "
-        "relation_atom residuals from multi-ns votes. exact SPARQL=0 is honest "
-        "(atoms ≠ SPARQL generator). Holdouts show help and failure modes.")
+    log("\nReading: freq prior anchors the board (base may lose to it). "
+        "admit−hardcode < 0 = certified selection costs F1. "
+        "exact=0 + deep plateau = symbolic word→path ceiling → residual_as_schema.")
 
 
 if __name__ == "__main__":

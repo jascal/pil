@@ -86,6 +86,12 @@ KeyTable path, rewriting all of expand into a semiring interpreter.
 
 ## Relation to CFQ residual campaign
 
-`campaign_cfq_residual.py` is the **empirical** join-atom yardstick using the
-symbolic ResidualFamily loop. When the schema bridge lands, re-run that campaign
-with SchemaBank selection and show parity + learner diagnostics (birth/death counts).
+`campaign_cfq_residual.py` shows the **symbolic ceiling**: bag set-F1 plateaus near a
+frequency prior (~0.25), certified admit can lose to hardcode, exact SPARQL = 0.
+That is not a failure of the ResidualFamily *API* — it is evidence that **more
+word→path atoms will not learn CFQ joins**. The schema bridge + soft-semiring
+decode over structured labels is the intended next implement PR.
+
+When the bridge lands: re-run CFQ with SchemaBank selection; report parity on any
+structure metric that still applies, plus birth/death counts — and prefer a
+metric with headroom (triple/edge-F1) over bag-of-predicate set-F1 alone.

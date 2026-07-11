@@ -1,49 +1,73 @@
-# CFQ join residuals (generality test)
+# CFQ residual atoms — API portability + symbolic ceiling
 
-Not an isomorphic toy: real CFQ (Keysers et al.) via `build_cfq.py`.
+Real CFQ (MCD) via `build_cfq.py`. **Not** an isomorphic toy.
+
+## What this actually tests
+
+| Claim | Fair? |
+|---|---|
+| Same `ResidualFamily.propose/admit` (naive) as SCAN/listops | **Yes** — API reuse |
+| Induced compositional **join** structure | **No** — `RelationAtomTemplate` is a vote pass-through |
+| Bag set-F1 is a join metric | **Weak** — set-union of word→path associations |
+| Exact SPARQL from residuals | **No** — always 0 without a generator |
 
 ## Method
 
-Same code path as SCAN/listops:
-
 ```text
-mine base atoms (1-ns) → RelationAtomTemplate propose (multi-ns votes)
-  → ResidualFamily.admit (naive, celf=False) → set-F1 join score
+1-ns co-occurrence → base atoms (word, path)
+multi-ns votes → residual candidates (pass-through template)
+predict = ∪ atoms for content words in Q
+score = set-F1(pred paths, gold paths)
 ```
 
-| Piece | Role |
-|---|---|
-| Base maps | `(word, path) → [path]` from single-predicate train queries |
-| Residual | more word→path atoms from multi-ns co-occurrence |
-| Join | set-union of atoms over question content words |
-| Metric | predicate **set-F1** (structure); **exact SPARQL = 0** (no generator) |
+## Required baselines
 
-## Honest holdouts
-
-| Holdout | Intent |
+| baseline | role |
 |---|---|
-| Relation path holdout | Drop frequent path from base; residual may help recover |
-| Deep queries (≥6 ns) | Join stress — F1 stays low without full SPARQL gen |
-| Exact SPARQL | Always ~0 until a real generator exists |
+| **freq prior** | always top-K train paths (question-blind) |
+| base | 1-ns word→path only |
+| hardcode residual | base + all residual candidates |
+| certified admit | val-marginal greedy (may **lose** to hardcode) |
+
+## Holdouts
+
+| name | meaning |
+|---|---|
+| **weakened_base** | drop path from base **and** residual votes — other atoms may still help |
+| **recovery** | drop path from base only; residual may re-emit that path |
+| **deep** | test queries with ≥6 ns: predicates (ceiling / stress) |
+
+## Scoreboard (mcd1, empirical)
+
+| metric | value | reading |
+|---|---:|---|
+| freq prior @20 | ~0.20 | anchors the board |
+| base | ~0.17 | can **lose** to freq prior |
+| hardcode residual | ~0.25–0.26 | best symbolic bag-F1 here |
+| certified admit | ~0.24 | **often &lt; hardcode** (val misalign) |
+| exact SPARQL | **0.000** | no generator |
+| deep hard/admit | ~0.27–0.28 | plateau ≪ 1 |
+
+### Negative result (primary finding)
+
+**Symbolic word→path bag set-F1 is at a frequency-prior ceiling on CFQ.**  
+Adding atoms helps a little; certified selection can hurt; nothing here composes
+joins or emits SPARQL. **Pivot effort** to `residual_as_schema.md` (learner bridge
++ compositional decode), not more atom packs. If CFQ stays symbolic, use a metric
+with headroom (e.g. triple/edge-F1 over the query graph).
 
 ## Run
 
 ```bash
-.venv/bin/python experiments/build_cfq.py   # once
 .venv/bin/python -u experiments/campaign_cfq_residual.py
-# CFQ_SPLITS=mcd1,mcd2  CFQ_MAX_VAL=2000
+# CFQ_SPLITS=mcd1  CFQ_FREQ_K=20  CFQ_RES_TOPK=60
 ```
-
-## Scoreboard (mcd1, structure set-F1)
-
-| split | set-F1 base | hardcode | admit | exact SPARQL | holdout base→admit | deep admit |
-|---|---:|---:|---:|---:|---:|---:|
-| mcd1 | 0.166 | 0.253 | **0.241** | **0.000** | 0.159→**0.236** (helps) | 0.279 |
-
-Accept: residual admit helps over base (0.166→0.241) **and** exact SPARQL honestly fails (0).
 
 ## Tags
 
-- Structure set-F1 gains: **empirical**
-- Exact SPARQL: **open** (honest zero)
-- Generality vs listops: CFQ is non-isomorphic — **empirical transfer of ResidualFamily API**, not of nfold markers
+| claim | tag |
+|---|---|
+| API reuse on CFQ | **empirical** |
+| Join induction | **not claimed** |
+| set-F1 ceiling ~0.26 | **empirical** |
+| Schema / soft-semiring path | **open** (design note) |
