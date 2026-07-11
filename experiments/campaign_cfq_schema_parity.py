@@ -30,6 +30,7 @@ from pil.residual_schema import (  # noqa: E402
     mean_set_f1_schemas,
     propose_schemas_setf1,
     residual_candidates_to_schemas,
+    schema_name_to_pair,
 )
 from pil.residual_template import (  # noqa: E402
     CFQ_TEMPLATES,
@@ -39,13 +40,6 @@ from pil.residual_template import (  # noqa: E402
 )
 
 TAG = "mcd1"
-
-
-def _name_to_pair(name: str) -> tuple[str, str]:
-    """Parse schema name ``template_id/word|path`` (first / then first |)."""
-    _, rest = name.split("/", 1)
-    word, path = rest.split("|", 1)
-    return word, path
 
 
 def encode_pairs(
@@ -151,7 +145,7 @@ def main() -> None:
         base_schemas, cand_schemas, X_val, gold_val, thresh=1e-4, max_rules=16,
     )
     _ = sel_log
-    selected_pairs = {_name_to_pair(s.name) for s in selected}
+    selected_pairs = {schema_name_to_pair(s.name) for s in selected}
 
     parity_ok = selected_pairs == admitted_pairs
     val_f1_residual = mean_set_f1(val_admit, maps_adm)

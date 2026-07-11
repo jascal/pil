@@ -19,6 +19,7 @@ from pil.residual_schema import (
     mean_set_f1_schemas,
     propose_schemas_setf1,
     residual_candidates_to_schemas,
+    schema_name_to_pair,
     schema_set_predict,
 )
 from pil.residual_template import (
@@ -232,12 +233,7 @@ def test_setf1_selector_reproduces_admit():
         base_schemas, cand_schemas, X_val, gold_val, thresh=1e-4, max_rules=16,
     )
 
-    def _name_to_pair(name: str) -> tuple[str, str]:
-        _, rest = name.split("/", 1)
-        word, path = rest.split("|", 1)
-        return word, path
-
-    selected_pairs = {_name_to_pair(s.name) for s in selected}
+    selected_pairs = {schema_name_to_pair(s.name) for s in selected}
     admitted_pairs = {k for k in maps_adm if k not in base_maps}
     assert selected_pairs == admitted_pairs
     assert selected_pairs == {("influence", "ns:influenced"), ("book", "ns:author")}

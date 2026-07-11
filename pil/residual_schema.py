@@ -90,6 +90,19 @@ def residual_candidates_to_schemas(
     return schemas, skipped
 
 
+def schema_name_to_pair(name: str) -> tuple[str, str]:
+    """Recover ``(word, path)`` from a bridge schema name ``template_id/word|path``.
+
+    Inverse of the name built in :func:`residual_candidates_to_schemas` — split on the
+    first ``/`` then the first ``|``. The naming format is a load-bearing parity
+    contract (selection comparisons key off it); parse via this helper rather than
+    re-implementing the split at each call site.
+    """
+    _, rest = name.split("/", 1)
+    word, path = rest.split("|", 1)
+    return word, path
+
+
 def cfq_stoi_from(words: Iterable[str], paths: Iterable[str]) -> dict[str, int]:
     """Shared CFQ vocab: distinct words then distinct paths, sorted for determinism.
 
