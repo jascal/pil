@@ -75,7 +75,10 @@ fam = ResidualFamily(listops_domain_atoms(induce_only=True))
 `RewriteSynthesizer` (`template_id=rewrite_synth`) enumerates repeat_k / strip_prefix
 as a tiny rewrite DSL (opt-in via `enabled_templates`).
 
-`admit(..., celf=True)` uses lazy greedy; log rows are admissions only.
+`admit(..., celf=False)` is the **default** (naive greedy). Residual val scores are
+generally **not submodular** (complementary leaves), so CELF lazy bounds are not
+Leskovec-optimal — use `celf=True` only as an opt-in speed path when marginals are
+known non-increasing. Admit log rows are admissions only.
 
 ## Honest measurement
 

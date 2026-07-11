@@ -11,9 +11,10 @@ combinators / joins can compose systematically.
 
 Built-in templates remain as explicit pattern classes; synthesizer is an optional proposer.
 
-``ResidualFamily.admit`` uses **CELF-style lazy greedy** (priority queue of stale upper
-bounds) so score_fn is not re-run for every candidate every round. Admit log records
-admissions only (no O(rounds×cands) duplicate marginal rows).
+``ResidualFamily.admit`` defaults to **naive greedy** (correct for non-submodular
+val scores — complementary leaves). Optional ``celf=True`` is a fast path only when
+marginals are known non-increasing; it is **not** Leskovec-optimal on compositional
+objectives. Admit log records admissions only (no O(rounds×cands) spam).
 
 Standalone: corpus maps only, no teacher/soft SGD. Provenance on every candidate.
 
@@ -103,26 +104,35 @@ def is_exact_nfold(tgt: Sequence[str], n: int) -> list[str] | None:
 def induce_nfold_markers(
     short_maps: MapDict,
     *,
-    min_support: int = 1,
+    min_support: int = 2,
     max_k: int = 8,
+    min_margin: int = 1,
 ) -> dict[str, int]:
     """Induce suffix→k from short maps: (x, m) → unit*k consistently.
 
-    No human nfold_markers required. Votes per marker; majority k wins if support ≥ min.
+    No human nfold_markers required. Per marker, votes for k; accept only if
+    support ≥ ``min_support`` and top-k beats runner-up by ``min_margin`` (withholds
+    markers under inconsistent votes — e.g. irregular folds).
+
+    Uses the **largest** fitting k per row so ``[A]*4`` induces k=4 / unit ``[A]``,
+    not k=2 / unit ``[A,A]``.
     """
     votes: dict[str, Counter[int]] = defaultdict(Counter)
     for src, tgt in short_maps.items():
         if len(src) != 2 or not tgt:
             continue
         m = src[1]
-        for k in range(2, min(max_k, len(tgt)) + 1):
+        # largest k first → maximal factoring (correct bare unit)
+        for k in range(min(max_k, len(tgt)), 1, -1):
             if is_exact_nfold(tgt, k) is not None:
                 votes[m][k] += 1
-                break  # prefer smallest k that fits
+                break
     out: dict[str, int] = {}
     for m, ctr in votes.items():
-        k, c = ctr.most_common(1)[0]
-        if c >= min_support:
+        ranked = ctr.most_common()
+        k, c = ranked[0]
+        second = ranked[1][1] if len(ranked) > 1 else 0
+        if c >= min_support and (c - second) >= min_margin:
             out[m] = k
     return out
 
@@ -140,13 +150,28 @@ def induce_prefix_tokens(
     return frozenset(t for t, c in counts.items() if c >= min_support)
 
 
-def resolve_nfold_markers(short_maps: MapDict, domain: DomainAtoms) -> dict[str, int]:
-    """Merge induced + supplied markers (supplied overrides on conflict)."""
-    markers: dict[str, int] = {}
+def resolve_nfold_markers(
+    short_maps: MapDict, domain: DomainAtoms,
+) -> tuple[dict[str, int], list[dict[str, Any]]]:
+    """Merge induced + supplied markers; **data wins** on conflict.
+
+    Returns (markers, conflicts) where conflicts list supplied seeds that disagree
+    with induction (seed is ignored for that marker; induction kept).
+    """
+    induced: dict[str, int] = {}
     if domain.auto_induce_markers:
-        markers.update(induce_nfold_markers(short_maps))
-    markers.update(domain.nfold_markers)
-    return markers
+        induced = induce_nfold_markers(short_maps)
+    markers = dict(induced)
+    conflicts: list[dict[str, Any]] = []
+    for m, k in domain.nfold_markers.items():
+        if m in induced and induced[m] != k:
+            conflicts.append({
+                "marker": m, "supplied": k, "induced": induced[m],
+                "resolution": "keep_induced",
+            })
+            continue  # do not let a wrong seed suppress a data-backed marker
+        markers[m] = k
+    return markers, conflicts
 
 
 def resolve_prefix_tokens(short_maps: MapDict, domain: DomainAtoms) -> frozenset[str]:
@@ -178,7 +203,7 @@ class NFoldTemplate(ResidualTemplate):
     pattern_agnostic = True
 
     def propose(self, short_maps: MapDict, domain: DomainAtoms) -> list[ResidualCandidate]:
-        markers = resolve_nfold_markers(short_maps, domain)
+        markers, conflicts = resolve_nfold_markers(short_maps, domain)
         if not markers:
             return []
         out: list[ResidualCandidate] = []
@@ -202,7 +227,9 @@ class NFoldTemplate(ResidualTemplate):
                 pattern_agnostic=True,
                 meta={
                     "from": src, "n": n, "marker": src[1],
-                    "marker_induced": src[1] not in domain.nfold_markers,
+                    "marker_induced": src[1] not in domain.nfold_markers
+                    or any(c["marker"] == src[1] for c in conflicts),
+                    "marker_conflicts": conflicts,
                 },
             ))
         return out
@@ -272,7 +299,9 @@ class RewriteSynthesizer(ResidualTemplate):
       strip_prefix — tgt = p + body with |p|=1  ⇒  leaf (x,) → body
       strip_suffix — tgt = body + s with |s|=1  ⇒  leaf (x,) → body  (rare)
 
-    Subsumes hand nfold/prefix for bare-leaf recovery without a marker lexicon.
+    Experimental proposer — not in DEFAULT_TEMPLATES; use SYNTH_TEMPLATES or
+    enabled_templates including ``rewrite_synth``. Overlaps nfold/prefix; prefer
+    for ablations, not production packs, until scored end-to-end.
     """
 
     id = "rewrite_synth"
@@ -281,7 +310,7 @@ class RewriteSynthesizer(ResidualTemplate):
     def propose(self, short_maps: MapDict, domain: DomainAtoms) -> list[ResidualCandidate]:
         out: list[ResidualCandidate] = []
         seen: set[tuple[str, ...]] = set()
-        markers = resolve_nfold_markers(short_maps, domain)
+        markers, _ = resolve_nfold_markers(short_maps, domain)
 
         for src, tgt in short_maps.items():
             if len(src) != 2 or not tgt:
@@ -290,12 +319,11 @@ class RewriteSynthesizer(ResidualTemplate):
             if leaf in short_maps or leaf in seen:
                 continue
 
-            # repeat_k for k=2..8
-            for k in range(2, min(8, len(tgt)) + 1):
+            # repeat_k: largest k first (same as induce_nfold_markers)
+            for k in range(min(8, len(tgt)), 1, -1):
                 unit = is_exact_nfold(tgt, k)
                 if unit is None:
                     continue
-                # prefer markers that match induced k when present
                 meta = {"op": "repeat_k", "k": k, "from": src, "marker": src[1]}
                 if src[1] in markers:
                     meta["marker_k"] = markers[src[1]]
@@ -321,13 +349,14 @@ class RewriteSynthesizer(ResidualTemplate):
         return out
 
 
-# Built-in library. rewrite_synth is opt-in via enabled_templates (overlaps nfold).
+# Built-in library. rewrite_synth is opt-in (SYNTH_TEMPLATES / enabled_templates).
 DEFAULT_TEMPLATES: tuple[ResidualTemplate, ...] = (
     NFoldTemplate(),
     PrefixBodyTemplate(),
     StructuralSeedTemplate(),
 )
 
+# Experimental — campaign ablation only until end-to-end validated.
 SYNTH_TEMPLATES: tuple[ResidualTemplate, ...] = (
     RewriteSynthesizer(),
     StructuralSeedTemplate(),
@@ -377,12 +406,26 @@ class ResidualFamily:
 
     domain: DomainAtoms
     templates: Sequence[ResidualTemplate] = DEFAULT_TEMPLATES
+    # last propose/admit diagnostics (marker conflicts, score calls, …)
+    last_marker_conflicts: list[dict[str, Any]] = field(default_factory=list)
+    _marker_cache: dict[int, tuple[dict[str, int], list[dict[str, Any]]]] = field(
+        default_factory=dict, repr=False,
+    )
 
     def active_templates(self) -> list[ResidualTemplate]:
         return [t for t in self.templates if self.domain.wants(t.id)]
 
+    def _cached_markers(self, short_maps: MapDict) -> tuple[dict[str, int], list[dict[str, Any]]]:
+        key = id(short_maps)
+        if key not in self._marker_cache:
+            self._marker_cache[key] = resolve_nfold_markers(short_maps, self.domain)
+        return self._marker_cache[key]
+
     def propose(self, short_maps: MapDict) -> list[ResidualCandidate]:
         """Propose residual candidates; first template wins on duplicate src."""
+        markers, conflicts = self._cached_markers(short_maps)
+        self.last_marker_conflicts = conflicts
+        _ = markers
         by_src: dict[tuple[str, ...], ResidualCandidate] = {}
         for tmpl in self.active_templates():
             for cand in tmpl.propose(short_maps, self.domain):
@@ -406,12 +449,17 @@ class ResidualFamily:
         thresh: float = 1e-4,
         max_rules: int = 32,
         candidates: list[ResidualCandidate] | None = None,
-        celf: bool = True,
+        celf: bool = False,
     ) -> tuple[MapDict, list[dict[str, Any]]]:
-        """Greedy val-marginal admit. CELF lazy greedy by default.
+        """Greedy val-marginal admit. **Naive by default** (correct for non-submodular scores).
 
-        Admit log contains **one row per admission** (not per candidate×round).
-        Final ``log[-1]`` may include a ``stopped`` summary with n_remaining.
+        Residual admission is generally **not submodular**: a leaf's marginal can
+        *increase* after a complementary leaf is admitted (e.g. val needs both
+        ``c`` and ``d``). CELF's lazy upper bounds are only valid when marginals
+        are non-increasing — opt in with ``celf=True`` only for verified-submodular
+        scorers (or accept approximation).
+
+        Admit log: one row per admission + stop summary (``n_score_calls``).
         """
         if celf:
             return self._admit_celf(
@@ -479,10 +527,11 @@ class ResidualFamily:
         max_rules: int,
         candidates: list[ResidualCandidate] | None,
     ) -> tuple[MapDict, list[dict[str, Any]]]:
-        """CELF: priority queue of marginal upper bounds; re-score only the current top.
+        """CELF-style lazy greedy — **opt-in only**.
 
-        Submodular diminishing returns ⇒ a stale upper bound that is still best
-        after re-evaluation is optimal for this round (Leskovec et al.).
+        Equals naive greedy only when marginal gains are non-increasing
+        (submodular-like). On complementary residuals (compositional val),
+        stale bounds can drop beneficial candidates — see tests.
         """
         pool = list(candidates if candidates is not None else self.propose(short_maps))
         admitted: MapDict = {k: list(v) for k, v in short_maps.items()}
@@ -524,8 +573,26 @@ class ResidualFamily:
                     continue
                 marg = -neg_u
                 if marg <= thresh:
-                    # best bound below thresh → stop
-                    heap = []  # force exit outer
+                    # Fresh top below thresh. Before stopping, refresh any stale
+                    # entries (non-submodular: a buried leaf may gain after admits).
+                    stale = [(nu, s, i, c, bb) for nu, s, i, c, bb in heap if bb != base]
+                    fresh = [(nu, s, i, c, bb) for nu, s, i, c, bb in heap if bb == base]
+                    heap = list(fresh)
+                    heapq.heapify(heap)
+                    if stale:
+                        for _, _, i, c, _ in stale:
+                            if c.src in admitted:
+                                continue
+                            trial = dict(admitted)
+                            trial[c.src] = list(c.tgt)
+                            sc = score_fn(trial)
+                            n_score += 1
+                            heapq.heappush(heap, (-(sc - base), seq, i, c, base))
+                            seq += 1
+                        # re-push current cand too? already discarded as low; skip
+                        continue
+                    # all fresh and top low → true stop
+                    heap = []
                     break
                 # admit
                 admitted[cand.src] = list(cand.tgt)
@@ -551,6 +618,7 @@ class ResidualFamily:
             "n_score_calls": n_score,
             "n_admitted": sum(1 for e in log if e.get("event") == "admit"),
             "n_heap_left": len(heap),
+            "celf_note": "opt-in; not Leskovec-optimal unless marginals non-increasing",
         })
         return admitted, log
 
@@ -610,7 +678,7 @@ class ResidualFamily:
         adm = set(admitted_src) if admitted_src is not None else {c.src for c in cands}
         proposed = cands
         admitted_c = [c for c in proposed if c.src in adm]
-        induced = induce_nfold_markers(short_maps)
+        induced, conflicts = self._cached_markers(short_maps)
 
         def frac(xs: list[ResidualCandidate], pred) -> float:
             if not xs:
@@ -628,6 +696,7 @@ class ResidualFamily:
             "frac_admitted_agnostic": frac(admitted_c, lambda c: c.pattern_agnostic),
             "induced_nfold_markers": dict(induced),
             "supplied_nfold_markers": dict(self.domain.nfold_markers),
+            "marker_conflicts": list(conflicts),
             "active_templates": [t.id for t in self.active_templates()],
         }
 

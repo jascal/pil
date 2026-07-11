@@ -30,6 +30,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 from pil.residual_template import (  # noqa: E402
+    SYNTH_TEMPLATES,
     MapDict,
     ResidualCandidate,
     ResidualFamily,
@@ -222,7 +223,7 @@ def run_listops() -> dict:
     log(f"  induced markers     {induced}")
     log(f"  base (no residual)  {acc_base:.3f}")
     log(f"  hardcode residuals  {acc_hard:.3f}")
-    log(f"  leaf admit (CELF)   {acc_leaf:.3f}")
+    log(f"  leaf admit (naive)  {acc_leaf:.3f}")
     log(f"  template admit      {acc_tmpl:.3f}  enabled={sorted(en_t)}")
     log(f"  frac_proposed_agnostic {diag['frac_proposed_agnostic']:.2f}")
 
@@ -304,9 +305,12 @@ def run_honest_suite() -> dict:
     acc_op = ok / max(tot, 1)
 
     # --- irregular: x2 maps that are NOT n-fold should not induce x2→2 from them alone ---
-    # Only irregular maps (non-fold / inconsistent k under same marker)
+    # Only irregular maps — must NOT induce a marker (guard assertion)
     only_irreg = {("z", "x2"): ["Z", "NOISE"], ("y", "x2"): ["Y", "Y", "Y"]}
     induced_only_irreg = induce_nfold_markers(only_irreg)
+    assert "x2" not in induced_only_irreg, (
+        f"irregular maps must withhold marker, got {induced_only_irreg}"
+    )
 
     # --- negative control: poison vs good for same new leaf ---
     short = {("a",): ["A"], ("b",): ["B"]}
@@ -322,24 +326,38 @@ def run_honest_suite() -> dict:
         return sum(1 for cmd, g in val if maps.get(tuple(cmd)) == g) / len(val)
 
     maps_neg, log_neg = ResidualFamily(listops_domain_atoms()).admit(
-        short, score_neg, candidates=[bad, good], thresh=1e-4,
+        short, score_neg, candidates=[bad, good], thresh=1e-4, celf=False,
     )
     rejected_poison = maps_neg.get(("c",)) != ["POISON"]
     admitted_good = maps_neg.get(("c",)) == ["C"]
+    assert rejected_poison and admitted_good
+
+    # --- synth ablation (experimental RewriteSynthesizer pack) ---
+    short_fit = {**data["induction"], **data["expand_base"]}
+    fam_synth = ResidualFamily(
+        listops_domain_atoms(induce_only=True), templates=SYNTH_TEMPLATES,
+    )
+    synth_map = fam_synth.propose_map(short_fit)
+    leaves_synth = {k: v for k, v in {**data["expand_base"], **synth_map}.items() if len(k) == 1}
+    test_pairs = list(zip(data["test_in"], data["test_out"], strict=True))
+    acc_synth = listops_score(leaves_synth, test_pairs)
 
     log("\n=== honest measurement suite ===")
     log(f"  operator holdout (no x3 in train, test x3): acc={acc_op:.3f} "
         f"induced={induced_op}")
-    log(f"  irregular-only maps induced markers: {induced_only_irreg}")
+    log(f"  irregular-only maps induced markers: {induced_only_irreg} (must be empty)")
     log(f"  negative control: reject poison={rejected_poison} admit good={admitted_good}")
+    log(f"  rewrite_synth ablation hardcode: {acc_synth:.3f}")
 
     return {
         "domain": "honest_suite",
         "operator_holdout_acc": acc_op,
         "operator_holdout_induced": induced_op,
         "irregular_induced_markers": induced_only_irreg,
+        "irregular_withheld": "x2" not in induced_only_irreg,
         "negative_control_reject_poison": rejected_poison,
         "negative_control_admit_good": admitted_good,
+        "rewrite_synth_hardcode_acc": acc_synth,
         "note": (
             "operator_holdout_acc < 1.0 expected when x3 never seen; "
             "isomorphic listops transfer is pattern reusability, not full generality"
@@ -454,12 +472,14 @@ def main():
         log(f"{r['domain']:14} {r['acc_base']:7.3f} {r['acc_hardcode']:7.3f} "
             f"{r['acc_leaf_admit']:7.3f} {r['acc_template_admit']:7.3f} "
             f"{agn:7.2f} {str(markers)[:16]:>16}")
-    out = REPO / "data" / "residual_transfer_scoreboard.json"
+    out_dir = REPO / "data"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / "residual_transfer_scoreboard.json"
     out.write_text(json.dumps(results, indent=2, default=str))
     log(f"wrote {out}")
-    log("\nReading: marker induction (no hand nfold_markers) + CELF admit. "
-        "listops is isomorphic pattern transfer; honest_suite holds out operators / "
-        "poisons residuals so scores below 1.0 are informative.")
+    log("\nReading: marker induction (no hand nfold_markers); admit is **naive greedy** "
+        "by default (CELF opt-in only). listops = pattern reusability; honest_suite "
+        "holds out operators / poisons residuals (opHold=0, irregular withholds marker).")
 
 
 if __name__ == "__main__":
