@@ -141,43 +141,14 @@ def mine_scan_grammar(train_in, train_out, codec: WordCodec, *, residual_leaves:
 def induce_residual_leaves(
     prims: dict[tuple[str, ...], list[str]],
 ) -> dict[tuple[str, ...], list[str]]:
-    """Block-private residual templates: bare leaves recovered from short composites.
+    """Block-private residual leaves via domain-agnostic ``ResidualFamily`` (SCAN pack).
 
-    From train-mined maps only (no test leakage):
-      - ``(verb, twice|thrice)`` → ``(verb,)`` unit action if exact n-fold
-      - ``(verb, left|right)`` → ``(verb,)`` body after the leading turn
-      - always ensure ``turn left`` / ``turn right`` leaves
-
-    These fire only as lexicon residuals (B0 family); combinators stay joint.
+    Delegates to ``pil.residual_template``: n-fold (twice/thrice), prefix_body
+    (I_TURN_*), structural turn L/R seeds. Same machinery as listops/CFQ packs.
     """
-    out: dict[tuple[str, ...], list[str]] = {}
-    for key, acts in prims.items():
-        if len(key) == 2 and key[1] in ("twice", "thrice") and acts:
-            n = 2 if key[1] == "twice" else 3
-            if len(acts) % n == 0:
-                unit_len = len(acts) // n
-                unit = acts[:unit_len]
-                if all(acts[i * unit_len:(i + 1) * unit_len] == unit for i in range(n)):
-                    leaf = (key[0],)
-                    if leaf not in prims and leaf not in out:
-                        out[leaf] = list(unit)
-        if (
-            len(key) == 2
-            and key[1] in ("left", "right")
-            and acts
-            and acts[0] in ("I_TURN_LEFT", "I_TURN_RIGHT")
-            and len(acts) > 1
-        ):
-            leaf = (key[0],)
-            body = list(acts[1:])
-            if leaf not in prims and leaf not in out:
-                out[leaf] = body
-    # turn leaves are structural (always available as residual templates)
-    for k, v in (("turn", "left"), ("turn", "right")):
-        leaf = (k, v)
-        if leaf not in prims and leaf not in out:
-            out[leaf] = _turn(v)
-    return out
+    from pil.residual_template import ResidualFamily, scan_domain_atoms
+
+    return ResidualFamily(scan_domain_atoms()).propose_map(prims)
 
 
 def _turn(d: str) -> list[str]:
