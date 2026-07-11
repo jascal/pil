@@ -98,10 +98,13 @@ Real generality needs an alien domain (CFQ, COGS, …) not built around the temp
 1. **Done:** marker induction, naive-default admit, rewrite synth sketch, honest suite.
 2. **Done (CFQ):** `relation_atom` join residuals on real MCD — see `cfq_residual.md`
    (set-F1 help + exact SPARQL=0).
-3. **Next:** residual as schema — `docs/notes/residual_as_schema.md` (implement bridge).
-4. Shared compositional interpreter (operator table + semiring).
-5. KeyTable / token-space residual path for LM slices.
-6. Wire ResidualFamily into WylyBlock B0 automatically.
+3. **Done (bridge slice):** residual → schema bridge + Datalog export in
+   `pil/residual_schema.py` (`residual_as_schema.md` steps 2 & 5; souffle round-trip).
+4. **Next:** CFQ set-F1 selection over SchemaBank (residual_as_schema step 4) —
+   needs a shared question-word + `ns:`-path `stoi`.
+5. Shared compositional interpreter (operator table + semiring).
+6. KeyTable / token-space residual path for LM slices.
+7. Wire ResidualFamily into WylyBlock B0 automatically.
 
 ## How to add a new domain
 

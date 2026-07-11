@@ -1,6 +1,12 @@
 # Residual candidates as PIC schemas (design note)
 
-**Status:** design only (this PR). First implementation slice in a follow-up.
+**Status:** steps 2–5 landed. The **bridge + Datalog export** (steps 2 & 5) are in
+`pil/residual_schema.py` (token-presence residuals; souffle round-trip verified). The
+**set-F1 selector + shared vocab** (steps 3 & 4) are now wired: `propose_schemas_setf1`
+mirrors `ResidualFamily._admit_naive` and, on real CFQ **mcd1**, admits the identical
+16 `(word,path)` pairs the residual admit loop does, with val/test set-F1 equal to
+<1e-9 (`experiments/campaign_cfq_schema_parity.py`; test set-F1 0.239). Original design
+below.
 
 **Goal:** Stop maintaining a parallel symbolic admit loop forever. Residual
 leaves/joins should become **schemas** selected by the existing
@@ -59,28 +65,41 @@ relation_atom[word, path]:
 ablation death is O(K) per probe and does not assume submodularity — preferred
 over CELF for CFQ joins.
 
-## First concrete integration slice (next implement PR)
+## First concrete integration slice
 
-Smallest end-to-end path:
+Smallest end-to-end path (status per step):
 
 1. **Offline:** keep `ResidualFamily.propose` to emit candidates (nfold / relation_atom).
-2. **Bridge:** `residual_candidates_to_schemas(cands, stoi) -> list[Schema]` with
-   predict firing on bag-of-word / marker presence in a fixed window.
-3. **Select:** run `propose_schemas`-style train exact-match (or set-F1 for CFQ
-   structure ids) threshold accept into a tiny `SchemaBank`.
-4. **Metric:** same campaign scoreboards (SCAN simple / CFQ set-F1) with and without
-   SchemaBank — must match residual admit within ε on structure metrics.
-5. **Export:** one Datalog clause per admitted residual schema (certification).
+   *(unchanged — already lands residual candidates)*
+2. ✅ **Bridge — done:** `residual_candidates_to_schemas(cands, stoi) -> (list[Schema], skipped)`
+   in `pil/residual_schema.py`. Predict fires the single target token when the
+   source word is present anywhere in the window (`(x == word_id).any`); multi-token
+   `tgt` (n-fold) and unknown symbols are skipped with a reason, not swallowed.
+3. ✅ **Select — done:** `propose_schemas_setf1` (`pil/residual_schema.py`) is the
+   set-valued analogue of `propose_schemas` — greedy val-marginal over a set-union
+   schema decode, mirroring `_admit_naive` line-for-line (strict `>` thresh,
+   first-wins ties, base recomputed each round, candidate order preserved). The
+   single-token `propose_schemas` path is untouched.
+4. ✅ **Metric — measured:** `cfq_stoi_from` builds the shared vocab (question words +
+   `ns:` paths in one id space); `mean_set_f1_schemas` scores in Python floats, matching
+   `campaign_cfq_residual.mean_set_f1` exactly. Parity is measured on mcd1: selector and
+   residual admit select the **same 16 atoms**; val/test set-F1 equal to <1e-9.
+5. ✅ **Export — done:** one presence clause per schema (`tok(I,_,word), C=path`);
+   `test_export_datalog_roundtrips_via_souffle` confirms the exported program
+   decodes identically to the tensor forward (agreement 1.0).
 
-Out of scope for the first slice: full soft NLL training of residual weights,
-KeyTable path, rewriting all of expand into a semiring interpreter.
+Still out of scope: full soft NLL training of residual weights, n-fold unit schemas
+(multi-token tgt), KeyTable path, rewriting all of expand into a semiring interpreter,
+and exact SPARQL generation (stays ~0).
 
 ## Tag discipline
 
 | Claim | Tag |
 |---|---|
 | ResidualFamily on SCAN/listops/CFQ structure | **empirical** |
-| Schema bridge design | **open** until implement PR |
+| Schema bridge (candidate → presence Schema) | **empirical** (unit-tested) |
+| Bridge Datalog clause ≡ tensor predict | **proved** (souffle round-trip, agreement 1.0) |
+| Set-F1 selector reproduces residual admit on CFQ mcd1 | **empirical** (mcd1: same 16 atoms; val/test set-F1 equal <1e-9) |
 | CELF for residual admit | **proved unsound** as default; opt-in only |
 | Full SPARQL generation from atoms | **open** (exact SPARQL stays ~0) |
 
@@ -92,6 +111,11 @@ That is not a failure of the ResidualFamily *API* — it is evidence that **more
 word→path atoms will not learn CFQ joins**. The schema bridge + soft-semiring
 decode over structured labels is the intended next implement PR.
 
-When the bridge lands: re-run CFQ with SchemaBank selection; report parity on any
-structure metric that still applies, plus birth/death counts — and prefer a
-metric with headroom (triple/edge-F1) over bag-of-predicate set-F1 alone.
+**Landed:** `campaign_cfq_schema_parity.py` re-runs mcd1 with the set-F1 selector on the
+same base atoms + candidate pool + val split as the residual admit loop, and confirms
+identical selection (16/16 atoms) and equal bag set-F1 (test 0.239). This closes the
+*parity* question — the selector is a faithful drop-in for the symbolic admit loop, so
+the parallel admit path can be retired for token-presence residuals. It does **not**
+lift the ceiling: bag set-F1 still plateaus near the frequency prior. The next headroom
+lever is a metric/decoder that rewards join structure (triple/edge-F1, soft-semiring
+decode), not more atoms.
