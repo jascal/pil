@@ -68,3 +68,29 @@ is a real decision point for the research lead: **build the typed-schema join mo
 record CFQ joins as beyond the current induction paradigm.** Either way, this probe cost a
 parser extension + one diagnostic and produced decisive guidance — no mechanism built on a
 false premise.
+
+## Implications for PIL induction
+
+- **This is a proposer boundary, not a selection one.** The `_admit_naive` val-marginal
+  admit loop is representation-agnostic and `join_f1` is a ready gate metric — so a richer
+  join model reuses the existing *gate/refine* machinery unchanged. The negative is squarely
+  about the **proposer**: majority-vote and lexical votes are too weak; the missing piece is
+  a schema-typed proposer, not new admit logic.
+- **A schema join model is `template_fixed`, not induced.** Per the
+  [generality metric](residual_templates.md#provenance-agnostic--induced-audit), joins forced
+  by Freebase `predicate → arg-types` are *schema-derived*, not data-induced — so any such
+  model must be tagged `template_fixed`/schema-derived and must **not** count toward
+  `frac_induced`. This keeps the generality claim honest.
+- **The declarative (Soufflé) path is natural and keeps the result certified.** Freebase
+  `predicate → required arg types → forced shared vars` is a set of Datalog rules over schema
+  facts; joins become schema-**derived** constraints, exportable exactly as
+  `residual_schema.py` / `datalog_export.py` export presence clauses. Joins would then be
+  *proved from the schema*, not learned — preserving the program's verifiable/abstaining
+  property.
+- **Incidence structure (PIC) as the inductive bias — a hypothesis, not a claim.** A join
+  *is* an incidence relation (which arguments coincide across predicates), so a lightweight
+  projective-incidence bias or a T3-threshold gate over candidate joins is a plausible
+  proposer prior. **Open** — to be tested, not asserted.
+- **For the self-improving loop:** this measured out two dead ends — do **not** spend loop
+  budget on more CFQ atoms or lexical features for joins. The next CFQ lever is schema-typed
+  join assembly, or an explicit "out-of-paradigm" record.
