@@ -68,3 +68,14 @@ scores. Admission optimizes window-imitation, not deployment queries. Named next
 tokens). bAbI stands at package 0.527 vs Qwen 0.782; the machinery (filtered prev-occ with
 avoid/look, next-member-after) is certified-family and shipped in the schema (rosetta 872c3f3,
 sgiandubh PR #23) for when the judge can see what it's worth.
+## ERRATUM (2026-07-11, slice #79)
+
+The qa1 residual this note reports (served 0.527 vs teacher-bench 0.782, and the miss-set
+analysis built on it) is **stale for the current on-disk artifact**: the present
+`wyly_expert_package_v5_babi` scores **1.000** on `babi_bench.json` — including on the
+deduplicated non-verbatim story-prefix subset (41/41). This is bench saturation, not a
+solved generalization gap: 65/110 unique bench story-prefixes appear verbatim in the
+training corpus and 801/1000 bench rows are internal duplicates, so the bench's
+unseen-configuration mass is ≈0 and it cannot distinguish binding from memorization.
+See docs/notes/qa1_cond_headroom.md. The window-vs-query judge lesson in this note stands
+(re-measured at ≈24×, empirical-unregistered).
