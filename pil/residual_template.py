@@ -81,6 +81,8 @@ class DomainAtoms:
     enabled_templates: tuple[str, ...] | None = None  # None = all applicable
     auto_induce_markers: bool = True
     auto_induce_prefixes: bool = False
+    # Opaque domain payload (e.g. CFQ multi-ns co-occurrence votes for join atoms).
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def wants(self, template_id: str) -> bool:
         if self.enabled_templates is None:
@@ -290,6 +292,72 @@ class StructuralSeedTemplate(ResidualTemplate):
         return out
 
 
+class RelationAtomTemplate(ResidualTemplate):
+    """CFQ-style relation atoms for join residuals (domain-agnostic *pattern*).
+
+    Short maps use keys ``(word, path)`` → ``[path]`` mined from single-predicate
+    questions. Residual candidates come from **multi-predicate** co-occurrence votes
+    in ``domain.extra['multi_word_path_votes']``: ``{(word, path): count, ...}``.
+
+    Scoring (caller) joins atoms by set-union over question words — complementary
+    (non-submodular); use naive admit, never CELF.
+    """
+
+    id = "relation_atom"
+    pattern_agnostic = True  # pattern is general; Freebase paths are domain content
+
+    def propose(self, short_maps: MapDict, domain: DomainAtoms) -> list[ResidualCandidate]:
+        votes: dict[tuple[str, str], int] = domain.extra.get("multi_word_path_votes", {})
+        min_support = int(domain.extra.get("atom_min_support", 2))
+        out: list[ResidualCandidate] = []
+        seen: set[tuple[str, ...]] = set()
+        for (word, path), cnt in votes.items():
+            if cnt < min_support:
+                continue
+            key = (word, path)
+            if key in short_maps or key in seen:
+                continue
+            seen.add(key)
+            out.append(ResidualCandidate(
+                src=key,
+                tgt=(path,),
+                template_id=self.id,
+                domain=domain.name,
+                pattern_agnostic=True,
+                meta={
+                    "word": word,
+                    "path": path,
+                    "support": cnt,
+                    "kind": "join_atom_from_multi_ns",
+                },
+            ))
+        return out
+
+
+def cfq_domain_atoms(
+    *,
+    multi_word_path_votes: dict[tuple[str, str], int] | None = None,
+    atom_min_support: int = 2,
+    enabled_templates: tuple[str, ...] = ("relation_atom",),
+) -> DomainAtoms:
+    """CFQ pack: relation-atom residuals only (no SCAN nfold markers)."""
+    return DomainAtoms(
+        name="cfq",
+        nfold_markers={},
+        prefix_tokens=frozenset(),
+        structural_seeds={},
+        enabled_templates=enabled_templates,
+        auto_induce_markers=False,
+        extra={
+            "multi_word_path_votes": dict(multi_word_path_votes or {}),
+            "atom_min_support": atom_min_support,
+        },
+    )
+
+
+# Include relation_atom in default only when domain enables it (enabled_templates).
+
+
 class RewriteSynthesizer(ResidualTemplate):
     """Tiny enumerative synthesizer over a rewrite DSL aligned to short maps.
 
@@ -349,17 +417,22 @@ class RewriteSynthesizer(ResidualTemplate):
         return out
 
 
-# Built-in library. rewrite_synth is opt-in (SYNTH_TEMPLATES / enabled_templates).
+# Built-in library. rewrite_synth / relation_atom are opt-in via enabled_templates.
 DEFAULT_TEMPLATES: tuple[ResidualTemplate, ...] = (
     NFoldTemplate(),
     PrefixBodyTemplate(),
     StructuralSeedTemplate(),
+    RelationAtomTemplate(),
 )
 
 # Experimental — campaign ablation only until end-to-end validated.
 SYNTH_TEMPLATES: tuple[ResidualTemplate, ...] = (
     RewriteSynthesizer(),
     StructuralSeedTemplate(),
+)
+
+CFQ_TEMPLATES: tuple[ResidualTemplate, ...] = (
+    RelationAtomTemplate(),
 )
 
 
