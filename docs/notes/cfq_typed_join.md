@@ -9,6 +9,20 @@ tables. `pil/cfq_edges.py` (`parse_sparql_typed_slots`) +
 `experiments/campaign_cfq_typed_join.py`. Measurement only, oracle-predicate regime, same
 harness/splits/leak-guards as probe 1.
 
+## Lessons learned (the probe series in one paragraph)
+
+Three CFQ join predictor families are measured out — exact-multiset majority, lexical
+word-votes, mined-type maximal merge — and the third failed *at its family ceiling*
+(oracle slot occupancy), so the bottleneck is the join model class, not feature quality
+or mining noise. Two process lessons carried the series: **pre-registration** (the ≥0.7
+rule was fixed before numbers existed, so a suggestive-but-weak C = 0.215 with a real
+compositional win on unseen keys could not be talked into a "live path"), and
+**quarantined ceiling diagnostics** (C_inc separated "the rule is wrong" from "the
+tables are wrong" for the cost of one extra scored column). The substantive lesson:
+real data underdetermined the question — CFQ cannot say whether *any* intrinsic proposer
+could induce joins, because CFQ's joins are not demonstrably there to induce at this
+granularity. Planted-topology synthetic batteries are where that question is falsifiable.
+
 ## Pre-registered decision rule
 
 Recorded **before any assembler numbers were observed** (implementation was in flight,
