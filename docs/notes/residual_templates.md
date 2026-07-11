@@ -95,11 +95,12 @@ Real generality needs an alien domain (CFQ, COGS, …) not built around the temp
 
 ## Roadmap (Fable alignment)
 
-1. **Done (this line):** marker induction, CELF admit, rewrite synth sketch, honest suite.
-2. **Next:** residual leaves as `pil/schemas.py` / rule_learner schemas (unify with PIC learner).
-3. Shared compositional interpreter (operator table + semiring) for SCAN/listops expand.
-4. KeyTable / token-space residual path for LM slices.
-5. CFQ join template on a natural second dataset.
+1. **Done:** marker induction, naive-default admit, rewrite synth sketch, honest suite.
+2. **Done (CFQ):** `relation_atom` join residuals on real MCD — see `cfq_residual.md`
+   (set-F1 help + exact SPARQL=0).
+3. **Next:** residual as schema — `docs/notes/residual_as_schema.md` (implement bridge).
+4. Shared compositional interpreter (operator table + semiring).
+5. KeyTable / token-space residual path for LM slices.
 6. Wire ResidualFamily into WylyBlock B0 automatically.
 
 ## How to add a new domain

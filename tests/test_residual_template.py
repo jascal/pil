@@ -191,11 +191,11 @@ def test_complementary_leaves_naive_recovers_both():
     assert score(m_naive) == 0.8
 
 
-def test_celf_is_opt_in_not_correctness_guarantee():
-    """CELF may match naive on some complementary inputs; it is not guaranteed to.
+def test_celf_opt_in_smoke_does_not_claim_global_correctness():
+    """CELF is opt-in. This only checks it runs and tags the stop event.
 
-    This is a regression pin for the stale-refresh path (one known input), not a
-    claim that CELF ≡ naive in general (~2% fuzz divergence under complementary scores).
+    Do **not** assert score equality with naive — fuzz (~2%) shows CELF can
+    underperform on complementary objectives. Correctness path = naive default.
     """
     short: dict = {}
     a = ResidualCandidate(src=("a",), tgt=("A",), template_id="t", domain="t")
@@ -211,10 +211,8 @@ def test_celf_is_opt_in_not_correctness_guarantee():
         return 0.0
 
     fam = ResidualFamily(DomainAtoms(name="t"))
-    m_celf, log = fam.admit(short, score, candidates=[a, x], thresh=0.05, celf=True)
-    # pin this input only — do not generalize to "CELF always recovers complements"
-    assert score(m_celf) == 0.8
-    assert any(e.get("celf_note") for e in log if e.get("event") == "stop")
+    _maps, log = fam.admit(short, score, candidates=[a, x], thresh=0.05, celf=True)
+    assert any(e.get("event") == "stop" and e.get("celf_note") for e in log)
 
 
 def test_naive_admits_complements_with_mid_thresh_decoy():
@@ -324,3 +322,24 @@ def test_synth_templates_pack_smoke():
     fam = ResidualFamily(listops_domain_atoms(induce_only=True), templates=SYNTH_TEMPLATES)
     prop = fam.propose_map(short)
     assert ("c",) in prop
+
+
+def test_relation_atom_from_multi_votes():
+    from pil.residual_template import CFQ_TEMPLATES, cfq_domain_atoms
+
+    base = {("marry", "ns:people.person.spouse"): ["ns:people.person.spouse"]}
+    multi = {
+        ("marry", "ns:people.person.spouse"): 5,
+        ("influence", "ns:influence.influence_node.influenced"): 4,
+        ("influence", "ns:people.person.spouse"): 1,  # below min_support 3
+    }
+    fam = ResidualFamily(
+        cfq_domain_atoms(multi_word_path_votes=multi, atom_min_support=3),
+        templates=CFQ_TEMPLATES,
+    )
+    cands = fam.propose(base)
+    srcs = {c.src for c in cands}
+    assert ("influence", "ns:influence.influence_node.influenced") in srcs
+    assert ("marry", "ns:people.person.spouse") not in srcs  # already in base
+    assert all(c.template_id == "relation_atom" for c in cands)
+    assert all(c.pattern_agnostic for c in cands)
