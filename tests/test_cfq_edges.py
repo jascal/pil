@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from pil.cfq_edges import edge_f1, parse_sparql_edges
+from pil.cfq_edges import edge_f1, is_concrete, parse_sparql_edges, role_typed
 
 # ---------------------------------------------------------------------------
 # Golden SPARQL fixtures (verbatim)
@@ -170,3 +170,48 @@ def test_fixture_2_anchored_counts():
     pq = parse_sparql_edges(FIXTURE_2)
     assert sum(pq.anchored) == 4
     assert len(pq.anchored) - sum(pq.anchored) == 1
+
+
+# ---------------------------------------------------------------------------
+# is_concrete / role_typed (Step-B foundation)
+# ---------------------------------------------------------------------------
+
+
+def test_is_concrete():
+    assert is_concrete("M2") is True
+    assert is_concrete("M17") is True
+    assert is_concrete("ns:m.05zppz") is True
+    assert is_concrete("ns:g.something") is True
+    assert is_concrete("VAR") is False
+    assert is_concrete("ns:people.person") is False
+    assert is_concrete("ns:film.cinematographer") is False
+    assert is_concrete("x0") is False  # bare variable-looking token, not concrete
+
+
+def test_role_typed_fixture_2():
+    """role_typed on real FIXTURE_2 edges: ENT abstraction, type-strings/VAR stay."""
+    pq = parse_sparql_edges(FIXTURE_2)
+    edges = pq.edges
+
+    # directed_by: both endpoints concrete M-ids → ENT / ENT
+    e_directed = ("M2", "ns:film.film.directed_by", "M3")
+    assert e_directed in edges
+    assert role_typed(e_directed) == (
+        "ENT",
+        "ns:film.film.directed_by",
+        "ENT",
+    )
+
+    # gender: object is grounded MID → ENT; subject type-string stays
+    e_gender = ("ns:people.person", "ns:people.person.gender", "ns:m.05zppz")
+    assert e_gender in edges
+    assert role_typed(e_gender) == (
+        "ns:people.person",
+        "ns:people.person.gender",
+        "ENT",
+    )
+
+    # var-join sibling: VAR + type-string — neither concrete, unchanged
+    sibling = [e for e in edges if e[0] == "VAR" and e[2] == "ns:people.person"]
+    assert len(sibling) == 1
+    assert role_typed(sibling[0]) == sibling[0]

@@ -24,7 +24,8 @@ edge bags.
 **Out of scope (do not overclaim):** no compositional generation, no
 exact-SPARQL scoring, no model/decode logic. This is a structure-bag extractor
 plus multiset F1 only — foundation infra for a later join-structure diagnostic
-(Step B).
+(Step B). Public ``is_concrete`` / ``role_typed`` below are additive Step-B
+helpers for role-typed structure metrics (entity identity abstracted away).
 """
 from __future__ import annotations
 
@@ -43,6 +44,45 @@ def _is_concrete(tok: str) -> bool:
         _CONCRETE_M.fullmatch(tok) is not None
         or tok.startswith("ns:m.")
         or tok.startswith("ns:g.")
+    )
+
+
+# ---------------------------------------------------------------------------
+# Step-B foundation: role-typed structure diagnostic helpers (additive)
+# ---------------------------------------------------------------------------
+
+
+def is_concrete(tok: str) -> bool:
+    """Public alias for the M-mention / grounded-MID concreteness check.
+
+    Same rule as ``_is_concrete``: True iff tok fullmatches ``M\\d+``, or
+    ``tok.startswith("ns:m.")``, or ``tok.startswith("ns:g.")``.
+    """
+    return _is_concrete(tok)
+
+
+def role_typed(edge: Edge) -> Edge:
+    """Abstract concrete entity tokens in an edge's subject/object roles to ``ENT``.
+
+    Leave type-strings (e.g. ``ns:people.person``), the literal ``VAR``, and the
+    predicate untouched::
+
+        role_typed((s, p, o)) == (
+            'ENT' if is_concrete(s) else s,
+            p,
+            'ENT' if is_concrete(o) else o,
+        )
+
+    M-ids / grounded MIDs are query-local identifiers, not globally predictable
+    across questions, so role-typing measures argument-slot KIND +
+    directionality + multiplicity — not entity identity. This is a structure
+    metric, not an entity-linking metric.
+    """
+    s, p, o = edge
+    return (
+        "ENT" if is_concrete(s) else s,
+        p,
+        "ENT" if is_concrete(o) else o,
     )
 
 
