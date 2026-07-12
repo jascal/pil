@@ -75,7 +75,7 @@ DOMAIN = "join_battery"
 # Matched arms per regime for the pre-registered verdict
 MATCHED_ARMS: dict[str, tuple[str, ...]] = {
     "S": ("majority", "typed", "SIG", "CONSTRUCT", "CAGG"),
-    "L": ("lexical", "SIGW"),
+    "L": ("lexical", "SIGW", "LSTRUCT"),
 }
 
 
@@ -170,6 +170,8 @@ def atom_fires(
         )
     if kind == "CONSTRUCT":
         return bool(_construct_tgt(src, key))   # compatibility firing
+    if kind == "LSTRUCT":
+        return bool(_lstruct_tgt(src, question_tokens, key))
     if kind == "CAGG":
         return _cagg_feature(key) == src[1]
     return False
@@ -180,12 +182,105 @@ def atom_fires(
 # can reach them from (maps, key) alone.
 _CONSTRUCT_TABLES: dict[str, SlotTables] = {}
 
+# LSTRUCT tables: train-mined topology→signature-shape templates (NEVER gold).
+# Keyed by an incrementing id embedded in the atom's src.
+_LSTRUCT_TABLES: dict[str, dict] = {}
+
 
 def _construct_tgt(src: tuple[str, ...], key: tuple[str, ...]) -> list[str]:
     """CONSTRUCT's target, built at fire time from the KEY + TRAIN-mined tables.
     Leak-safe: reads only `key` (the question/input side) and train tables."""
     tables = _CONSTRUCT_TABLES[src[1]]
     return [canon_sig(s) for s in assemble_joins_by_type(list(key), tables)]
+
+
+def _topo_of(question_tokens: set[str]) -> str | None:
+    if "topoA" in question_tokens:
+        return "star"
+    if "topoB" in question_tokens:
+        return "chain"
+    return None
+
+
+def assemble_by_topo(
+    topo: str,
+    preds: list[str],
+    templates: dict,
+) -> list[str]:
+    """Predicate-independent assembly: substitute preds[i] for position i.
+
+    ``templates`` maps topology name -> list of (type_label, pos_slots) where
+    each pos_slots is a tuple of (position_index, slot_tag). Rebuilds each
+    signature as (type_label, tuple(sorted(incidences))) matching
+    parse_sparql_joins, then returns canon_sig strings.
+    """
+    if topo not in templates:
+        return []
+    out: list[str] = []
+    for type_label, pos_slots in templates[topo]:
+        incidences = tuple(sorted((preds[i], slot) for i, slot in pos_slots))
+        out.append(canon_sig((type_label, incidences)))
+    return out
+
+
+def _lstruct_tgt(
+    src: tuple[str, ...],
+    question_tokens: set[str],
+    key: tuple[str, ...],
+) -> list[str]:
+    """LSTRUCT target: built at fire time from the topo SIGNAL + key + train templates.
+    Leak-safe: reads only question_tokens (input) + key (input) + train-mined templates."""
+    topo = _topo_of(question_tokens)
+    if topo is None:
+        return []
+    templates = _LSTRUCT_TABLES[src[1]]
+    return assemble_by_topo(topo, list(key), templates)
+
+
+def _pos_template_from_example(ex: BatteryExample) -> tuple:
+    """Map gold signatures to position/slot-only form via key indices."""
+    key = ex.key
+    parts: list[tuple] = []
+    for sig in gold_sigs(ex):
+        type_label = sig[0]
+        incs = sig[1]
+        pos_slots = tuple((key.index(pred), slot) for pred, slot in incs)
+        parts.append((type_label, pos_slots))
+    return tuple(sorted(parts))
+
+
+def _learn_topo_templates(train: list[BatteryExample]) -> dict:
+    """Train-only: derive position-indexed star/chain templates; fail closed."""
+    by_topo: dict[str, list[BatteryExample]] = defaultdict(list)
+    for ex in train:
+        topo = _topo_of(set(ex.question.split()))
+        if topo is not None:
+            by_topo[topo].append(ex)
+
+    templates: dict = {}
+    for topo, examples in by_topo.items():
+        votes: Counter[tuple] = Counter()
+        for ex in examples:
+            try:
+                votes[_pos_template_from_example(ex)] += 1
+            except (ValueError, IndexError, TypeError, KeyError):
+                continue
+        if not votes:
+            continue
+        max_c = max(votes.values())
+        winners = sorted(k for k, c in votes.items() if c == max_c)
+        best = winners[0]
+        candidate = {topo: list(best)}
+        # Round-trip verify on every train example of this topology; fail closed.
+        ok = True
+        for ex in examples:
+            got = assemble_by_topo(topo, list(ex.key), candidate)
+            if Counter(got) != Counter(gold_serialized(ex)):
+                ok = False
+                break
+        if ok:
+            templates[topo] = list(best)
+    return templates
 
 
 def _cagg_feature(key: tuple[str, ...]) -> str:
@@ -213,6 +308,10 @@ def expand(
     ``src[0] == "CONSTRUCT"``, its tgt is built at fire time from ``key`` + the
     train-mined slot tables registered under ``src[1]``. Still no gold/sparql
     parameter exists on this signature.
+
+    LSTRUCT similarly builds its tgt at fire time from (topo token in
+    question_tokens + key + train-mined topology templates) only — no
+    gold/sparql parameter exists anywhere in that chain.
     """
     total: Counter[str] = Counter()
     # Stable iteration order for determinism
@@ -221,6 +320,8 @@ def expand(
             continue
         if src[0] == "CONSTRUCT":
             total |= Counter(_construct_tgt(src, key))
+        elif src[0] == "LSTRUCT":
+            total |= Counter(_lstruct_tgt(src, question_tokens, key))
         else:
             total |= Counter(maps[src])
     return sorted(total.elements())
@@ -357,6 +458,15 @@ def mine_construct(train: list[BatteryExample]) -> list[ResidualCandidate]:
     return [cand]
 
 
+def mine_lstruct(train: list[BatteryExample]) -> list[ResidualCandidate]:
+    templates = _learn_topo_templates(train)   # {"star": ..., "chain": ...}
+    tid = str(len(_LSTRUCT_TABLES))
+    _LSTRUCT_TABLES[tid] = templates
+    src = ("LSTRUCT", tid)
+    return [ResidualCandidate(src=src, tgt=(), template_id="join_lstruct",
+            domain=DOMAIN, pattern_agnostic=True, meta={"support": len(train)})]
+
+
 def mine_cagg(train: list[BatteryExample]) -> list[ResidualCandidate]:
     by_feat: dict[str, list[BatteryExample]] = defaultdict(list)
     for ex in train:
@@ -383,6 +493,7 @@ ARM_MINERS = {
     "SIGW": mine_sigw,
     "CONSTRUCT": mine_construct,
     "CAGG": mine_cagg,
+    "LSTRUCT": mine_lstruct,
 }
 
 
@@ -442,6 +553,15 @@ def make_val_score(
                 Counter(_construct_tgt(c.src, row_keys[r])) for r in range(len(val))
             ]
 
+    # LSTRUCT: per-(candidate,row) tgt from topo token + key + train templates.
+    lstruct_row_ctrs: dict[int, list[Counter]] = {}
+    for c_idx, c in enumerate(candidates):
+        if c.src[0] == "LSTRUCT":
+            lstruct_row_ctrs[c_idx] = [
+                Counter(_lstruct_tgt(c.src, row_tokens[r], row_keys[r]))
+                for r in range(len(val))
+            ]
+
     src_to_idx = {src: i for i, src in enumerate(cand_srcs)}
 
     def val_score(maps: MapDict) -> float:
@@ -458,6 +578,8 @@ def make_val_score(
                 if fire[idx][r]:
                     if idx in construct_row_ctrs:
                         total |= construct_row_ctrs[idx][r]
+                    elif idx in lstruct_row_ctrs:
+                        total |= lstruct_row_ctrs[idx][r]
                     else:
                         # Use maps' tgt (admits list(cand.tgt)); prefer precomputed
                         # Counter when it matches candidate tgt for speed.
@@ -677,6 +799,8 @@ def run_arm(
     # expand()'s signature, and nothing calls parse_sparql_joins on a
     # val/test row anywhere except to compute that row's OWN gold list for
     # scoring.
+    # LSTRUCT builds its fire-time tgt from (topo token + key + train
+    # templates) only — no gold/sparql parameter exists in that chain.
     # -----------------------------------------------------------------
 
     maps_adm, admit_log = fam.admit(
