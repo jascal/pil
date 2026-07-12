@@ -98,41 +98,9 @@ CONSENSUS_CAVEAT = (
     "the score\"."
 )
 HONESTY_NOTE = (
-    "This shim measures external-seed invariance and internal-seed diversity without modifying "
-    "wyly_lm_v5.py. B3 redirects only literal seed-0 calls at runtime and restores torch afterward."
+    "The native WYLY_SEED knob measures internal-seed diversity while the unchanged caller-side "
+    "bootstrap seeds measure external-seed invariance."
 )
-
-_orig_torch_manual_seed = torch.manual_seed
-_orig_generator_cls = torch.Generator
-_restore_torch_manual_seed = _orig_torch_manual_seed
-_restore_generator_cls = _orig_generator_cls
-
-
-def _apply_internal_seed_patch(internal_seed: int) -> None:
-    """Redirect admission-loop literal seed 0 to ``internal_seed`` on the shared torch module."""
-    global _restore_generator_cls, _restore_torch_manual_seed
-
-    _restore_torch_manual_seed = torch.manual_seed
-    _restore_generator_cls = torch.Generator
-    base_manual_seed = _restore_torch_manual_seed
-    base_generator_cls = _restore_generator_cls
-
-    def patched_manual_seed(seed):
-        return base_manual_seed(internal_seed if seed == 0 else seed)
-
-    class PatchedGenerator(base_generator_cls):
-        def manual_seed(self, seed):
-            return super().manual_seed(internal_seed if seed == 0 else seed)
-
-    torch.manual_seed = patched_manual_seed
-    torch.Generator = PatchedGenerator
-
-
-def _restore_internal_seed_patch() -> None:
-    """Restore the original torch seed function and Generator class by identity."""
-    torch.manual_seed = _restore_torch_manual_seed
-    torch.Generator = _restore_generator_cls
-
 
 def output_path(seed: int, rep: int, condition: str = "default") -> Path:
     """Return an isolated per-run JSON path, guarded against the #81 frozen artifact."""
@@ -156,9 +124,7 @@ def build_subprocess_env(
     """Build the interpreter-start environment; PYTHONHASHSEED is deliberately always fixed."""
     env = {**os.environ, **_RECIPE, "PYTHONHASHSEED": "0", "SEED_SWEEP_SEED": str(int(seed))}
     env.pop("SEED_SWEEP_DETERMINISTIC", None)
-    env.pop("SEED_SWEEP_INTERNAL_SEED", None)
-    if internal_seed:
-        env["SEED_SWEEP_INTERNAL_SEED"] = str(int(internal_seed))
+    env["WYLY_SEED"] = str(int(internal_seed))
     if condition == "cpu" or force_cpu:
         env["CUDA_VISIBLE_DEVICES"] = ""
     elif condition == "deterministic":
@@ -282,7 +248,7 @@ def _worker(seed: int, rep: int, out: Path) -> int:
     np.random.seed(seed)
     torch.manual_seed(seed)
     deterministic = os.environ.get("SEED_SWEEP_DETERMINISTIC") == "1"
-    internal_seed = int(os.environ.get("SEED_SWEEP_INTERNAL_SEED", "0"))
+    internal_seed = int(os.environ.get("WYLY_SEED", "0"))
     if deterministic:
         torch.use_deterministic_algorithms(True)
 
@@ -300,8 +266,6 @@ def _worker(seed: int, rep: int, out: Path) -> int:
     v5.STATE = temporary_state
     start = time.perf_counter()
     v5.core_cover_sw = capture
-    if internal_seed:
-        _apply_internal_seed_patch(internal_seed)
     try:
         try:
             v5.main()
@@ -325,12 +289,8 @@ def _worker(seed: int, rep: int, out: Path) -> int:
             out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
             return 0
     finally:
-        try:
-            if internal_seed:
-                _restore_internal_seed_patch()
-        finally:
-            v5.core_cover_sw = original
-            temporary_state.unlink(missing_ok=True)
+        v5.core_cover_sw = original
+        temporary_state.unlink(missing_ok=True)
     wall = time.perf_counter() - start
     if not captured:
         raise RuntimeError("core_cover_sw capture wrapper was never called")

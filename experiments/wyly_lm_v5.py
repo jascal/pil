@@ -62,6 +62,7 @@ CX = os.environ.get("WYLY_CX", "1" if _BABI else "") == "1"  # derived gates (es
 DX = os.environ.get("WYLY_DX", "") == "1"                    # detection extensions: MDL judge +
 MDL_LAM = float(os.environ.get("WYLY_MDL_LAM", "1e-8"))     # key-level retreat + anti-unification
 FOLDS = int(os.environ.get("WYLY_FOLDS", "0"))               # multi-fold admission (0 = off)
+WYLY_SEED = int(os.environ.get("WYLY_SEED", "0"))             # internal admission/model seed
 TOKJ = os.environ.get("WYLY_TOKENIZER", "")                  # tokenizer override (non-pythia teachers)
 KGRAMS = tuple(int(x) for x in os.environ.get("WYLY_KGRAMS", "2,3").split(","))
 MINE_OFFS = tuple(int(x) for x in os.environ.get("WYLY_MINE_OFFS", "2,3,4,5,6,7,8").split(","))
@@ -1652,7 +1653,15 @@ def propose_gates(model, gate_cands, ids, yv, cls, sample, log, cycle, top=2):
                    ", ".join(f"{n.split(' [')[0]}={r:.4f}" for r, n, _ in scored[:4]))
     return [(n, f) for _, n, f in scored[:top]]
 
-
+def _stability_annotation(name, kind, frequency_table, domain_matches):
+    if not domain_matches or frequency_table is None or name is None or kind == "ngram":
+        return None
+    import re
+    base_name = re.sub(r"\s+\[\d+\]$", "", name)
+    count = next((row["count"] for row in frequency_table if row["name"] == base_name), None)
+    return {"n": count, "N": 8,
+            "sweep": "seed_sweep_summary.json@f8ac0574c436976d0ce414400a15ac5300dacdba",
+            "domain": "pythia70m/wikitext"}
 
 
 def emit_full(model, cls, uv, ts, vocab):
@@ -1667,11 +1676,21 @@ def emit_full(model, cls, uv, ts, vocab):
     rules_out, skipped = [], []
     rid = 0
     src = f"wyly-v5-{LIB}-{TAG}-{DS}"
+    stability_domain_matches = (TAG, DS) == ("pythia70m", "wikitext")
+    stability_path = REPO / "data" / "seed_sweep_summary.json"
+    stability_frequency_table = None
+    if stability_domain_matches and stability_path.exists():
+        stability_frequency_table = json.loads(stability_path.read_text())["b3"]["frequency_table"]
 
     cur_stratum = 1
+    cur_rule_name = None
 
     def add(r):
         nonlocal rid
+        annotation = _stability_annotation(
+            cur_rule_name, r["kind"], stability_frequency_table, stability_domain_matches)
+        if annotation is not None:
+            r["admission_stability"] = annotation
         r["id"] = rid
         if cur_stratum > 1:
             r["stratum"] = cur_stratum
@@ -1690,6 +1709,7 @@ def emit_full(model, cls, uv, ts, vocab):
     all_rules = [(1, r) for r in model.rules] + \
                 [(2, r) for r in getattr(model, "rules2", [])]
     for cur_stratum, (name, _fn) in all_rules:  # noqa: B007 (read by add())
+        cur_rule_name = name
         conf = round(RULE_CONF.get(name, 0.0), 4)
         cite = [f"admitted by the sleep judge ({LIB}/{JUDGE}{'/sw' if SWCOVER else ''}), "
                 f"teacher {TAG}, dataset {DS}; val fired-accuracy {conf}"]
@@ -1893,7 +1913,7 @@ def main():
     print(f"Wyly-LM v5 [{LIB}/{JUDGE}] -- teacher {TAG}, dataset {DS}, L={ell}, vocab {vocab}, {DEV}; "
           f"copy-subset {len(cs)}/{len(te)} ({len(cs) / len(te):.0%})")
 
-    g = torch.Generator().manual_seed(0)
+    g = torch.Generator().manual_seed(WYLY_SEED)
     if VALREG:
         # STORY-LEVEL judging: val = a contiguous held-out region; fit excludes every window
         # overlapping its text (margin = window length) -- the tables and the judge never share
@@ -2407,7 +2427,7 @@ def main():
 
     ground = concept_init(uv).to(DEV)
     ground = ground / ground.shape[1] ** 0.5
-    torch.manual_seed(0)
+    torch.manual_seed(WYLY_SEED)
     model = (WylyGrow if GROW else WylyV3)(ground, cls.cpu(), ell).to(DEV)
     log = []
     wake_steps = v2.WAKE_STEPS if SOFT else 0
