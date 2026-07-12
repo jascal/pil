@@ -35,3 +35,4 @@ runs/
 
 # wyly-lm dataset (regenerate: experiments/extract_nexttoken.py)
 data/
+.claude/

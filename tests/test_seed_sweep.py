@@ -22,6 +22,7 @@ def test_subprocess_env_fixes_hash_seed_and_varies_experimental_seed():
     assert first["PYTHONHASHSEED"] == second["PYTHONHASHSEED"] == "0"
     assert first["SEED_SWEEP_SEED"] == "1"
     assert second["SEED_SWEEP_SEED"] == "16"
+    assert first["WYLY_SEED"] == second["WYLY_SEED"] == "0"
 
 
 def test_output_paths_are_isolated_and_never_the_frozen_b0():
@@ -103,19 +104,10 @@ def test_run_one_resumes_existing_json_without_subprocess(monkeypatch, tmp_path)
     assert existing.read_text() == json.dumps(payload)
 
 
-def test_internal_seed_patch_substitutes_zero_and_restores_identity():
-    original_manual_seed = campaign.torch.manual_seed
-    original_generator = campaign.torch.Generator
-    campaign._apply_internal_seed_patch(37)
-    try:
-        generator = campaign.torch.Generator().manual_seed(0)
-        assert generator.initial_seed() == 37
-        campaign.torch.manual_seed(0)
-        assert campaign.torch.initial_seed() == 37
-    finally:
-        campaign._restore_internal_seed_patch()
-    assert campaign.torch.manual_seed is original_manual_seed
-    assert campaign.torch.Generator is original_generator
+def test_internal_seed_is_passed_through_native_v5_env_knob():
+    env = campaign.build_subprocess_env(0, "b3", internal_seed=37)
+    assert env["WYLY_SEED"] == "37"
+    assert "SEED_SWEEP_INTERNAL_SEED" not in env
 
 
 def test_resumed_worker_metadata_distinguishes_device_and_both_seeds(
