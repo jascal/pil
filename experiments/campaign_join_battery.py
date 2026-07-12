@@ -51,6 +51,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
 from experiments.campaign_cfq_typed_join import (  # noqa: E402
+    SlotTables,
     assemble_joins_by_type,
     mine_slot_tables,
 )
@@ -73,7 +74,7 @@ DOMAIN = "join_battery"
 
 # Matched arms per regime for the pre-registered verdict
 MATCHED_ARMS: dict[str, tuple[str, ...]] = {
-    "S": ("majority", "typed", "SIG"),
+    "S": ("majority", "typed", "SIG", "CONSTRUCT", "CAGG"),
     "L": ("lexical", "SIGW"),
 }
 
@@ -167,7 +168,29 @@ def atom_fires(
             src[1] in question_tokens
             and _sig_pred_subset(parse_sig(src[2]), key)
         )
+    if kind == "CONSTRUCT":
+        return bool(_construct_tgt(src, key))   # compatibility firing
+    if kind == "CAGG":
+        return _cagg_feature(key) == src[1]
     return False
+
+
+# CONSTRUCT tables live here (train-mined only; NEVER gold). Keyed by an
+# incrementing id embedded in the atom's src, so expand/atom_fires/make_val_score
+# can reach them from (maps, key) alone.
+_CONSTRUCT_TABLES: dict[str, SlotTables] = {}
+
+
+def _construct_tgt(src: tuple[str, ...], key: tuple[str, ...]) -> list[str]:
+    """CONSTRUCT's target, built at fire time from the KEY + TRAIN-mined tables.
+    Leak-safe: reads only `key` (the question/input side) and train tables."""
+    tables = _CONSTRUCT_TABLES[src[1]]
+    return [canon_sig(s) for s in assemble_joins_by_type(list(key), tables)]
+
+
+def _cagg_feature(key: tuple[str, ...]) -> str:
+    """Scalar hub-shaped peer-set feature: count of predicates in the key."""
+    return str(len(key))
 
 
 # ---------------------------------------------------------------------------
@@ -185,13 +208,21 @@ def expand(
     LEAK GUARD: this function receives ONLY (maps, question_tokens, key).
     No gold signatures, no SPARQL, no val/test labels — structurally impossible
     to consult gold because no such parameter exists.
+
+    CONSTRUCT is the exception to fixed-tgt emission: when a firing atom has
+    ``src[0] == "CONSTRUCT"``, its tgt is built at fire time from ``key`` + the
+    train-mined slot tables registered under ``src[1]``. Still no gold/sparql
+    parameter exists on this signature.
     """
     total: Counter[str] = Counter()
     # Stable iteration order for determinism
     for src in sorted(maps.keys()):
-        tgt = maps[src]
-        if atom_fires(src, question_tokens, key):
-            total |= Counter(tgt)
+        if not atom_fires(src, question_tokens, key):
+            continue
+        if src[0] == "CONSTRUCT":
+            total |= Counter(_construct_tgt(src, key))
+        else:
+            total |= Counter(maps[src])
     return sorted(total.elements())
 
 
@@ -314,12 +345,44 @@ def mine_sigw(train: list[BatteryExample]) -> list[ResidualCandidate]:
     return _cap_by_support(items)
 
 
+def mine_construct(train: list[BatteryExample]) -> list[ResidualCandidate]:
+    tables = mine_slot_tables([(ex.question, ex.sparql) for ex in train])
+    tid = str(len(_CONSTRUCT_TABLES))
+    _CONSTRUCT_TABLES[tid] = tables
+    src = ("CONSTRUCT", tid)
+    cand = ResidualCandidate(
+        src=src, tgt=(), template_id="join_construct", domain=DOMAIN,
+        pattern_agnostic=True, meta={"support": len(train)},
+    )
+    return [cand]
+
+
+def mine_cagg(train: list[BatteryExample]) -> list[ResidualCandidate]:
+    by_feat: dict[str, list[BatteryExample]] = defaultdict(list)
+    for ex in train:
+        by_feat[_cagg_feature(ex.key)].append(ex)
+    items: list[tuple[int, tuple[str, ...], ResidualCandidate]] = []
+    for feat, rows in by_feat.items():
+        if len(rows) < 2:
+            continue
+        src = ("CAGG", feat)
+        tgt = _majority_tgt(rows)
+        cand = ResidualCandidate(
+            src=src, tgt=tgt, template_id="join_cagg", domain=DOMAIN,
+            pattern_agnostic=True, meta={"support": len(rows)},
+        )
+        items.append((len(rows), src, cand))
+    return _cap_by_support(items)
+
+
 ARM_MINERS = {
     "majority": mine_majority,
     "typed": mine_typed,
     "lexical": mine_lexical,
     "SIG": mine_sig,
     "SIGW": mine_sigw,
+    "CONSTRUCT": mine_construct,
+    "CAGG": mine_cagg,
 }
 
 
@@ -371,6 +434,14 @@ def make_val_score(
         ]
         fire.append(mask)
 
+    # CONSTRUCT: per-(candidate,row) tgt built once from key + train tables.
+    construct_row_ctrs: dict[int, list[Counter]] = {}
+    for c_idx, c in enumerate(candidates):
+        if c.src[0] == "CONSTRUCT":
+            construct_row_ctrs[c_idx] = [
+                Counter(_construct_tgt(c.src, row_keys[r])) for r in range(len(val))
+            ]
+
     src_to_idx = {src: i for i, src in enumerate(cand_srcs)}
 
     def val_score(maps: MapDict) -> float:
@@ -385,9 +456,12 @@ def make_val_score(
                         total |= Counter(tgt)
                     continue
                 if fire[idx][r]:
-                    # Use maps' tgt (admits list(cand.tgt)); prefer precomputed
-                    # Counter when it matches candidate tgt for speed.
-                    total |= cand_tgt_ctrs[idx]
+                    if idx in construct_row_ctrs:
+                        total |= construct_row_ctrs[idx][r]
+                    else:
+                        # Use maps' tgt (admits list(cand.tgt)); prefer precomputed
+                        # Counter when it matches candidate tgt for speed.
+                        total |= cand_tgt_ctrs[idx]
             pred = sorted(total.elements())
             scores.append(join_f1(pred, row_gold[r]))
         return _mean(scores)
