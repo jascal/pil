@@ -49,6 +49,15 @@ open. Per-slice detail lives in the individual `docs/notes/*.md`; this is the le
   not support, binds at both 410m and 2.8b; frame signal exists at 2.8b) — but unharvestable
   under the safety coupling. The "scale kills the family" reading is dead.
 
+- **Hub-capable atoms / the #77 hub-star wall** (#93/#94). #93's CONSTRUCT arm bridges the
+  typed output-vocabulary wall (fire-time assembly of train-mined slot tables generalizes
+  on regime-S stars where memorized SIG plateaus). #94's LSTRUCT bridges the remaining
+  lexical star wall via a position-based topology template. The count-aggregate framing
+  from the earlier ledger is superseded by constructive assembly + structural templates.
+
+- **khop schema gap** (#95 + rosetta #49). The certified khop / 2-hop program now emits as a
+  package with mir==served parity; the rosetta-side schema lands in #49.
+
 ## Moved
 
 - **The stage-invariant gain/regression coupling — the arc's central new object.** New
@@ -74,9 +83,6 @@ open. Per-slice detail lives in the individual `docs/notes/*.md`; this is the le
 
 ## Still open (recipe plateaus; achievability open, none "unbridgeable")
 
-- **Hub-capable atoms** — the count-aggregate atom (the same construct #90/#91 builds) is
-  the fix; #92 tests it against the join battery's planted stars. Passing needs `expand()`
-  compositional target assembly (real machinery, not free scoring).
 - **The relative/strata gate** — the one routing variant the #82 absolute-τ sweep bracketed
   but never measured; revisit only if constraint-register work makes sub-key features cheap.
 - **A richer discriminator feature family** than the four #87 axes (#88 closed the composite

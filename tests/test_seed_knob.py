@@ -139,3 +139,87 @@ def test_rosetta_round_trip_ignores_admission_stability(tmp_path):
     assert plain[1] == with_annotation[1]
     for context in ([5], [7], [1]):
         assert decide(context, *plain) == decide(context, *with_annotation)
+
+
+def test_regression_budget_field_decisions(tmp_path, monkeypatch):
+    # Real artifact on disk at data/composite_discriminator.json (stage1: 143/62).
+    result = v5._regression_budget_field("pythia70m", "wikitext")
+    assert result is not None
+    assert result["rate"] == 62 / 205
+    assert result["rate_definition"] == (
+        "deduplicated regressions / (deduplicated gains + regressions)"
+    )
+    assert result["eval_unit"] == "held-out split row"
+    assert result["measured_on"] == ["Stage 1 / #81 GATED1 on test_te"]
+    assert result["sweep@sha"] == "#81@3c5a96e + #86@9681595 (data/frames_at_scale.json)"
+    assert result["domain"] == "pythia70m/wikitext"
+    assert result["operating_point"] == (
+        "single GATED1 voting stage; not a swept/minimized budget "
+        "(descriptive #83/#86 stages excluded by registration)"
+    )
+    assert result["contract"] == (
+        "PLATEAU (#88): zero-regression trusted-tier growth not safely "
+        "extractable at any measured granularity"
+    )
+    # Off-domain pairs omit the field entirely (absent != 0).
+    for tag, ds in (
+        ("pythia2.8b", "wikitext"),
+        ("pythia70m", "babi"),
+        ("pythia70m", "sudoku"),
+    ):
+        assert v5._regression_budget_field(tag, ds) is None
+    # Missing artifact: never fabricate a 0.0 rate — helper returns None.
+    monkeypatch.setattr(v5, "REPO", tmp_path)
+    assert v5._regression_budget_field("pythia70m", "wikitext") is None
+
+
+def test_rosetta_round_trip_ignores_regression_budget(tmp_path):
+    manifest = {
+        "model": "synthetic",
+        "cover": "fixed",
+        "W": 1,
+        "n_rules": 3,
+        "derived": [{"id": "feat0", "kind": "recent-member", "members": [5]}],
+        "rules": [
+            {
+                "id": 0, "kind": "gate", "frame": {}, "slot": 1,
+                "table": {"5": 9}, "confs": {"5": 0.9}, "citation": ["fixture"],
+            },
+            {
+                "id": 1, "kind": "dgate", "feature": "feat0",
+                "table": {"5:7": 11}, "confs": {"5:7": 0.8}, "citation": ["fixture"],
+            },
+            {
+                "id": 2, "kind": "ngram", "ctx": [7], "out": 12,
+                "confidence": 0.7, "citation": ["fixture"],
+            },
+        ],
+    }
+    with_budget = copy.deepcopy(manifest)
+    with_budget["regression_budget"] = {
+        "rate": 62 / 205,
+        "rate_definition": "deduplicated regressions / (deduplicated gains + regressions)",
+        "eval_unit": "held-out split row",
+        "measured_on": ["Stage 1 / #81 GATED1 on test_te"],
+        "sweep@sha": "#81@3c5a96e + #86@9681595 (data/frames_at_scale.json)",
+        "domain": "pythia70m/wikitext",
+        "operating_point": (
+            "single GATED1 voting stage; not a swept/minimized budget "
+            "(descriptive #83/#86 stages excluded by registration)"
+        ),
+        "contract": (
+            "PLATEAU (#88): zero-regression trusted-tier growth not safely "
+            "extractable at any measured granularity"
+        ),
+    }
+
+    loaded = []
+    for label, payload in (("plain", manifest), ("with_regression_budget", with_budget)):
+        path = tmp_path / f"{label}.json"
+        path.write_text(json.dumps(payload))
+        loaded.append(load_package(path))
+    plain, with_regression_budget = loaded
+    assert plain[0] == with_regression_budget[0]
+    assert plain[1] == with_regression_budget[1]
+    for context in ([5], [7], [1]):
+        assert decide(context, *plain) == decide(context, *with_regression_budget)
