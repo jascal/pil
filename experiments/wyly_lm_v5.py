@@ -1664,6 +1664,41 @@ def _stability_annotation(name, kind, frequency_table, domain_matches):
             "domain": "pythia70m/wikitext"}
 
 
+def _regression_budget_field(tag, ds):
+    """Domain-gated #88 PLATEAU regression budget for the package manifest.
+
+    Returns None (caller omits the field) unless (tag, ds) is pythia70m/wikitext
+    and data/composite_discriminator.json is present. Absent != 0: never emit a
+    fabricated 0.0 rate or a null key — the key must not exist when omitted.
+    Sourced directly from stage1_counts (not campaign_frontier_rows._contract_corollary).
+    """
+    if (tag, ds) != ("pythia70m", "wikitext"):
+        return None
+    path = REPO / "data" / "composite_discriminator.json"
+    if not path.exists():
+        return None
+    counts = json.loads(path.read_text())["stage1_counts"]
+    gains = counts["gains"]
+    regressions = counts["regressions"]
+    rate = regressions / (regressions + gains)
+    return {
+        "rate": rate,
+        "rate_definition": "deduplicated regressions / (deduplicated gains + regressions)",
+        "eval_unit": "held-out split row",
+        "measured_on": ["Stage 1 / #81 GATED1 on test_te"],
+        "sweep@sha": "#81@3c5a96e + #86@9681595 (data/frames_at_scale.json)",
+        "domain": "pythia70m/wikitext",
+        "operating_point": (
+            "single GATED1 voting stage; not a swept/minimized budget "
+            "(descriptive #83/#86 stages excluded by registration)"
+        ),
+        "contract": (
+            "PLATEAU (#88): zero-regression trusted-tier growth not safely "
+            "extractable at any measured granularity"
+        ),
+    }
+
+
 def emit_full(model, cls, uv, ts, vocab):
     """Package emission, support-weighted (design: C10 realized in serving). Every admitted rule
     family becomes package rules carrying the SAME confidences the learner arbitrates with --
@@ -1903,6 +1938,9 @@ def emit_full(model, cls, uv, ts, vocab):
             if rep != i:
                 groups.setdefault(int(uv[rep]), []).append(int(uv[i]))
         man["concepts"] = {str(rep): mem for rep, mem in groups.items()}
+    rb = _regression_budget_field(TAG, DS)
+    if rb is not None:
+        man["regression_budget"] = rb
     return man, skipped
 
 def main():
