@@ -33,6 +33,10 @@ Run: cd pil && .venv/bin/python experiments/wyly_selfcompile.py
 
 from __future__ import annotations
 
+import json
+import os
+from pathlib import Path
+
 import torch
 import torch.nn.functional as F
 from wyly_rel_battery import L
@@ -40,6 +44,8 @@ from wyly_rel_battery import gen_induction as _gen_ind
 from wyly_rel_battery import gen_khop2 as _gen_khop
 from wyly_rel_certify import souffle_pred
 from wyly_rel_harden import HardRelLayer
+
+REPO = Path(__file__).resolve().parent.parent
 
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
 VOCAB, K, H, DEPTH = 384, 48, 4, 2  # H matches HardRelLayer
@@ -207,6 +213,23 @@ def dl_khop2(lo, hi):
     return _DL_KHOP.replace("@LO@", str(lo)).replace("@HI@", str(hi))
 
 
+def emit_khop_package(lo, hi, W, out_path):
+    """Write a rosetta-servable package whose single rule is the certified 2-hop (khop) program."""
+    rule = {
+        "kind": "khop", "lo": int(lo), "hi": int(hi),
+        "id": "khop2", "tier": "trusted", "basis": "certified",
+        "confidence": 1.0, "citation": {"program": "dl_khop2", "cert": "souffle"},
+    }
+    manifest = {
+        "model": "wyly_selfcompile/khop2", "cover": "support-weighted", "W": int(W),
+        "n_rules": 1, "labels": "corpus", "rules": [rule],
+    }
+    out_path = Path(out_path)
+    out_path.mkdir(parents=True, exist_ok=True)
+    (out_path / "manifest.json").write_text(json.dumps(manifest))
+    return manifest
+
+
 # ---------------- training + eval ----------------
 def accuracy(model, x, y, hard=False, bs=512):
     with torch.no_grad():
@@ -290,6 +313,8 @@ def sleep_compile(model, xval, yval, cycle, retries=2):
     exact = all(dl.get(w, -1) == int(mir[w]) for w in range(n_cert))
     assert exact, f"mirror != Soufflé for {name} -- the certificate is void"
     model.installed.append((f"{name}@sleep{cycle}", fn))
+    if name == "khop2" and os.environ.get("WYLY_EMIT") == "1":
+        emit_khop_package(lo, hi, L, REPO / "data" / "wyly_khop_package")
     model.reset_heads()                                      # RECYCLE: capacity back to the pool
     print(f"    sleep {cycle}: COMPILED {name} (guard [{lo},{hi}]) -- model-hard agree {agree:.3f} "
           f"@ cover {cov:.2f}, gold {gold:.3f}, Soufflé mirror-check {n_cert}/{n_cert} exact; "
