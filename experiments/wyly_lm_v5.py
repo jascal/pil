@@ -220,10 +220,12 @@ def provenance_origin() -> str:
 class KeyTable:
     """exact suffix/slot table as (sorted keys, values[, confidences]); mirror = searchsorted."""
 
-    def __init__(self, keys, vals, conf=None):
+    def __init__(self, keys, vals, conf=None, cnt=None, tot=None):
         order = keys.argsort()
         self.k, self.v = keys[order], vals[order]
         self.c = conf[order] if conf is not None else None
+        self.cnt = cnt[order] if cnt is not None else None
+        self.tot = tot[order] if tot is not None else None
 
     def lookup(self, q):
         if len(self.k) == 0:
@@ -255,7 +257,8 @@ def best_per_key(key, val, minsupp, mindet):
     sel = order[first]
     keep = (cnt[sel] >= minsupp) & (cnt[sel].float() / tot[kinv[sel]].clamp(min=1) >= mindet)
     conf = cnt[sel].float() / (tot[kinv[sel]] + ALPHA)
-    return KeyTable(pair[0][sel][keep], pair[1][sel][keep], conf[keep]), int(keep.sum())
+    return KeyTable(pair[0][sel][keep], pair[1][sel][keep], conf[keep],
+                    cnt=cnt[sel][keep], tot=tot[kinv[sel]][keep]), int(keep.sum())
 
 
 class OnlineFrame:
@@ -313,10 +316,12 @@ class OnlineFrame:
                                              >= self.mindet)
         conf = cnt[sel].float() / (tot[kinv[sel]] + ALPHA)
         k2, v2, c2 = key[sel][keep], val[sel][keep], conf[keep]
+        n2, t2 = cnt[sel][keep], tot[kinv[sel]][keep]
         if hasattr(self, "banned") and len(self.banned):
             kp = ~torch.isin(k2, self.banned)
             k2, v2, c2 = k2[kp], v2[kp], c2[kp]
-        self.table = KeyTable(k2, v2, c2)
+            n2, t2 = n2[kp], t2[kp]
+        self.table = KeyTable(k2, v2, c2, cnt=n2, tot=t2)
 
     def mirror(self):
         def fn(ids):
@@ -343,7 +348,9 @@ class OnlineFrame:
             self.banned = torch.cat([self.banned, bad]).unique()
         keep = ~torch.isin(self.table.k, self.banned)
         self.table = KeyTable(self.table.k[keep], self.table.v[keep],
-                              self.table.c[keep] if self.table.c is not None else None)
+                              self.table.c[keep] if self.table.c is not None else None,
+                              cnt=self.table.cnt[keep] if self.table.cnt is not None else None,
+                              tot=self.table.tot[keep] if self.table.tot is not None else None)
         return int(len(bad))
 
 
@@ -362,6 +369,7 @@ class TupleFrame:
         self.rows = torch.empty(0, self.k + 1, dtype=torch.long, device=dev)
         self.cnts = torch.empty(0, dtype=torch.long, device=dev)
         self.levels, self.leaf_val, self.leaf_conf = [], None, None
+        self.leaf_cnt, self.leaf_tot = None, None
         self.banned = torch.empty(0, dtype=torch.long, device=dev)
 
     def _tails(self, ids, sliding):
@@ -399,10 +407,13 @@ class TupleFrame:
                                              / tot[kinv[sel]].clamp(min=1) >= self.mindet)
         keys2d, vals = suf[sel][keep], val[sel][keep]
         confs = (cnt[sel].float() / (tot[kinv[sel]] + ALPHA))[keep]
+        cnts, tots = cnt[sel][keep], tot[kinv[sel]][keep]
         if not len(keys2d):
             self.levels, self.leaf_val, self.leaf_conf = [], None, None
+            self.leaf_cnt, self.leaf_tot = None, None
             return
         self.keys2d, self.vals2d, self.confs2d = keys2d, vals, confs
+        self.cnts2d, self.tots2d = cnts, tots
         # trie build: per level, (prev-id, token) pairs -> compact unique ids
         self.levels = []
         ids_ = torch.zeros(len(keys2d), dtype=torch.long, device=self.dev)
@@ -415,8 +426,12 @@ class TupleFrame:
             nprev = len(upair)
         self.leaf_val = torch.full((nprev,), -1, dtype=torch.long, device=self.dev)
         self.leaf_conf = torch.zeros(nprev, device=self.dev)
+        self.leaf_cnt = torch.zeros(nprev, dtype=torch.long, device=self.dev)
+        self.leaf_tot = torch.zeros(nprev, device=self.dev)
         self.leaf_val[ids_] = vals
         self.leaf_conf[ids_] = confs
+        self.leaf_cnt[ids_] = cnts
+        self.leaf_tot[ids_] = tots
 
     def _walk(self, q2d):
         ids_ = torch.zeros(len(q2d), dtype=torch.long, device=self.dev)
@@ -1185,18 +1200,27 @@ class MinedGates:
         self.offs, self.pair_offs = list(offs), list(pair_offs)
         self.mined1, self.mined2 = set(), set()
         e = torch.empty(0, dtype=torch.long, device=dev)
-        self.t1 = KeyTable(e, e.clone(), torch.empty(0, device=dev))     # (o,a,last) singleton
-        self.t2 = KeyTable(e.clone(), e.clone(), torch.empty(0, device=dev))  # 2-anchor frames
+        ec = torch.empty(0, dtype=torch.long, device=dev)
+        et = torch.empty(0, device=dev)
+        self.t1 = KeyTable(e, e.clone(), torch.empty(0, device=dev), cnt=ec, tot=et)
+        self.t2 = KeyTable(e.clone(), e.clone(), torch.empty(0, device=dev),
+                           cnt=ec.clone(), tot=et.clone())
         self.n_frames = 0
 
     def A(self, x):
         return x if self.amap is None else self.amap[0][x]
 
-    def _merge(self, tab, keys, vals, confs):
+    def _merge(self, tab, keys, vals, confs, cnts=None, tots=None):
+        if cnts is None:
+            cnts = torch.zeros(len(keys), dtype=torch.long, device=keys.device)
+        if tots is None:
+            tots = torch.zeros(len(keys), dtype=tab.tot.dtype, device=keys.device)
         k = torch.cat([tab.k, keys])
         v = torch.cat([tab.v, vals])
         c = torch.cat([tab.c, confs])
-        return KeyTable(k, v, c)
+        cnt = torch.cat([tab.cnt, cnts])
+        tot = torch.cat([tab.tot, tots])
+        return KeyTable(k, v, c, cnt=cnt, tot=tot)
 
     def mine(self, model, ids, yv, cls, fitset, g, log, cycle, sample_n=6000):
         smp = fitset[torch.randint(len(fitset), (sample_n,), generator=g)]
@@ -1220,7 +1244,7 @@ class MinedGates:
                 self.mined1.add((o, a))
                 sl = (tab.k // self.B) == a
                 self.t1 = self._merge(self.t1, (o * self.B + a) * self.B + tab.k[sl] % self.B,
-                                      tab.v[sl], tab.c[sl])
+                                      tab.v[sl], tab.c[sl], tab.cnt[sl], tab.tot[sl])
                 new1 += 1
         v1, _ = self.lookup_conf_all(ids[err])               # residual errors after singletons
         res = err[v1 != yv[err]]
@@ -1243,7 +1267,8 @@ class MinedGates:
                     self.mined2.add((oid, ab))
                     sl = (tab.k // self.B) == ab
                     self.t2 = self._merge(self.t2, (oid * self.B ** 2 + ab) * self.B
-                                          + tab.k[sl] % self.B, tab.v[sl], tab.c[sl])
+                                          + tab.k[sl] % self.B, tab.v[sl], tab.c[sl],
+                                          tab.cnt[sl], tab.tot[sl])
                     new2 += 1
         self.n_frames = len(self.mined1) + len(self.mined2)
         if new1 or new2:
@@ -1297,7 +1322,8 @@ class MinedGates:
         if not len(bad):
             return 0
         keep = ~torch.isin(tab.k, bad)
-        setattr(self, which, KeyTable(tab.k[keep], tab.v[keep], tab.c[keep]))
+        setattr(self, which, KeyTable(tab.k[keep], tab.v[keep], tab.c[keep],
+                                     cnt=tab.cnt[keep], tot=tab.tot[keep]))
         return int(len(bad))
 
     def mine_clustered(self, model, ids, yv, cls, fitset, ground, g, log, cycle,
@@ -1340,7 +1366,7 @@ class MinedGates:
                     self.mined1.add((o, a))
                     sl = (tab.k // self.B) == a
                     self.t1 = self._merge(self.t1, (o * self.B + a) * self.B + tab.k[sl] % self.B,
-                                          tab.v[sl], tab.c[sl])
+                                          tab.v[sl], tab.c[sl], tab.cnt[sl], tab.tot[sl])
                     new1 += 1
         self.n_frames = len(self.mined1) + len(self.mined2)
         if new1:
@@ -1743,6 +1769,13 @@ def emit_full(model, cls, uv, ts, vocab, *, energy_mode=False, M=1, beam_width=1
         toks.reverse()
         return toks
 
+    def counts_map(tab, keyfn):
+        if not energy_mode or tab.cnt is None or tab.tot is None:
+            return None
+        return {keyfn(k): [int(cnt), int(tot)]
+                for k, cnt, tot in zip(tab.k.tolist(), tab.cnt.tolist(), tab.tot.tolist(),
+                                       strict=True)}
+
     derived_defs, need_concepts = [], False
     all_rules = [(1, r) for r in model.rules] + \
                 [(2, r) for r in getattr(model, "rules2", [])]
@@ -1763,18 +1796,26 @@ def emit_full(model, cls, uv, ts, vocab, *, energy_mode=False, M=1, beam_width=1
             if info[0] == "kgram":
                 of = info[1]
                 tab, k = of.table, len(of.offs)
-                for key, v, c in zip(tab.k.tolist(), tab.v.tolist(), tab.c.tolist(), strict=True):
-                    add({"kind": "ngram", "tier": "gated", "basis": "observational",
-                         "ctx": [int(uv[t]) for t in decomp(key, k)], "out": int(uv[v]),
-                         "confidence": round(c, 4),
-                         "citation": [f"{src} online {k}-gram tier (s{of.minsupp})"]})
+                for i, (key, v, c) in enumerate(zip(tab.k.tolist(), tab.v.tolist(),
+                                                     tab.c.tolist(), strict=True)):
+                    rule = {"kind": "ngram", "tier": "gated", "basis": "observational",
+                            "ctx": [int(uv[t]) for t in decomp(key, k)], "out": int(uv[v]),
+                            "confidence": round(c, 4),
+                            "citation": [f"{src} online {k}-gram tier (s{of.minsupp})"]}
+                    if energy_mode and tab.cnt is not None and tab.tot is not None:
+                        rule["counts"] = [int(tab.cnt[i]), int(tab.tot[i])]
+                    add(rule)
             elif info[0] == "skip":
                 off, tab = info[1], info[2]
                 table = {int(uv[k]): int(uv[v]) for k, v in zip(tab.k.tolist(), tab.v.tolist(), strict=True)}
                 confs = {int(uv[k]): round(c, 4) for k, c in zip(tab.k.tolist(), tab.c.tolist(), strict=True)}
-                add({"kind": "gate", "tier": "gated", "basis": "observational", "frame": {},
-                     "slot": off, "table": table, "confs": confs,
-                     "citation": [f"{src} skip-bigram offset {off}"]})
+                rule = {"kind": "gate", "tier": "gated", "basis": "observational",
+                        "frame": {}, "slot": off, "table": table, "confs": confs,
+                        "citation": [f"{src} skip-bigram offset {off}"]}
+                raw = counts_map(tab, lambda key: int(uv[key]))
+                if raw is not None:
+                    rule["counts"] = raw
+                add(rule)
             elif info[0] == "mate":
                 mtab, opl, cll, B2 = info[1], info[2], info[3], info[4]
                 derived_defs.append({"id": "mate0", "kind": "bracket-mate",
@@ -1787,10 +1828,17 @@ def emit_full(model, cls, uv, ts, vocab, *, energy_mode=False, M=1, beam_width=1
                     ck = f"{int(uv[f])}:{int(uv[last])}"
                     table[ck] = int(uv[v])
                     confs[ck] = round(c, 4)
-                add({"kind": "dgate", "tier": "gated", "basis": "observational",
-                     "feature": "mate0", "table": table, "confs": confs,
-                     "citation": [f"{src} mate gate: innermost unclosed opener (extractor "
-                                  "PROVED, wyly_mate_certify)"]})
+                rule = {"kind": "dgate", "tier": "gated", "basis": "observational",
+                        "feature": "mate0", "table": table, "confs": confs,
+                        "citation": [f"{src} mate gate: innermost unclosed opener (extractor "
+                                     "PROVED, wyly_mate_certify)"]}
+                raw = counts_map(
+                    mtab,
+                    lambda key, base=B2: f"{int(uv[key // base - 1])}:"
+                                          f"{int(uv[key % base])}")
+                if raw is not None:
+                    rule["counts"] = raw
+                add(rule)
             elif info[0] == "pointer":
                 ptr = info[1]
                 need_concepts = ptr.cmap_ref is not None
@@ -1853,10 +1901,17 @@ def emit_full(model, cls, uv, ts, vocab, *, energy_mode=False, M=1, beam_width=1
                     ck = f"{int(uv[f]) if tokfeat else f}:{int(uv[last])}"
                     table[ck] = int(uv[v])
                     confs[ck] = round(c, 4)
-                add({"kind": "dgate", "tier": "gated", "basis": "observational",
-                     "feature": fid, "table": table, "confs": confs,
-                     "citation": [f"{src} {name}: derived {kindname} gate "
-                                  "(extractor family certified, wyly_derived_certify)"]})
+                rule = {"kind": "dgate", "tier": "gated", "basis": "observational",
+                        "feature": fid, "table": table, "confs": confs,
+                        "citation": [f"{src} {name}: derived {kindname} gate "
+                                     "(extractor family certified, wyly_derived_certify)"]}
+                raw = counts_map(
+                    tab_, lambda key, base=B2_, token_feature=tokfeat:
+                    f"{int(uv[key // base - 1]) if token_feature else key // base - 1}:"
+                    f"{int(uv[key % base])}")
+                if raw is not None:
+                    rule["counts"] = raw
+                add(rule)
             elif info[0] == "dgate2":
                 (_pairname, params), tab_, B2_ = info[1], info[2], info[3]
                 base_id = f"feat{len(derived_defs)}s"
@@ -1875,32 +1930,49 @@ def emit_full(model, cls, uv, ts, vocab, *, energy_mode=False, M=1, beam_width=1
                     ck = f"{int(uv[fa])}:{int(uv[fb])}"
                     table[ck] = int(uv[v])
                     confs[ck] = round(c, 4)
-                add({"kind": "dgate2", "tier": "gated", "basis": "observational",
-                     "featureA": prev_id, "featureB": head_id, "table": table, "confs": confs,
-                     "citation": [f"{src} {name}: rhetorical span-pair (prev-head, cur-head)"]})
+                rule = {"kind": "dgate2", "tier": "gated", "basis": "observational",
+                        "featureA": prev_id, "featureB": head_id, "table": table,
+                        "confs": confs,
+                        "citation": [f"{src} {name}: rhetorical span-pair (prev-head, cur-head)"]}
+                raw = counts_map(
+                    tab_, lambda key, base=B2_: f"{int(uv[key // base - 1])}:"
+                                                f"{int(uv[key % base])}")
+                if raw is not None:
+                    rule["counts"] = raw
+                add(rule)
             elif info[0] == "mined":
                 mined = info[1]
                 by_frame = {}
-                for key, v, c in zip(mined.t1.k.tolist(), mined.t1.v.tolist(),
-                                     mined.t1.c.tolist(), strict=True):
+                for key, v, c, cnt, tot_ in zip(
+                        mined.t1.k.tolist(), mined.t1.v.tolist(), mined.t1.c.tolist(),
+                        mined.t1.cnt.tolist(), mined.t1.tot.tolist(), strict=True):
                     oa, last = key // B, key % B
                     o, a = oa // B, oa % B
-                    by_frame.setdefault((("f1", o, a)), []).append((last, v, c))
-                for key, v, c in zip(mined.t2.k.tolist(), mined.t2.v.tolist(),
-                                     mined.t2.c.tolist(), strict=True):
+                    by_frame.setdefault((("f1", o, a)), []).append((last, v, c, cnt, tot_))
+                for key, v, c, cnt, tot_ in zip(
+                        mined.t2.k.tolist(), mined.t2.v.tolist(), mined.t2.c.tolist(),
+                        mined.t2.cnt.tolist(), mined.t2.tot.tolist(), strict=True):
                     oid_ab, last = key // B, key % B
                     oid, ab = oid_ab // (B * B), oid_ab % (B * B)
                     o1, o2 = oid // 16, oid % 16
                     a1, a2 = ab // B, ab % B
-                    by_frame.setdefault((("f2", o1, a1, o2, a2)), []).append((last, v, c))
+                    by_frame.setdefault((("f2", o1, a1, o2, a2)), []).append(
+                        (last, v, c, cnt, tot_))
                 for fr, entries in sorted(by_frame.items()):
                     frame = ({str(fr[1]): int(uv[fr[2]])} if fr[0] == "f1"
                              else {str(fr[1]): int(uv[fr[2]]), str(fr[3]): int(uv[fr[4]])})
-                    add({"kind": "gate", "tier": "gated", "basis": "observational",
-                         "frame": frame, "slot": 1,
-                         "table": {int(uv[last]): int(uv[v]) for last, v, _ in entries},
-                         "confs": {int(uv[last]): round(c, 4) for last, _, c in entries},
-                         "citation": [f"{src} mined frame {frame} (error-driven, online tier)"]})
+                    rule = {"kind": "gate", "tier": "gated", "basis": "observational",
+                            "frame": frame, "slot": 1,
+                            "table": {int(uv[last]): int(uv[v])
+                                      for last, v, _, _, _ in entries},
+                            "confs": {int(uv[last]): round(c, 4)
+                                      for last, _, c, _, _ in entries},
+                            "citation": [f"{src} mined frame {frame} "
+                                         "(error-driven, online tier)"]}
+                    if energy_mode:
+                        rule["counts"] = {int(uv[last]): [int(cnt), int(tot_)]
+                                          for last, _, _, cnt, tot_ in entries}
+                    add(rule)
         else:
             skipped.append(name)
     mx, am = model.counts.max(1)
@@ -1910,12 +1982,17 @@ def emit_full(model, cls, uv, ts, vocab, *, energy_mode=False, M=1, beam_width=1
         conf_e = float(mx[t] / (tot[t] + ALPHA))
         if ccal_e is not None and float(ccal_e[t]) >= 0:
             conf_e = float(ccal_e[t])                        # query-calibrated (deployment)
-        add({"kind": "ngram", "tier": "gated", "basis": "observational",
-             "ctx": [int(uv[t])], "out": int(uv[cls[am[t]]]),
-             "support": int(mx[t]), "determinism": round(float(mx[t] / tot[t]), 4),
-             "confidence": round(conf_e, 4),
-             "citation": [f"{src} online counts: {ts.token_str(int(uv[t]))!r} -> "
-                          f"{ts.token_str(int(uv[cls[am[t]]]))!r} (n={int(mx[t])}/{int(tot[t])})"]})
+        rule = {"kind": "ngram", "tier": "gated", "basis": "observational",
+                "ctx": [int(uv[t])], "out": int(uv[cls[am[t]]]),
+                "support": int(mx[t]), "determinism": round(float(mx[t] / tot[t]), 4),
+                "confidence": round(conf_e, 4),
+                "citation": [f"{src} online counts: {ts.token_str(int(uv[t]))!r} -> "
+                             f"{ts.token_str(int(uv[cls[am[t]]]))!r} "
+                             f"(n={int(mx[t])}/{int(tot[t])})"]}
+        if energy_mode:
+            rule["total"] = int(tot[t])
+            rule["counts"] = [int(mx[t]), int(tot[t])]
+        add(rule)
     W = max((len(r["ctx"]) for r in rules_out if r.get("kind") == "ngram"), default=1)
     man = {"model": src, "cover": "support-weighted", "W": W, "n_rules": len(rules_out),
            "origin": provenance_origin(),
@@ -1950,6 +2027,8 @@ def emit_full(model, cls, uv, ts, vocab, *, energy_mode=False, M=1, beam_width=1
         man["beam_width"] = beam_width
         man["energy_mode"] = "turnstile-margin"
         man["cert_kind"] = "per-token"
+        man["alpha"] = ALPHA
+        man["schema_version"] = 3
     return man, skipped
 
 def main():
