@@ -1,0 +1,89 @@
+{
+  "per_m": {
+    "1": {
+      "beam_acc": 0.0,
+      "beam_acc_on_d_eq_M": 1.0,
+      "conf_acc": 0.0,
+      "n_d_eq_M": 31872,
+      "n_stratum": 0,
+      "separation": 0.0
+    },
+    "2": {
+      "beam_acc": 1.0,
+      "beam_acc_on_d_eq_M": 1.0,
+      "conf_acc": 0.4540540540540541,
+      "n_d_eq_M": 1295,
+      "n_stratum": 1295,
+      "separation": 0.5459459459459459
+    },
+    "3": {
+      "beam_acc": 1.0,
+      "beam_acc_on_d_eq_M": 1.0,
+      "conf_acc": 0.4517465956187093,
+      "n_d_eq_M": 394,
+      "n_stratum": 1689,
+      "separation": 0.5482534043812908
+    },
+    "4": {
+      "beam_acc": 1.0,
+      "beam_acc_on_d_eq_M": 1.0,
+      "conf_acc": 0.45253863134657835,
+      "n_d_eq_M": 123,
+      "n_stratum": 1812,
+      "separation": 0.5474613686534217
+    },
+    "5": {
+      "beam_acc": 1.0,
+      "beam_acc_on_d_eq_M": 1.0,
+      "conf_acc": 0.4514721919302072,
+      "n_d_eq_M": 22,
+      "n_stratum": 1834,
+      "separation": 0.5485278080697928
+    }
+  },
+  "source": "data/gate_b_pilot.json (#101 pilot run)",
+  "verdict": {
+    "both_met_ms": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "deciding": {
+      "M": 2,
+      "beam_acc": 1.0,
+      "conf_acc": 0.4540540540540541,
+      "n_stratum": 1295,
+      "separation": 0.5459459459459459,
+      "stratum": "d in [2,2]"
+    },
+    "diagonal_acc": {
+      "2": 1.0,
+      "3": 1.0,
+      "4": 1.0,
+      "5": 1.0
+    },
+    "diagonal_n": {
+      "2": 1295,
+      "3": 394,
+      "4": 123,
+      "5": 22
+    },
+    "explanation": "FIRES: at M=2 on stratum d in [2,2], SEPARATION=0.545946 >= 0.15 and beam_acc=1.000000 >= 0.5; and signature holds: beam_acc on d==M is monotonically non-decreasing across non-empty diagonal points [(2, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)].",
+    "floor_met_ms": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "sep_met_ms": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "signature_holds": true,
+    "signature_note": "signature holds: beam_acc on d==M is monotonically non-decreasing across non-empty diagonal points [(2, 1.0), (3, 1.0), (4, 1.0), (5, 1.0)]",
+    "verdict": "FIRES"
+  }
+}
