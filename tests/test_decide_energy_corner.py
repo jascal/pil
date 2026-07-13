@@ -25,6 +25,11 @@ RULES = [
         "kind": "ngram", "id": "ng5", "ctx": [5], "out": 50,
         "confidence": 0.8, "basis": "observational", "citation": "ng5",
     },
+    # Continuation for the M>1 functional path: [5] -> 50 -> 51.
+    {
+        "kind": "ngram", "id": "ng50", "ctx": [50], "out": 51,
+        "confidence": 0.75, "basis": "observational", "citation": "ng50",
+    },
     # Stratum-1 low-confidence unigram (context ending in 7).
     {
         "kind": "ngram", "id": "ng7s1", "ctx": [7], "out": 70,
@@ -184,17 +189,22 @@ def test_corner_small_token_contexts(packages):
         _assert_parity(ctx, idioms_sw, ngrams_sw, m_sw, idioms_e, ngrams_e, m_e)
 
 
-def test_m_gt1_raises():
-    """M>1 / beam_width>1 is a future slice — hard NotImplementedError."""
-    m = {
-        "cover": "energy-beam", "W": 1, "M": 2, "beam_width": 1,
-        "_tau": 0.35, "_derived": [], "_cmap": {},
-    }
-    with pytest.raises(NotImplementedError, match="Slice 2"):
-        decide([1], [], {}, m)
-    m2 = {
-        "cover": "energy-beam", "W": 1, "M": 1, "beam_width": 2,
-        "_tau": 0.35, "_derived": [], "_cmap": {},
-    }
-    with pytest.raises(NotImplementedError, match="Slice 2"):
-        decide([1], [], {}, m2)
+def test_m_gt1_is_functional(packages):
+    """M>1 returns a genuine beam commit when a two-token rule chain fires."""
+    _, _, _, idioms_e, ngrams_e, m_e = packages
+    m_beam = {**m_e, "M": 2, "beam_width": 2}
+
+    result = decide([5], idioms_e, ngrams_e, m_beam)
+    assert result is not None
+    assert result["answer"] == 50
+    assert result["cert_kind"] == "M-step-lookahead"
+    assert result["citation"] == "ng5"
+    assert result["confidence"] == 0.8
+
+    fallback = decide([7], idioms_e, ngrams_e, m_beam)
+    assert fallback is not None
+    assert fallback["answer"] == 71
+    assert fallback["cert_kind"] == "per-token"
+
+    abstain = decide([1], idioms_e, ngrams_e, m_beam)
+    assert abstain is None
