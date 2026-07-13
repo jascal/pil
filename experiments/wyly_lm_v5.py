@@ -129,6 +129,7 @@ LABELS = os.environ.get("WYLY_LABELS", "teacher")
 # Soft-student concept geometry: "grounded" = host embed PCA; "random" = no host geometry.
 CONCEPT_INIT = os.environ.get("WYLY_CONCEPT_INIT", "grounded")
 PKG_SUFFIX = os.environ.get("WYLY_PKG_SUFFIX", "")           # e.g. _e0 / _e1 package dirs
+ENERGY_MODE = os.environ.get("WYLY_ENERGY_MODE", "") == "1"
 ORIGIN = os.environ.get("WYLY_ORIGIN", "")                   # optional provenance override
 # Only auto-wire host embeds when grounded init is requested (standalone arms use random).
 if (ALPHABET == "host" and CONCEPT_INIT == "grounded" and "qwen" in TAG.lower()
@@ -2807,8 +2808,8 @@ def main():
         import shutil
         sys.path.insert(0, str(REPO))
         ts = load_codec()
-        man, skipped = emit_full(model, cls, uv, ts, vocab)
-        pkg = REPO / "data" / ("wyly_expert_package_v5" if DS == "wikitext"
+        man, skipped = emit_full(model, cls, uv, ts, vocab, energy_mode=ENERGY_MODE)
+        pkg = REPO / "data" / (f"wyly_expert_package_v5{PKG_SUFFIX}" if DS == "wikitext"
                               else f"wyly_expert_package_v5_{DS}{PKG_SUFFIX}")
         pkg.mkdir(parents=True, exist_ok=True)
         (pkg / "manifest.json").write_text(json.dumps(man))
