@@ -71,7 +71,7 @@ RANKING_RULES = [
 ]
 
 
-def test_real_count_ranking_drives_m_gt_1_commit(tmp_path):
+def test_real_count_ranking_is_suppressed_without_hard_margin(tmp_path):
     assert det_rank_compare((9, 10), (4, 10)) == -1
     idioms, ngrams, manifest = _write_manifest(
         tmp_path,
@@ -85,10 +85,13 @@ def test_real_count_ranking_drives_m_gt_1_commit(tmp_path):
     )
 
     result = decide([1], idioms, ngrams, manifest)
+    corner_manifest = {**manifest, "M": 1, "beam_width": 1}
+    corner = decide([1], idioms, ngrams, corner_manifest)
 
     assert result is not None
-    assert result["answer"] == 10
-    assert result["cert_kind"] == "M-step-lookahead"
+    assert result == corner
+    assert result["answer"] == 20
+    assert result["cert_kind"] == "per-token"
 
 
 def _strip_cert(result):
