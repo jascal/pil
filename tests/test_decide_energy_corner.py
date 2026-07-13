@@ -189,15 +189,17 @@ def test_corner_small_token_contexts(packages):
         _assert_parity(ctx, idioms_sw, ngrams_sw, m_sw, idioms_e, ngrams_e, m_e)
 
 
-def test_m_gt1_is_functional(packages):
-    """M>1 returns a genuine beam commit when a two-token rule chain fires."""
+def test_m_gt1_zero_margin_path_is_gated_to_corner(packages):
+    """M>1 falls back to the corner when the text path has no hard margin."""
     _, _, _, idioms_e, ngrams_e, m_e = packages
     m_beam = {**m_e, "M": 2, "beam_width": 2}
 
     result = decide([5], idioms_e, ngrams_e, m_beam)
+    corner = decide([5], idioms_e, ngrams_e, m_e)
     assert result is not None
+    assert result == corner
     assert result["answer"] == 50
-    assert result["cert_kind"] == "M-step-lookahead"
+    assert result["cert_kind"] == "per-token"
     assert result["citation"] == "ng5"
     assert result["confidence"] == 0.8
 
