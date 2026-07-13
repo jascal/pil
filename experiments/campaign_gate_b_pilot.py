@@ -341,6 +341,34 @@ def compare_paths(
     return 0
 
 
+def _det_rank_fallback(
+    board: list[list[int]],
+    r0: int,
+    c0: int,
+    count_table: list[list[list[int]]],
+    wyly_seed: int,
+) -> int | None:
+    """Return the confidence-ranked legal candidate for an unfilled target cell."""
+    legal = osc.cell_candidates(board, r0, c0)
+    if not legal:
+        return None
+
+    def compare_candidates(a: int, b: int) -> int:
+        det_cmp = det_rank_compare(count_table, (r0, c0, a), (r0, c0, b))
+        if det_cmp != 0:
+            return det_cmp
+        hash_a = stable_hash_step("det_rank_fallback", r0, c0, a, wyly_seed)
+        hash_b = stable_hash_step("det_rank_fallback", r0, c0, b, wyly_seed)
+        if hash_a < hash_b:
+            return -1
+        if hash_a > hash_b:
+            return 1
+        return 0
+
+    ranked = sorted(legal, key=cmp_to_key(compare_candidates))
+    return int(ranked[0])
+
+
 def decide_energy(
     board: list[list[int]],
     r0: int,
@@ -432,7 +460,16 @@ def decide_energy(
             "surviving_counts": surviving_counts,
         }
     commit = paths[0].board[r0][c0]
-    committed_value = int(commit) if commit != 0 else None
+    if commit != 0:
+        committed_value = int(commit)
+    else:
+        # Read the original/as-passed board, not the evolved winning path: this keeps
+        # the fallback's candidate set step-1/no-lookahead and identical across M,
+        # avoiding candidate narrowing from peer fills during propagation passes.
+        committed_value = _det_rank_fallback(board, r0, c0, count_table, wyly_seed)
+        if committed_value is None:
+            # Unreachable: the initial propagation pass would have pruned this path.
+            committed_value = None
     return {
         "committed_value": committed_value,
         "anomaly_total_contradiction": False,
