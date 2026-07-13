@@ -1699,13 +1699,16 @@ def _regression_budget_field(tag, ds):
     }
 
 
-def emit_full(model, cls, uv, ts, vocab):
+def emit_full(model, cls, uv, ts, vocab, *, energy_mode=False, M=1, beam_width=1):
     """Package emission, support-weighted (design: C10 realized in serving). Every admitted rule
     family becomes package rules carrying the SAME confidences the learner arbitrates with --
     per-key Laplace-shrunk determinism for tables, val fired-accuracy for scalar kinds -- in the
     learner's arbitration order (admitted rules, then the counts tier). The manifest declares
     cover: support-weighted; a conforming runtime fires every applicable rule and takes the
-    argmax confidence (rosetta PACKAGE.md)."""
+    argmax confidence (rosetta PACKAGE.md).
+
+    Keyword-only energy_mode (default False) stamps cover: energy-beam fields when True.
+    Default call path is byte-identical to the pre-energy emit."""
     import re
     B = vocab + 1
     rules_out, skipped = [], []
@@ -1941,6 +1944,12 @@ def emit_full(model, cls, uv, ts, vocab):
     rb = _regression_budget_field(TAG, DS)
     if rb is not None:
         man["regression_budget"] = rb
+    if energy_mode:
+        man["cover"] = "energy-beam"
+        man["M"] = M
+        man["beam_width"] = beam_width
+        man["energy_mode"] = "turnstile-margin"
+        man["cert_kind"] = "per-token"
     return man, skipped
 
 def main():
