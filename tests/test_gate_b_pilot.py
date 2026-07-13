@@ -67,15 +67,16 @@ def _fixture_d2_cascade() -> tuple[list[list[int]], int, int, int, list[list[lis
       - (0,0) starts with 2 candidates (not d=1)
       - pass 1 forces 7 cells elsewhere, NOT (0,0); after fill, (0,0) has #cand==1
       - propagation_depth == 2
-      - beam(1) leaves cell0 uncommitted; beam(2) forces gold via pure propagation
-        (no det_rank dependence — all forced margins are +1)
+      - beam(1) commits the det_rank fallback's deliberately rigged wrong digit;
+        beam(2) forces gold via pure propagation (no det_rank dependence — all
+        forced margins are +1)
     """
     board = _board_without(
         (0, 0), (0, 1), (0, 3), (2, 0), (2, 3), (3, 0), (3, 3), (3, 7)
     )
     r0, c0, gold = 0, 0, 1
-    # Count table heavily favors the WRONG digit so that if beam(1) ever fell through
-    # to a det_rank guess it would pick wrong — we still expect None (no commit).
+    # Count table heavily favors the WRONG digit so beam(1)'s det_rank fallback picks
+    # wrong from the original board's candidates, while beam(2) still forces gold.
     table = _uniform_count_table(favor={(0, 0, 2): 1000, (0, 0, 1): 1})
     return board, r0, c0, gold, table
 
@@ -102,7 +103,7 @@ def test_a_d2_cascade_beam_m2_commits_gold_m1_does_not():
     # --- beam ---
     res1 = X.decide_energy(board, r0, c0, M=1, beam_width=8, count_table=table, wyly_seed=0)
     assert res1["committed_value"] != gold
-    assert res1["committed_value"] is None  # M=1 spent on progress elsewhere
+    assert res1["committed_value"] == 2
 
     res2 = X.decide_energy(board, r0, c0, M=2, beam_width=8, count_table=table, wyly_seed=0)
     assert res2["committed_value"] == gold
@@ -117,6 +118,22 @@ def test_a_d2_cascade_beam_m2_commits_gold_m1_does_not():
             ]
             == gold
         )
+
+
+def test_m1_nonforced_target_commits_det_rank_int():
+    board, r0, c0, _gold, table = _fixture_d2_cascade()
+    forced, contradiction = X.propagate_one_pass(board)
+    assert contradiction is False
+    assert forced is not None
+    assert all((r, c) != (r0, c0) for r, c, _ in forced)
+
+    result = X.decide_energy(
+        board, r0, c0, M=1, beam_width=8, count_table=table, wyly_seed=0
+    )
+    committed_value = result["committed_value"]
+    assert committed_value is not None
+    assert type(committed_value) is int
+    assert 1 <= committed_value <= 9
 
 
 # ---------------------------------------------------------------------------
