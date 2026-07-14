@@ -22,7 +22,7 @@ contract). Deterministic (no seeds). M and T **tuned on DEV**, fixed for the tes
 ## 3. Substrate & serve-honest
 GSD gold (13,813 / 799 / 977). Fit tables on TRAIN; tune (M, T) on DEV; TEST READ ONCE. Same serve-honest L0
 predicted heads as #119 (isolates labeling). Features from the SENTENCE only — surface, R1-predicted POS, position,
-window; NO gold heads/deprels. Reuse: `predict_deprels` baseline, the `φ`/POS student, `chu_liu_edmonds` (not
+window; NO gold heads/deprels. Reuse: `predict_deprels` baseline (in `attach_levers_codex.py`), the `φ`/POS student, `chu_liu_edmonds` (not
 needed — same heads), the case cascade, `score_dependencies`, `CASE_BEARING_DEPRELS`, `CampaignTestReadGuard`.
 
 ## 4. Controlled comparison
