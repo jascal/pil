@@ -33,6 +33,27 @@ GSD_ROOT = Path("/home/allans/code/germandata/tasks/head_deprel")
 OUTPUT_ROOT = Path(__file__).resolve().parents[1] / "data" / "grounded"
 CHECKPOINT_FRACTIONS = (0.25, 0.5, 0.75, 1.0)
 POOLING_ARMS = ("last-subword", "mean-pool")
+CONTRACTION_MAP: dict[str, tuple[str, str]] = {
+    "im": ("in", "dem"),
+    "am": ("an", "dem"),
+    "zum": ("zu", "dem"),
+    "zur": ("zu", "der"),
+    "beim": ("bei", "dem"),
+    "vom": ("von", "dem"),
+    "ins": ("in", "das"),
+    "ans": ("an", "das"),
+    "aufs": ("auf", "das"),
+    "durchs": ("durch", "das"),
+    "fürs": ("für", "das"),
+    "ums": ("um", "das"),
+    "vorm": ("vor", "dem"),
+    "hinterm": ("hinter", "dem"),
+    "überm": ("über", "dem"),
+    "unterm": ("unter", "dem"),
+    "hintern": ("hinter", "den"),
+    "übern": ("über", "den"),
+    "untern": ("unter", "den"),
+}
 
 
 @dataclass(frozen=True)
@@ -192,10 +213,36 @@ def compute_word_spans(text: str, tokens: Sequence[str]) -> tuple[tuple[int, int
     """
     spans: list[tuple[int, int]] = []
     cursor = 0
-    for token_index, token in enumerate(tokens):
+    token_index = 0
+    while token_index < len(tokens):
         while cursor < len(text) and text[cursor].isspace():
             cursor += 1
         start = cursor
+
+        if token_index + 1 < len(tokens):
+            token_pair = (tokens[token_index].casefold(), tokens[token_index + 1].casefold())
+            for contraction_surface, contraction_parts in CONTRACTION_MAP.items():
+                contraction_end = start + len(contraction_surface)
+                boundary_clean = (
+                    contraction_end >= len(text)
+                    or not (text[contraction_end].isalnum() or text[contraction_end] == "_")
+                )
+                if (
+                    token_pair == contraction_parts
+                    and text[start:contraction_end].casefold() == contraction_surface
+                    and boundary_clean
+                ):
+                    shared_span = (start, contraction_end)
+                    spans.extend((shared_span, shared_span))
+                    cursor = contraction_end
+                    token_index += 2
+                    break
+            else:
+                contraction_end = -1
+            if contraction_end >= 0:
+                continue
+
+        token = tokens[token_index]
         end = start + len(token)
         surface = text[start:end]
         if surface != token:
@@ -205,6 +252,7 @@ def compute_word_spans(text: str, tokens: Sequence[str]) -> tuple[tuple[int, int
             )
         cursor = end
         spans.append((start, end))
+        token_index += 1
     if any(not char.isspace() for char in text[cursor:]):
         raise ValueError(f"unmatched non-whitespace suffix {text[cursor:]!r} in {text!r}")
     return tuple(spans)
@@ -247,6 +295,15 @@ def align_subwords_to_words(
         ]
         if len(owners) == 1:
             assignments[owners[0]].append(subword_index)
+        elif (
+            len(owners) == 2
+            and owners[1] == owners[0] + 1
+            and word_spans[owners[0]] == word_spans[owners[1]]
+        ):
+            # A recognized contraction gives its two adjacent GSD words the same
+            # character span, so appending here keeps both subword lists identical.
+            for owner in owners:
+                assignments[owner].append(subword_index)
         else:
             unaligned.append(
                 UnalignedSubword(sent_id, subword_index, span, clean_span, text)
@@ -340,6 +397,10 @@ def reduce_clean_words(
         available = [index for index in subwords if index in position_to_row]
         if not available or subwords[-1] not in position_to_row:
             raise AssertionError("clean-word inclusion gate admitted a missing last position")
+        # Shared contraction assignments deliberately visit this path once per fused
+        # GSD word. Giving both words one decode position's pooled residual is an
+        # approximation that avoids dropping the sentence; the architect should
+        # revisit it if distinct per-word residuals become available.
         token_indices.append(token_index)
         last_indices.append(subwords[-1])
         last_rows.append(cumulative[position_to_row[subwords[-1]]])
