@@ -206,6 +206,7 @@ def test_contraction_map_is_closed_unicode_and_case_insensitive():
         "hintern": ("hinter", "den"),
         "übern": ("über", "den"),
         "untern": ("unter", "den"),
+        "übers": ("über", "das"),
     }
     assert CONTRACTION_MAP == expected
     for spelling in ("im", "Im", "IM"):
