@@ -53,6 +53,7 @@ CONTRACTION_MAP: dict[str, tuple[str, str]] = {
     "hintern": ("hinter", "den"),
     "übern": ("über", "den"),
     "untern": ("unter", "den"),
+    "übers": ("über", "das"),
 }
 
 
