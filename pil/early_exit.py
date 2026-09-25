@@ -1,0 +1,221 @@
+"""Certified early exit — the harness for ``docs/notes/certified_early_exit_prereg.md`` (SIGNED 2026-09-25).
+
+After layer ``k`` the prefix residual ``x_k`` is exactly what the model computed. With an RMSNorm final norm
+(no bias) and a tied unembedding, the decision is ``argmax_v ⟨x, w_v⟩`` with ``w_v = θ_f ⊙ U_v``. If ``B``
+bounds the norm of everything layers ``> k`` still write, then by Cauchy–Schwarz the prefix argmax ``t_k`` is
+final when
+
+    ∀ v ≠ t_k:  ⟨x_k, w_t − w_v⟩ > B · ‖w_t − w_v‖.
+
+So each (position, k) has a **certified radius** ``R_k = min_{v≠t} gap_v / ‖w_t − w_v‖`` over the full
+vocabulary, and a bound certifies iff ``B < R_k``. Computing ``R_k`` once lets every bound (oracle /
+weight-derived / calibrated) be compared against it.
+
+Coordinates: fieldrun's ``--source-dump`` stores ``d̃_j = s · θ_f ⊙ d_j`` (``s = 1/rms(x_final)``). Logits need
+no unfolding (``⟨d̃, U_v⟩`` is the logit). Norms are taken in ``y = d̃ / θ_f = s · d``, and ``s`` is recovered
+from the embedding block, whose raw write is the embedding row (PIN C). numpy only.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+
+# ── fieldrun bundle (json index + one binary blob) ──────────────────────────────────────────────────────────
+
+
+class Bundle:
+    """Read-only view of a ``fieldrun-bundle`` (format 1): f16 arrays and per-output-column symmetric int8."""
+
+    def __init__(self, stem: str | Path):
+        stem = Path(stem)
+        base = stem / stem.name if stem.is_dir() else stem
+        self.index = json.loads(Path(f"{base}.fieldrun.json").read_text())
+        if self.index.get("format") != "fieldrun-bundle":
+            raise ValueError(f"{base}: not a fieldrun bundle")
+        self.blob = np.memmap(f"{base}.fieldrun.bin", dtype=np.uint8, mode="r")
+        self.arrays = {a["name"]: a for a in self.index["arrays"]}
+        cfg = self.index["config"]
+        (self.n_layer, self.n_head, self.n_kv, self.head_dim,
+         self.d, self.d_ff, self.vocab, self.tied) = cfg[:8]
+        self.eps = float(self.index["config_f"][1])
+
+    def raw(self, name: str) -> np.ndarray:
+        a = self.arrays[name]
+        dt = {"f16": np.float16, "i8": np.int8, "f32": np.float32}[a["dtype"]]
+        buf = self.blob[a["offset"] : a["offset"] + a["bytes"]]
+        return np.frombuffer(buf, dtype=dt).reshape(a["shape"])
+
+    def f32(self, name: str) -> np.ndarray:
+        """Dequantized float32. int8 is stored ``(in, out)`` with ``W[i, j] = q[i, j] * scale[j]``."""
+        a = self.arrays[name]
+        if a["dtype"] == "i8":
+            return self.raw(name).astype(np.float32) * self.raw(f"{name}__scale").astype(np.float32)[None, :]
+        return self.raw(name).astype(np.float32)
+
+
+def act_quant_factor(n: int) -> float:
+    """fieldrun's int8 path quantizes a width-``n`` activation with a bulk scale ``max_bulk/127`` (largest
+    channels kept exact), so rounding adds at most ``scale/2`` per channel: ``‖ã‖ ≤ (1 + √n/254)·‖a‖``
+    (prereg Addendum A)."""
+    return 1.0 + math.sqrt(n) / 254.0
+
+
+def _spec(w: np.ndarray) -> float:
+    return float(np.linalg.norm(w.astype(np.float64), 2))
+
+
+def weight_bounds(b: Bundle) -> tuple[np.ndarray, np.ndarray]:
+    """Per-layer sup-norm bounds ``(A_ℓ, M_ℓ)`` on the raw attention and MLP writes (PIN E.2 + Addendum A).
+
+    - RMSNorm output: ``‖θ ⊙ x/rms(x)‖ ≤ max|θ|·√d``.
+    - attention: each query head's output is a convex combination of its KV group's value vectors
+      ``W_V^g ã + b^g``;
+      ``o_proj`` (no bias) sees the concatenated heads, quantized again.
+    - SwiGLU MLP (no biases): ``|silu(z)| ≤ |z|`` so ``‖silu(g) ⊙ u‖ ≤ ‖g‖_∞‖u‖``, with
+      ``‖g‖_∞ ≤ max_i‖W_gate[:,i]‖·‖ã‖``.
+    """
+    d, c_d, c_ff = b.d, act_quant_factor(b.d), act_quant_factor(b.d_ff)
+    group = b.n_head // b.n_kv
+    A = np.zeros(b.n_layer)
+    M = np.zeros(b.n_layer)
+    for ell in range(b.n_layer):
+        p = f"l{ell}."
+        h_in = float(np.abs(b.f32(f"{p}in_ln")).max()) * math.sqrt(d) * c_d
+        wv, bv = b.f32(f"{p}self_attn.v_proj"), b.f32(f"{p}self_attn.v_proj.bias")
+        per_group = [
+            _spec(wv[:, g * b.head_dim : (g + 1) * b.head_dim]) * h_in
+            + float(np.linalg.norm(bv[g * b.head_dim : (g + 1) * b.head_dim]))
+            for g in range(b.n_kv)
+        ]
+        heads = math.sqrt(group * sum(x * x for x in per_group))
+        A[ell] = _spec(b.f32(f"{p}self_attn.o_proj")) * heads * c_d
+
+        h_post = float(np.abs(b.f32(f"{p}post_ln")).max()) * math.sqrt(d) * c_d
+        wg = b.f32(f"{p}mlp.gate_proj")
+        g_inf = float(np.linalg.norm(wg, axis=0).max()) * h_post
+        u_norm = _spec(b.f32(f"{p}mlp.up_proj")) * h_post
+        M[ell] = _spec(b.f32(f"{p}mlp.down_proj")) * g_inf * u_norm * c_ff
+    return A, M
+
+
+def suffix_weight_bound(A: np.ndarray, M: np.ndarray) -> np.ndarray:
+    """``S[k] = Σ_{ℓ>k} (A_ℓ + M_ℓ)`` for exit after layer ``k`` (raw units; ``S[n_layer-1] = 0``)."""
+    per = A + M
+    return np.concatenate([np.cumsum(per[::-1])[::-1][1:], [0.0]])
+
+
+# ── the certificate ─────────────────────────────────────────────────────────────────────────────────────────
+
+
+class Readout:
+    """Full-vocabulary read-out ``W = θ_f ⊙ U`` with the helpers the pairwise certificate needs."""
+
+    def __init__(self, U: np.ndarray, theta_f: np.ndarray):
+        self.U = np.ascontiguousarray(U, dtype=np.float32)          # (V, d)
+        self.theta = theta_f.astype(np.float32)
+        self.W = self.U * self.theta[None, :]                        # (V, d)
+        self.wn2 = np.einsum("vd,vd->v", self.W, self.W, dtype=np.float64)
+
+    def radius(self, logits: np.ndarray) -> tuple[int, float]:
+        """``(t, R)`` for one logit vector over the full vocabulary: ``t = argmax`` and the certified radius
+        ``R = min_{v≠t} (L_t − L_v) / ‖w_t − w_v‖`` (``inf`` if every rival is at distance 0 with a positive
+        gap, ``0`` on a tie). Logits must be in the same coordinates as ``W`` (``⟨x, w_v⟩``)."""
+        t = int(np.argmax(logits))
+        gap = logits[t].astype(np.float64) - logits.astype(np.float64)
+        cross = (self.W @ self.W[t]).astype(np.float64)
+        dist = np.sqrt(np.maximum(self.wn2[t] + self.wn2 - 2.0 * cross, 0.0))
+        gap[t], dist[t] = np.inf, 1.0
+        with np.errstate(divide="ignore", invalid="ignore"):
+            r = np.where(dist > 0, gap / dist, np.where(gap > 0, np.inf, 0.0))
+        return t, float(r.min())
+
+
+def certify(logits: np.ndarray, readout: Readout, bound: float) -> tuple[int, bool]:
+    """Pairwise early-exit certificate: ``(t, certified)`` — certified iff ``bound < R``."""
+    t, r = readout.radius(logits)
+    return t, bool(bound < r)
+
+
+def conformal_quantile(x: np.ndarray, alpha: float) -> float:
+    """Split-conformal ``(1−α)`` quantile: the ``⌈(n+1)(1−α)⌉``-th smallest value (``inf`` if that rank
+    exceeds ``n``)."""
+    x = np.sort(np.asarray(x, dtype=np.float64))
+    rank = math.ceil((len(x) + 1) * (1.0 - alpha))
+    return float(x[rank - 1]) if rank <= len(x) else math.inf
+
+
+# ── dumps ───────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+@dataclass
+class ExitRecord:
+    """Per-position quantities for exits ``k = 0..n_layer-1`` (``k = n_layer-1`` is the full model)."""
+
+    sid: str
+    pos: int
+    pred: int                 # the model's decision (fieldrun, full vocabulary)
+    s: float                  # recovered 1/rms(x_final)
+    s_resid: float            # relative residual of the s fit (PIN C self-test)
+    t: np.ndarray             # (n_layer,) prefix argmax
+    R: np.ndarray             # (n_layer,) certified radius, y coordinates (vs suffix, s·B_w, B_cal)
+    ynorm: np.ndarray         # (n_layer,) ‖y_k‖ = s·‖x_k‖
+    suffix: np.ndarray        # (n_layer,) ‖y_final − y_k‖ = s·‖x_final − x_k‖ (the oracle)
+
+
+def layer_prefix_index(blocks: list[str], n_layer: int) -> list[int]:
+    """Index of each layer's last block (``L{k}.mlp``); the prefix after layer ``k`` is ``blocks[:idx+1]``."""
+    idx = []
+    for k in range(n_layer):
+        name = f"L{k}.mlp"
+        if name not in blocks:
+            raise ValueError(f"block {name} missing from dump")
+        idx.append(blocks.index(name))
+    if blocks[0] != "embed":
+        raise ValueError("first block must be the embedding")
+    return idx
+
+
+def fit_scale(d_embed: np.ndarray, emb_row: np.ndarray, theta_f: np.ndarray) -> tuple[float, float]:
+    """PIN C: ``s = ⟨d̃_embed, θ⊙e⟩ / ‖θ⊙e‖²`` and the relative residual ``‖d̃_embed − s θ⊙e‖ / ‖d̃_embed‖``."""
+    te = (theta_f * emb_row).astype(np.float64)
+    de = d_embed.astype(np.float64)
+    s = float(de @ te / (te @ te))
+    return s, float(np.linalg.norm(de - s * te) / max(np.linalg.norm(de), 1e-30))
+
+
+def process_record(rec: dict, readout: Readout, emb: np.ndarray, n_layer: int) -> ExitRecord:
+    """Turn one ``--source-dump`` line into an :class:`ExitRecord` (full-vocabulary radii at every exit)."""
+    D = np.asarray(rec["d"], dtype=np.float32)                       # (nb, d) folded writes d̃_j
+    last = layer_prefix_index(rec["blocks"], n_layer)
+    s, s_resid = fit_scale(D[0], emb[rec["cur"]].astype(np.float32), readout.theta)
+    prefix = np.cumsum(D, axis=0)[last]                              # (n_layer, d) folded prefix residuals
+    y = prefix.astype(np.float64) / readout.theta[None, :]           # (n_layer, d) in y = s·x coordinates
+    t = np.zeros(n_layer, dtype=np.int64)
+    R = np.zeros(n_layer)
+    for k in range(n_layer):
+        t[k], R[k] = readout.radius(readout.U @ prefix[k])
+    return ExitRecord(
+        sid=str(rec.get("sid", "")),
+        pos=int(rec["pos"]),
+        pred=int(rec["pred"]),
+        s=s,
+        s_resid=s_resid,
+        t=t,
+        R=R,
+        ynorm=np.linalg.norm(y, axis=1),
+        suffix=np.linalg.norm(y[-1][None, :] - y, axis=1),
+    )
+
+
+def iter_dump(path: str | Path):
+    """Stream a ``--source-dump`` JSON-lines file one record at a time (dumps are hundreds of MB)."""
+    with open(path) as fh:
+        for line in fh:
+            line = line.strip()
+            if line:
+                yield json.loads(line)
