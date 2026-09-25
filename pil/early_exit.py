@@ -221,9 +221,14 @@ def radii_batch(P: np.ndarray, readout: Readout, exact_k: int = 8) -> tuple[np.n
     return t, R
 
 
-def process_records(recs, readout: Readout, emb: np.ndarray, n_layer: int, chunk: int = 16):
-    """Turn ``--source-dump`` lines into :class:`ExitRecord` s, batching ``chunk`` positions per GEMM."""
+def process_records(recs, readout: Readout, emb: np.ndarray, n_layer: int, chunk: int = 16, predict=None):
+    """Turn ``--source-dump`` lines into :class:`ExitRecord` s, batching ``chunk`` positions per GEMM.
+
+    ``predict`` (optional) maps the ``(n_layer, d)`` prefix residuals in ``y`` coordinates to predicted final
+    residuals ``ŷ_k`` (e.g. the J-lens). Radii are then taken at ``ŷ_k`` and ``suffix`` holds the leftover
+    ``‖y_final − ŷ_k‖`` instead of the full suffix; without it, ``ŷ_k = y_k`` (the plain prefix)."""
     buf = []
+    theta = readout.theta[None, :].astype(np.float64)
 
     def flush():
         prefixes, meta = [], []
@@ -232,17 +237,18 @@ def process_records(recs, readout: Readout, emb: np.ndarray, n_layer: int, chunk
             last = layer_prefix_index(rec["blocks"], n_layer)
             s, s_resid = fit_scale(D[0], emb[rec["cur"]].astype(np.float32), readout.theta)
             pre = np.cumsum(D.astype(np.float64), axis=0)[last]          # (n_layer, d) folded prefixes
-            prefixes.append(pre)
-            meta.append((rec, s, s_resid, pre))
+            y = pre / theta                                              # y = s·x coordinates
+            yh = y if predict is None else predict(y)
+            prefixes.append(pre if predict is None else yh * theta)
+            meta.append((rec, s, s_resid, y, yh))
         t, R = radii_batch(np.concatenate(prefixes), readout)
         out = []
-        for i, (rec, s, s_resid, pre) in enumerate(meta):
+        for i, (rec, s, s_resid, y, yh) in enumerate(meta):
             sl = slice(i * n_layer, (i + 1) * n_layer)
-            y = pre / readout.theta[None, :].astype(np.float64)         # y = s·x coordinates
             out.append(ExitRecord(
                 sid=str(rec.get("sid", "")), pos=int(rec["pos"]), pred=int(rec["pred"]), s=s, s_resid=s_resid,
                 t=t[sl], R=R[sl], ynorm=np.linalg.norm(y, axis=1),
-                suffix=np.linalg.norm(y[-1][None, :] - y, axis=1),
+                suffix=np.linalg.norm(y[-1][None, :] - yh, axis=1),
             ))
         buf.clear()
         return out
@@ -267,3 +273,14 @@ def iter_dump(path: str | Path):
             line = line.strip()
             if line:
                 yield json.loads(line)
+
+
+def jlens_predictor(J: np.ndarray, lam: float):
+    """``y ↦ ŷ`` with ``ŷ_k = ((1−λ)I + λ J_k) y_k`` — the shrunk J-lens. ``J`` is ``[n_layer, d, d]``,
+    applied as ``J_k @ y_k``; linear, so it acts the same in ``x`` and ``y = s·x`` coordinates."""
+    J64 = J.astype(np.float64)
+
+    def predict(y: np.ndarray) -> np.ndarray:
+        return (1.0 - lam) * y + lam * np.einsum("kij,kj->ki", J64, y)
+
+    return predict

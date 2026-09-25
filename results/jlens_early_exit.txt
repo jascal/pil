@@ -1,0 +1,22 @@
+J-lens early exit — Qwen2.5-0.5B-Instruct; J fitted on 23 layers; check = 9.13 + J 0.054 layer-equivalents
+[sanity] λ=0 vs #126: same argmax True, max rel ΔR 4.6e-12, max rel Δsuffix 0.0e+00
+
+--- λ=0  (CAL calibrated coverage 0.000, k0=0)
+  eval_prose oracle cov 0.000 (≥2 skip 0.000, viol 0)  calibrated cov 0.000 (viol rate 0.000)  P-single net -9.18  k★ skippable 1.27  ‖e‖/‖suffix‖ k12:1.00  k20:1.00  k21:1.00  k22:1.00
+  eval_code  oracle cov 0.000 (≥2 skip 0.000, viol 0)  calibrated cov 0.000 (viol rate 0.000)  P-single net -9.18  k★ skippable 1.08  ‖e‖/‖suffix‖ k12:1.00  k20:1.00  k21:1.00  k22:1.00
+
+--- λ=0.25  (CAL calibrated coverage 0.000, k0=0)
+  eval_prose oracle cov 0.000 (≥2 skip 0.000, viol 0)  calibrated cov 0.000 (viol rate 0.000)  P-single net -9.18  k★ skippable 1.47  ‖e‖/‖suffix‖ k12:0.99  k20:0.92  k21:0.89  k22:0.86
+  eval_code  oracle cov 0.000 (≥2 skip 0.000, viol 0)  calibrated cov 0.000 (viol rate 0.000)  P-single net -9.18  k★ skippable 1.24  ‖e‖/‖suffix‖ k12:0.98  k20:0.93  k21:0.91  k22:0.88
+
+--- λ=0.5  (CAL calibrated coverage 0.000, k0=0)
+  eval_prose oracle cov 0.000 (≥2 skip 0.000, viol 0)  calibrated cov 0.000 (viol rate 0.000)  P-single net -9.18  k★ skippable 1.68  ‖e‖/‖suffix‖ k12:0.97  k20:0.87  k21:0.81  k22:0.76
+  eval_code  oracle cov 0.000 (≥2 skip 0.000, viol 0)  calibrated cov 0.000 (viol rate 0.000)  P-single net -9.18  k★ skippable 1.44  ‖e‖/‖suffix‖ k12:0.97  k20:0.88  k21:0.84  k22:0.80
+
+--- λ=1  (CAL calibrated coverage 0.000, k0=0)
+  eval_prose oracle cov 0.000 (≥2 skip 0.000, viol 0)  calibrated cov 0.000 (viol rate 0.000)  P-single net -9.18  k★ skippable 1.02  ‖e‖/‖suffix‖ k12:0.96  k20:0.86  k21:0.79  k22:0.76
+  eval_code  oracle cov 0.000 (≥2 skip 0.000, viol 0)  calibrated cov 0.000 (viol rate 0.000)  P-single net -9.18  k★ skippable 1.08  ‖e‖/‖suffix‖ k12:0.96  k20:0.86  k21:0.79  k22:0.78
+
+λ* (CAL) = 0.25
+sanity gate (λ=0 reproduces #126, oracle 0 violations at every λ): PASS
+VERDICT: HALTED
