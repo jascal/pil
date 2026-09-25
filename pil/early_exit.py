@@ -188,28 +188,76 @@ def fit_scale(d_embed: np.ndarray, emb_row: np.ndarray, theta_f: np.ndarray) -> 
     return s, float(np.linalg.norm(de - s * te) / max(np.linalg.norm(de), 1e-30))
 
 
+def radii_batch(P: np.ndarray, readout: Readout, exact_k: int = 8) -> tuple[np.ndarray, np.ndarray]:
+    """``(t, R)`` for a batch of folded prefixes ``P`` (``C x d``; logits ``U @ p``), full vocabulary.
+
+    Two float32 GEMMs against the unembedding give every gap and pairwise distance. The ``exact_k``
+    rivals with the smallest ratio are then recomputed in float64 from the vectors themselves
+    (``(U_t − U_v)·p`` and ``‖w_t − w_v‖``), so float32 rounding cannot create a certificate at a
+    near-tie. A negative exact gap (the float32 argmax was not the true one) gives ``R < 0``, which
+    never certifies."""
+    P32 = np.ascontiguousarray(P, dtype=np.float32)
+    L = readout.U @ P32.T                                              # (V, C)
+    t = L.argmax(axis=0)
+    uniq, inv = np.unique(t, return_inverse=True)
+    cross = readout.W @ readout.W[uniq].T                             # (V, n_unique)
+    R = np.empty(len(t))
+    k = min(exact_k, L.shape[0] - 1)
+    for c, tc in enumerate(t):
+        gap = L[tc, c].astype(np.float64) - L[:, c].astype(np.float64)
+        d2 = readout.wn2[tc] + readout.wn2 - 2.0 * cross[:, inv[c]].astype(np.float64)
+        dist = np.sqrt(np.maximum(d2, 0.0))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ratio = np.where(dist > 0, gap / dist, np.where(gap > 0, np.inf, 0.0))
+        ratio[tc] = np.inf
+        part = np.argpartition(ratio, k)
+        cand, rest = part[:k], ratio[part[k]]
+        pc = P[c].astype(np.float64)
+        gap_e = (readout.U[tc].astype(np.float64) - readout.U[cand].astype(np.float64)) @ pc
+        dist_e = np.linalg.norm(readout.W[tc].astype(np.float64) - readout.W[cand].astype(np.float64), axis=1)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            r_e = np.where(dist_e > 0, gap_e / dist_e, np.where(gap_e > 0, np.inf, 0.0))
+        R[c] = min(float(r_e.min()), float(rest))
+    return t, R
+
+
+def process_records(recs, readout: Readout, emb: np.ndarray, n_layer: int, chunk: int = 16):
+    """Turn ``--source-dump`` lines into :class:`ExitRecord` s, batching ``chunk`` positions per GEMM."""
+    buf = []
+
+    def flush():
+        prefixes, meta = [], []
+        for rec in buf:
+            D = np.asarray(rec["d"], dtype=np.float32)                   # (nb, d) folded writes d̃_j
+            last = layer_prefix_index(rec["blocks"], n_layer)
+            s, s_resid = fit_scale(D[0], emb[rec["cur"]].astype(np.float32), readout.theta)
+            pre = np.cumsum(D.astype(np.float64), axis=0)[last]          # (n_layer, d) folded prefixes
+            prefixes.append(pre)
+            meta.append((rec, s, s_resid, pre))
+        t, R = radii_batch(np.concatenate(prefixes), readout)
+        out = []
+        for i, (rec, s, s_resid, pre) in enumerate(meta):
+            sl = slice(i * n_layer, (i + 1) * n_layer)
+            y = pre / readout.theta[None, :].astype(np.float64)         # y = s·x coordinates
+            out.append(ExitRecord(
+                sid=str(rec.get("sid", "")), pos=int(rec["pos"]), pred=int(rec["pred"]), s=s, s_resid=s_resid,
+                t=t[sl], R=R[sl], ynorm=np.linalg.norm(y, axis=1),
+                suffix=np.linalg.norm(y[-1][None, :] - y, axis=1),
+            ))
+        buf.clear()
+        return out
+
+    for rec in recs:
+        buf.append(rec)
+        if len(buf) == chunk:
+            yield from flush()
+    if buf:
+        yield from flush()
+
+
 def process_record(rec: dict, readout: Readout, emb: np.ndarray, n_layer: int) -> ExitRecord:
-    """Turn one ``--source-dump`` line into an :class:`ExitRecord` (full-vocabulary radii at every exit)."""
-    D = np.asarray(rec["d"], dtype=np.float32)                       # (nb, d) folded writes d̃_j
-    last = layer_prefix_index(rec["blocks"], n_layer)
-    s, s_resid = fit_scale(D[0], emb[rec["cur"]].astype(np.float32), readout.theta)
-    prefix = np.cumsum(D, axis=0)[last]                              # (n_layer, d) folded prefix residuals
-    y = prefix.astype(np.float64) / readout.theta[None, :]           # (n_layer, d) in y = s·x coordinates
-    t = np.zeros(n_layer, dtype=np.int64)
-    R = np.zeros(n_layer)
-    for k in range(n_layer):
-        t[k], R[k] = readout.radius(readout.U @ prefix[k])
-    return ExitRecord(
-        sid=str(rec.get("sid", "")),
-        pos=int(rec["pos"]),
-        pred=int(rec["pred"]),
-        s=s,
-        s_resid=s_resid,
-        t=t,
-        R=R,
-        ynorm=np.linalg.norm(y, axis=1),
-        suffix=np.linalg.norm(y[-1][None, :] - y, axis=1),
-    )
+    """One ``--source-dump`` line → :class:`ExitRecord` (see :func:`process_records`)."""
+    return next(process_records([rec], readout, emb, n_layer))
 
 
 def iter_dump(path: str | Path):

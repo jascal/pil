@@ -13,6 +13,7 @@ from pil.early_exit import (
     certify,
     conformal_quantile,
     fit_scale,
+    radii_batch,
     suffix_weight_bound,
     weight_bounds,
 )
@@ -158,3 +159,13 @@ def test_act_quant_factor_covers_rounding():
         for _ in range(100):
             a = rng.normal(size=n) * rng.uniform(0.01, 100)
             assert np.linalg.norm(_act_quant(a)) <= act_quant_factor(n) * np.linalg.norm(a) * (1 + 1e-9)
+
+
+def test_batched_radius_matches_single():
+    rng = np.random.default_rng(4)
+    ro = _readout(rng, V=200, d=16)
+    P = rng.normal(size=(30, 16)) * 3
+    t, R = radii_batch(P, ro)
+    for c in range(len(P)):
+        tc, rc = ro.radius(ro.U @ P[c])
+        assert t[c] == tc and R[c] == pytest.approx(rc, rel=1e-5, abs=1e-7)

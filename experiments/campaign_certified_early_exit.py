@@ -27,7 +27,7 @@ from pil.early_exit import (
     Readout,
     conformal_quantile,
     iter_dump,
-    process_record,
+    process_records,
     suffix_weight_bound,
     weight_bounds,
 )
@@ -115,7 +115,7 @@ def load_records(
         return [ExitRecord(sid=str(z["sid"][i]), pos=int(z["pos"][i]), pred=int(z["pred"][i]),
                            s=float(z["s"][i]), s_resid=float(z["s_resid"][i]), t=z["t"][i], R=z["R"][i],
                            ynorm=z["ynorm"][i], suffix=z["suffix"][i]) for i in range(len(z["pos"]))]
-    recs = [process_record(r, readout, emb, n_layer) for r in iter_dump(dump)]
+    recs = list(process_records(iter_dump(dump), readout, emb, n_layer))
     np.savez(cache, sid=np.array([r.sid for r in recs]), pos=np.array([r.pos for r in recs]),
              pred=np.array([r.pred for r in recs]), s=np.array([r.s for r in recs]),
              s_resid=np.array([r.s_resid for r in recs]), t=np.stack([r.t for r in recs]),

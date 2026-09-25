@@ -1,0 +1,19 @@
+certified early exit — Qwen2.5-0.5B-Instruct (n_layer=24, d=896, V=151936); one full-vocab check = 9.13 layer-equivalents
+[control] cal: N=640  s-fit residual max 1.21e-05 (bar 0.001)  full-vocab recon 1.000 (bar 0.99)
+[control] eval_prose: N=320  s-fit residual max 1.25e-05 (bar 0.001)  full-vocab recon 1.000 (bar 0.99)
+[control] eval_code: N=320  s-fit residual max 1.09e-05 (bar 0.001)  full-vocab recon 1.000 (bar 0.99)
+
+=== eval_prose (N=320) ===
+  uncertified k★: median 23, exitable (k★ ≤ 22) 0.456, mean layers skippable 1.27
+  [oracle    ] coverage 0.000 (≥2 skipped 0.000)  k_c med None  skipped 0.00  violations 0 (0.000 of certified)  net P-every -210.01  P-single(k0=0) cov 0.000 net -9.13 viol 0
+  [weight    ] coverage 0.000 (≥2 skipped 0.000)  k_c med None  skipped 0.00  violations 0 (0.000 of certified)  net P-every -210.01  P-single(k0=0) cov 0.000 net -9.13 viol 0
+  [calibrated] coverage 0.000 (≥2 skipped 0.000)  k_c med None  skipped 0.00  violations 0 (0.000 of certified)  net P-every -210.01  P-single(k0=0) cov 0.000 net -9.13 viol 0
+
+=== eval_code (N=320) ===
+  uncertified k★: median 22, exitable (k★ ≤ 22) 0.519, mean layers skippable 1.08
+  [oracle    ] coverage 0.000 (≥2 skipped 0.000)  k_c med None  skipped 0.00  violations 0 (0.000 of certified)  net P-every -210.01  P-single(k0=0) cov 0.000 net -9.13 viol 0
+  [weight    ] coverage 0.000 (≥2 skipped 0.000)  k_c med None  skipped 0.00  violations 0 (0.000 of certified)  net P-every -210.01  P-single(k0=0) cov 0.000 net -9.13 viol 0
+  [calibrated] coverage 0.000 (≥2 skipped 0.000)  k_c med None  skipped 0.00  violations 0 (0.000 of certified)  net P-every -210.01  P-single(k0=0) cov 0.000 net -9.13 viol 0
+
+soundness gate (0 violations for oracle + weight): PASS
+VERDICT: HALTED
