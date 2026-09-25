@@ -1,6 +1,6 @@
 # Certified Early Exit — Pre-Registration
 
-**Status: DRAFT — awaiting signature. Decision rules are fixed BEFORE numbers. No source dump for this probe has
+**Status: SIGNED (approved as-is) — 2026-09-25. Decision rules fixed BEFORE numbers. No source dump for this probe had
 been generated or read.** Successor to fieldrun `experiments/certified_prune_step0` (#107), whose verdict names
 this as the surviving role of `PIC_Prune`: *"a certified early-exit / decode-attribution probe (the late-third that
 is skippable)"*. Motivated by the external PIC review (pairwise-margin certificates with coverage, checking cost and
@@ -118,3 +118,12 @@ of the `k★` headroom each bound captures.
 ## 9. Scope fences
 Qwen2.5-0.5B-Instruct only, the bundle as served by fieldrun. RMSNorm path only (Pythia/LayerNorm needs the bias
 term and is out of scope). Measurement only: no engine change, no retraining.
+
+## Addendum A (2026-09-25, after signing, before any number) — int8 activation rounding in `B_w`
+While implementing PIN E.2 against fieldrun's int8 path (`src/bundle.rs`, the `I8` matmul): activations are **also**
+quantized to int8, with a per-row scale fitted to the bulk and the few largest channels kept exact in f32. The bulk
+rounding error is at most `scale/2`, so a quantized input `ã` of width `n` satisfies `‖ã‖ ≤ (1 + √n/254)·‖a‖`. The
+signed `B_w` formula omits this, so as written it is not a sound bound on the computation fieldrun actually runs.
+Correction: every linear input gets that factor (`c₈₉₆ ≈ 1.118` for `q/k/v/o/gate/up`, `c₄₈₆₄ ≈ 1.275` for `down`),
+including the `o_proj` input. This only **loosens** `B_w`, so it can only make FIRES harder. Accumulation rounding in
+f32 is not bounded and is stated as a residual assumption. No other pin changes.
