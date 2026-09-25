@@ -13,6 +13,7 @@ from pil.early_exit import (
     certify,
     conformal_quantile,
     fit_scale,
+    jlens_predictor,
     radii_batch,
     suffix_weight_bound,
     weight_bounds,
@@ -169,3 +170,25 @@ def test_batched_radius_matches_single():
     for c in range(len(P)):
         tc, rc = ro.radius(ro.U @ P[c])
         assert t[c] == tc and R[c] == pytest.approx(rc, rel=1e-5, abs=1e-7)
+
+
+def test_jread_certificate_sound_with_exact_leftover():
+    """ŷ = J'y is any prediction; with B = ‖y_final − ŷ‖ the certificate never certifies a wrong answer."""
+    rng = np.random.default_rng(5)
+    for _ in range(300):
+        ro = _readout(rng)
+        d = ro.W.shape[1]
+        J = np.eye(d)[None] + 0.3 * rng.normal(size=(1, d, d))
+        y_k = rng.normal(size=(1, d)) * 3
+        y_final = y_k[0] + rng.normal(size=d) * rng.uniform(0.1, 3)
+        yhat = jlens_predictor(J, rng.uniform(0, 1))(y_k)[0]
+        t, R = ro.radius(ro.W @ yhat)
+        if np.linalg.norm(y_final - yhat) < R:
+            assert int(np.argmax(ro.W @ y_final)) == t
+
+
+def test_jlens_predictor_lambda_zero_is_identity():
+    rng = np.random.default_rng(6)
+    J = rng.normal(size=(3, 5, 5))
+    y = rng.normal(size=(3, 5))
+    assert np.allclose(jlens_predictor(J, 0.0)(y), y)
