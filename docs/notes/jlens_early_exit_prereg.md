@@ -1,6 +1,6 @@
 # J-lens Early Exit — Pre-Registration
 
-**Status: DRAFT — awaiting signature. Decision rules are fixed BEFORE numbers. No J-lens quantity has been computed
+**Status: SIGNED (approved as-is) — 2026-09-25. Decision rules fixed BEFORE numbers. No J-lens quantity had been computed
 on the early-exit dumps.** A follow-up to [`certified_early_exit_outcome.md`](./certified_early_exit_outcome.md) (#126,
 HALTED). That outcome's diagnosis: the remaining layers write a vector about as large as the whole residual, mostly
 orthogonal to the decision directions, so a **size-only** bound can never certify. Its stated next step: add
