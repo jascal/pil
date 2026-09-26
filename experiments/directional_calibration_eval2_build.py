@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
 from parallel_decisions import Decider
 from transformers import AutoTokenizer
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from experiments.restricted_decisions_build import CHOICES, TASKS, compile_one, schema_for
 
