@@ -1,0 +1,20 @@
+restricted early exit — Qwen2.5-0.5B-Instruct, K=6 options; one restricted check = 0.00036 layer-equivalents
+[control] cal_canonical: N=150  s-fit residual max 6.25e-06
+[control] eval_canonical: N=300  s-fit residual max 6.22e-06
+[control] eval_gold_first: N=300  s-fit residual max 6.33e-06
+[control] eval_gold_last: N=300  s-fit residual max 6.29e-06
+[control] library fp16 vs fieldrun int8 restricted decision agreement: 0.927 (n=300)
+
+=== EVAL (N=300) ===  uncertified k★: median 22, mean skippable 3.01 layers
+  [oracle    ] coverage 0.000 (≥2 skipped 0.000)  k_c med None  skipped 0.00  violations 0 (0.000)  net P-every -0.01
+  [weight    ] coverage 0.000 (≥2 skipped 0.000)  k_c med None  skipped 0.00  violations 0 (0.000)  net P-every -0.01
+  [calibrated] coverage 0.000 (≥2 skipped 0.000)  k_c med None  skipped 0.00  violations 0 (0.000)  net P-every -0.01
+  accuracy vs gold: qa1 0.450  qa2 0.340  qa3 0.340
+
+=== option-order bias (descriptive, n=300) ===
+  accuracy gold-first 0.373  gold-last 0.377
+  top-5 blocks carry 0.69 of the mean order effect: L22.attn +0.119, L20.attn -0.088, L21.attn +0.038, L23.mlp -0.031, L16.attn +0.022
+  per-decision median top-5 share 0.59
+
+soundness gate: PASS
+VERDICT: HALTED
