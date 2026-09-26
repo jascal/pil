@@ -1,0 +1,24 @@
+PR validation — Qwen2.5-0.5B-Instruct, 1280 positions; full-vocab recon 1.000
+
+=== prose (n=640, 40 units) ===
+  Claim B: PR-head sufficiency 0.603   ρ(r_eff, erank) -0.03   median erank 2.1
+  Claim A [blk]: partial ρ(r_eff,k_suf|margin) +0.465 CI [+0.407,+0.523] PASS   ρ(r_eff,k_suf) +0.51  ρ(r_raw,k_suf) +0.08  ρ(margin,k_suf) -0.34  med r_eff 13.4  med k_suf 3  split×4 ratio 1.45
+  Claim A [lay]: partial ρ(r_eff,k_suf|margin) +0.351 CI [+0.268,+0.436] PASS   ρ(r_eff,k_suf) +0.37  ρ(r_raw,k_suf) +0.05  ρ(margin,k_suf) -0.35  med r_eff 8.6  med k_suf 3  split×4 ratio 1.55
+
+=== code (n=640, 40 units) ===
+  Claim B: PR-head sufficiency 0.502   ρ(r_eff, erank) -0.34   median erank 1.9
+  Claim A [blk]: partial ρ(r_eff,k_suf|margin) +0.389 CI [+0.310,+0.464] PASS   ρ(r_eff,k_suf) +0.47  ρ(r_raw,k_suf) +0.10  ρ(margin,k_suf) -0.37  med r_eff 13.7  med k_suf 3  split×4 ratio 1.45
+  Claim A [lay]: partial ρ(r_eff,k_suf|margin) +0.446 CI [+0.383,+0.514] PASS   ρ(r_eff,k_suf) +0.51  ρ(r_raw,k_suf) +0.08  ρ(margin,k_suf) -0.40  med r_eff 8.9  med k_suf 3  split×4 ratio 1.51
+
+=== replication (candidate-restricted step0 dumps; not a gate) ===
+  qwen05_science   [blk] n=115  partial +0.304 CI [+0.114,+0.477]  ρ(r_eff,k_suf) +0.40  ρ(margin,k_suf) -0.36
+  qwen05_science   [lay] n=115  partial +0.486 CI [+0.329,+0.622]  ρ(r_eff,k_suf) +0.51  ρ(margin,k_suf) -0.36
+  qwen05_code      [blk] n=111  partial +0.432 CI [+0.269,+0.583]  ρ(r_eff,k_suf) +0.45  ρ(margin,k_suf) -0.14
+  qwen05_code      [lay] n=111  partial +0.358 CI [+0.185,+0.514]  ρ(r_eff,k_suf) +0.40  ρ(margin,k_suf) -0.30
+  coder05_science  [blk] n=115  partial +0.464 CI [+0.310,+0.603]  ρ(r_eff,k_suf) +0.50  ρ(margin,k_suf) -0.22
+  coder05_science  [lay] n=115  partial +0.380 CI [+0.212,+0.530]  ρ(r_eff,k_suf) +0.41  ρ(margin,k_suf) -0.21
+  qwen7b_science   [blk] n=80  partial +0.179 CI [-0.058,+0.411]  ρ(r_eff,k_suf) +0.24  ρ(margin,k_suf) -0.31
+  qwen7b_science   [lay] n=80  partial +0.270 CI [+0.036,+0.482]  ρ(r_eff,k_suf) +0.29  ρ(margin,k_suf) -0.25
+
+Claim A (r_eff tracks coalition size beyond margin): SUPPORTED
+Claim B (top round(r_eff) blocks decide): PARTIAL
