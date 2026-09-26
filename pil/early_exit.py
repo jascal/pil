@@ -46,16 +46,35 @@ class Bundle:
 
     def raw(self, name: str) -> np.ndarray:
         a = self.arrays[name]
-        dt = {"f16": np.float16, "i8": np.int8, "f32": np.float32}[a["dtype"]]
+        dt = {"f16": np.float16, "i8": np.int8, "rowi8": np.int8, "f32": np.float32}[a["dtype"]]
         buf = self.blob[a["offset"] : a["offset"] + a["bytes"]]
         return np.frombuffer(buf, dtype=dt).reshape(a["shape"])
 
     def f32(self, name: str) -> np.ndarray:
-        """Dequantized float32. int8 is stored ``(in, out)`` with ``W[i, j] = q[i, j] * scale[j]``."""
+        """Dequantized float32. ``i8`` is stored ``(in, out)`` with ``W[i, j] = q[i, j] * scale[j]``;
+        ``rowi8`` (embedding / unembedding) is row-major ``(vocab, d)``, ``W[r, :] = q[r, :] * scale[r]``."""
         a = self.arrays[name]
         if a["dtype"] == "i8":
             return self.raw(name).astype(np.float32) * self.raw(f"{name}__scale").astype(np.float32)[None, :]
+        if a["dtype"] == "rowi8":
+            return self.raw(name).astype(np.float32) * self.raw(f"{name}__scale").astype(np.float32)[:, None]
         return self.raw(name).astype(np.float32)
+
+    def rows(self, name: str, idx) -> np.ndarray:
+        """Dequantized float32 rows ``idx`` of a row-indexed ``(vocab, d)`` table, without loading it all."""
+        a = self.arrays[name]
+        idx = np.asarray(idx)
+        q = self.raw(name)[idx].astype(np.float32)
+        if a["dtype"] == "rowi8":
+            return q * self.raw(f"{name}__scale").astype(np.float32)[idx][..., None]
+        if a["dtype"] == "i8":
+            raise ValueError(f"{name}: column-scaled i8 is not a row table")
+        return q
+
+    @property
+    def readout_name(self) -> str:
+        """The unembedding table: ``lm_head`` when the bundle has one (untied), else the tied ``embed``."""
+        return "lm_head" if "lm_head" in self.arrays else "embed"
 
 
 def act_quant_factor(n: int) -> float:
@@ -284,3 +303,15 @@ def jlens_predictor(J: np.ndarray, lam: float):
         return (1.0 - lam) * y + lam * np.einsum("kij,kj->ki", J64, y)
 
     return predict
+
+
+def adverse_push(W: np.ndarray, t: int, suffix: np.ndarray) -> float:
+    """Arm D: ``a = max_{v≠t} ⟨−suffix, (w_t − w_v)/‖w_t − w_v‖⟩`` — how far the suffix moves toward any
+    rival along that rival's separating direction. ``t`` stays the argmax of ``W @ (y + suffix)`` whenever the
+    certified radius of ``W @ y`` exceeds ``a`` (``gap_v + ⟨suffix, w_t − w_v⟩ ≥ ‖w_t − w_v‖ (R − a)``)."""
+    diff = W[t][None, :] - W                                   # (K, d)
+    dist = np.linalg.norm(diff, axis=1)
+    push = -(diff @ suffix)
+    ok = np.arange(len(W)) != t
+    ok &= dist > 0
+    return float(np.max(push[ok] / dist[ok])) if ok.any() else -np.inf
