@@ -85,7 +85,11 @@ def act_quant_factor(n: int) -> float:
 
 
 def _spec(w: np.ndarray) -> float:
-    return float(np.linalg.norm(w.astype(np.float64), 2))
+    """Spectral norm ``‖W‖₂`` as ``sqrt(λ_max)`` of the smaller Gram matrix (exact, and far lighter than a
+    full SVD of a tall matrix); a ``1e-9`` relative margin keeps it an upper bound under float64 rounding."""
+    w = w.astype(np.float64)
+    g = w.T @ w if w.shape[0] >= w.shape[1] else w @ w.T
+    return float(np.sqrt(max(np.linalg.eigvalsh(g)[-1], 0.0)) * (1.0 + 1e-9))
 
 
 def weight_bounds(b: Bundle) -> tuple[np.ndarray, np.ndarray]:
