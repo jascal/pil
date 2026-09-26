@@ -1,6 +1,6 @@
 # Certified Early Exit on Restricted Decisions — Pre-Registration
 
-**Status: DRAFT — awaiting signature. Decision rules are fixed BEFORE numbers. No dump for this probe has been
+**Status: SIGNED (approved as-is) — 2026-09-25. Decision rules fixed BEFORE numbers. No dump for this probe had been
 generated.** A follow-up to #126 / #127 (both HALTED on full-vocabulary next-token decoding). Prompted by an
 external suggestion to study **parallel constrained decoding** (`rorshopping/parallel-decisions`), where a local
 LLM answers schema fields by a softmax over each field's allowed options, in one batched pass.
