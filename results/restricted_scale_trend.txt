@@ -1,0 +1,9 @@
+scale trend (monotone across all models or 'not monotone'):
+  suffix/R at last exit    0.5b=56.162  3b=52.855   → decreasing
+  push/R at last exit      0.5b=1.812  3b=0.311   → decreasing
+  qa1 accuracy             0.5b=0.450  3b=0.420   → decreasing
+  mean accuracy            0.5b=0.377  3b=0.377   → not monotone
+  headroom (layers)        0.5b=3.010  3b=2.547   → decreasing
+  Oracle-D coverage        0.5b=0.580  3b=0.893   → increasing
+  Calibrated-D coverage    0.5b=0.033  3b=0.320   → increasing
+verdicts: 0.5b: A=HALTED, D=D-IN-BETWEEN  3b: A=HALTED, D=D-IN-BETWEEN

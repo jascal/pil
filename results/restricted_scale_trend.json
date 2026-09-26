@@ -1,0 +1,51 @@
+{
+ "suffix/R at last exit": {
+  "values": {
+   "0.5b": 56.16155083550551,
+   "3b": 52.8548530005999
+  },
+  "trend": "decreasing"
+ },
+ "push/R at last exit": {
+  "values": {
+   "0.5b": 1.8117566740611677,
+   "3b": 0.3105042066600999
+  },
+  "trend": "decreasing"
+ },
+ "qa1 accuracy": {
+  "values": {
+   "0.5b": 0.45,
+   "3b": 0.42
+  },
+  "trend": "decreasing"
+ },
+ "mean accuracy": {
+  "values": {
+   "0.5b": 0.3766666666666667,
+   "3b": 0.3766666666666667
+  },
+  "trend": "not monotone"
+ },
+ "headroom (layers)": {
+  "values": {
+   "0.5b": 3.01,
+   "3b": 2.546666666666667
+  },
+  "trend": "decreasing"
+ },
+ "Oracle-D coverage": {
+  "values": {
+   "0.5b": 0.58,
+   "3b": 0.8933333333333333
+  },
+  "trend": "increasing"
+ },
+ "Calibrated-D coverage": {
+  "values": {
+   "0.5b": 0.03333333333333333,
+   "3b": 0.32
+  },
+  "trend": "increasing"
+ }
+}

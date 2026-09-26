@@ -1,0 +1,11 @@
+[3b] Qwen2.5 n_layer=36 d=2048 readout=embed; restricted check = 0.00016 layer-equivalents
+[control] s-fit residual max 2.20e-05 (bar 1e-3)
+[control] library fp16 vs fieldrun int8 agreement 0.937 (n=300)
+  [oracle      ] coverage 0.000 (≥2 skip 0.000)  k_c med None  skipped 0.00  violations 0 (0.000)  net P-every -0.01
+  [weight      ] coverage 0.000 (≥2 skip 0.000)  k_c med None  skipped 0.00  violations 0 (0.000)  net P-every -0.01
+  [calibrated  ] coverage 0.000 (≥2 skip 0.000)  k_c med None  skipped 0.00  violations 0 (0.000)  net P-every -0.01
+  [oracle_D    ] coverage 0.893 (≥2 skip 0.757)  k_c med 9.0  skipped 19.77  violations 0 (0.000)  net P-every +19.77
+  [calibrated_D] coverage 0.320 (≥2 skip 0.077)  k_c med 34.0  skipped 0.40  violations 0 (0.000)  net P-every +0.39
+  uncertified headroom 2.55 layers;  accuracy qa1 0.420  qa2 0.370  qa3 0.340
+  last exits (offset from final): -3: suffix/R 42.2, push/R 0.92, t_k=final 0.34  -2: suffix/R 33.3, push/R 0.79, t_k=final 0.50  -1: suffix/R 52.9, push/R 0.31, t_k=final 0.87
+  soundness gate PASS;  Arm A: HALTED;  Arm D: D-IN-BETWEEN
