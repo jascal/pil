@@ -1,6 +1,6 @@
 # Does Participation Ratio Predict Anything? — Pre-Registration
 
-**Status: DRAFT — awaiting signature. Decision rules are fixed BEFORE numbers. None of the quantities below has been
+**Status: SIGNED (approved as-is) — 2026-09-25. Decision rules fixed BEFORE numbers. None of the quantities below had been
 computed on these dumps.** Item 4 of the external PIC review: *"establish whether participation predicts anything
 beyond attribution."*
 
