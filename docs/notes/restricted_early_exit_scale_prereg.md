@@ -96,3 +96,15 @@ A trend is only *stated* as shrinking or growing if it is monotone across all th
 
 ## 7. Scope fences
 Measurement only. No fieldrun change (the #135 capture suffices). No new decision prompts.
+
+## Addendum A (2026-09-26, before any 3B/7B number) — scope: 7B deferred; spectral-norm method
+- **7B deferred.** CPU dumping on this machine (14 GB RAM) runs about 7× slower than PIN C/§6 estimated: the 3B
+  CAL dump averaged under half a core over 4+ hours under memory contention. 7B would take one to two days. The
+  GPU `--source-dump` path is not a substitute: it uses a different quant scheme (W8A-f32 vs CPU W8A8, 89.7% top-1
+  agreement per fieldrun `3790c4e`) and gives about 1.5× speed. With the user's approval, **the ladder here is
+  0.5B → 3B**. 7B is deferred to a larger machine, under this same prereg, if 3B warrants it. The scale-trend rule
+  ("monotone across all three models") therefore **cannot fire** on two points. The two-model comparison is reported
+  as descriptive only.
+- **Spectral norm computed via the Gram matrix** (`sqrt λ_max` + `1e-9` margin) for 7B's weight bound, because the
+  float64 SVD stalled. It is the same quantity: recomputing 0.5B and 3B matches the SVD results to `2e-9` and is
+  never below (commit `a1e3584`). No decision rule changes.
