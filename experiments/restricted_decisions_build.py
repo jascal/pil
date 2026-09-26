@@ -59,12 +59,13 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--data", default="data")
     p.add_argument("--out", default="runs/ree")
+    p.add_argument("--model", default=MODEL, help="tokenizer and (with --library-decisions) the Torch model")
     p.add_argument("--library-decisions", action="store_true",
                    help="also run the library's Torch engine on EVAL")
     a = p.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    tok = AutoTokenizer.from_pretrained(MODEL)
+    tok = AutoTokenizer.from_pretrained(a.model)
     data = items(Path(a.data))
 
     meta, collisions = {}, 0
@@ -96,7 +97,7 @@ def main():
 
     if a.library_decisions:
         from parallel_decisions import Decider
-        decider = Decider(MODEL)
+        decider = Decider(a.model)
         lib = {}
         for i, it in enumerate(data["eval"]):
             res = decider.decide(it["context"], schema_for(CHOICES))

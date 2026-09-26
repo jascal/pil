@@ -10,6 +10,7 @@ from pil.early_exit import (
     Bundle,
     Readout,
     act_quant_factor,
+    adverse_push,
     certify,
     conformal_quantile,
     fit_scale,
@@ -192,3 +193,18 @@ def test_jlens_predictor_lambda_zero_is_identity():
     J = rng.normal(size=(3, 5, 5))
     y = rng.normal(size=(3, 5))
     assert np.allclose(jlens_predictor(J, 0.0)(y), y)
+
+
+def test_directional_certificate_sound_given_exact_push():
+    """Arm D: R > adverse_push ⇒ the prefix argmax survives the actual suffix (and it does fire)."""
+    rng = np.random.default_rng(7)
+    fired = 0
+    for _ in range(2000):
+        ro = _readout(rng, V=6, d=10)
+        y = rng.normal(size=10) * 3
+        suffix = rng.normal(size=10) * rng.uniform(0.1, 5)
+        t, R = ro.radius(ro.W @ y)
+        if R > adverse_push(ro.W, t, suffix):
+            fired += 1
+            assert int(np.argmax(ro.W @ (y + suffix))) == t
+    assert fired > 100
