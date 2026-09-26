@@ -1,6 +1,6 @@
 # Restricted-Decision Early Exit at Scale, with a Directional Bound — Pre-Registration
 
-**Status: DRAFT — awaiting signature. Decision rules are fixed BEFORE numbers. No 3B/7B dump has been generated, and
+**Status: SIGNED (approved as-is) — 2026-09-25. Decision rules fixed BEFORE numbers. No 3B/7B dump had been generated, and
 no directional quantity has been computed on any model.** A follow-up to
 [`restricted_early_exit_outcome.md`](./restricted_early_exit_outcome.md) (#129, HALTED on Qwen2.5-0.5B). That
 outcome named two remaining routes, and this prereg tests both:
