@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from experiments.whitening_gate_codex import (  # noqa: E402
     CHECKPOINT_LAYERS,
     FEATURE_DIM,
+    GROUND_PATHS,
     GermanR3DependencyStudent,
     GroundedResidualProvider,
     HeadDeprelRecord,
@@ -177,6 +178,8 @@ def test_grid_runs_and_summary_argmaxes_are_consistent(tmp_path: Path) -> None:
 
 
 def test_fixed_recipe_anchor_reproduces_real_gate_dev_numbers() -> None:
+    if not all(GROUND_PATHS[split].is_file() for split in ("train", "dev")):
+        pytest.skip("real grounded npz not present")
     setup = setup_train_dev()
     anchor = compute_fixed_anchor(setup)
 

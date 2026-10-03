@@ -15,6 +15,7 @@ from experiments.german_r1_codex import (  # noqa: E402
     RegisterLayer,
     Sentence,
 )
+from experiments.german_r1_codex import DATA_ROOT as _GERMANDATA  # noqa: E402
 from experiments.german_r3_codex import (  # noqa: E402
     MajorityOffsetBaseline,
     flatten_haiku_tree,
@@ -27,6 +28,11 @@ from experiments.german_r3min_codex import (  # noqa: E402
     HeadDeprelRecord,
     full_oracle_case_sentence,
     head_deprel_by_sent,
+)
+
+requires_germandata = pytest.mark.skipif(
+    not (_GERMANDATA / "registers" / "article_paradigm.json").is_file(),
+    reason=f"needs the germandata registers at {_GERMANDATA}",
 )
 
 
@@ -130,6 +136,7 @@ def test_uas_las_scorer_has_exact_known_values() -> None:
     assert scores.tokens == 4
 
 
+@requires_germandata
 def test_case_cascade_uses_only_predicted_dependency_and_pos_arrays() -> None:
     student = GermanR1Student(RegisterLayer.from_directory(DATA_ROOT / "registers"))
     student.registers.verb_government["helfen"] = "Dat"
