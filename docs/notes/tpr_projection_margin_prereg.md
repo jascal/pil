@@ -6,7 +6,7 @@ the fitted TPR approximations: 0.96 vs 0.71 for GPT-OSS on complex sentences. Th
 network realises the symbolic structure noisily, and the TPR realises it exactly.
 
 That is pil's thesis in another form: give up some host fidelity, gain retrievability. The theory is in
-`../../../PIC_TPR_CONJECTURES.md`. T6(a): **linear** projection onto a subspace containing the readout differences
+i-orca `examples/pic_binding/PROPOSAL.md`. T6(a): **linear** projection onto a subspace containing the readout differences
 cannot change any margin, so a gain must come from out-of-span components or from **snapping** to a code point. T5:
 last-layer substitution is certified by the margin theorem.
 
