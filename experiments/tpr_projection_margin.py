@@ -170,6 +170,7 @@ def decode_metrics(vec, U, gold, real_logp, real_argmax, chunk=512):
 
 def cmd_evaluate(args):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     torch.manual_seed(args.seed)
     dev = torch.device(args.device or ("cuda" if torch.cuda.is_available() else "cpu"))
     z = np.load(args.dump)
@@ -189,6 +190,13 @@ def cmd_evaluate(args):
     def record(name, vec, extra=None):
         res = decode_metrics(vec, U, gold[te], real_logits_te, real_argmax_te)
         res.update(extra or {})
+        if args.certify:
+            from substitution_certificate import coverage_report  # T5(a) per-context certificate (Soufflé)
+
+            res["certificate"] = coverage_report(u[te].double().cpu().numpy(), vec.double().cpu().numpy(),
+                                                 U.double().cpu().numpy())
+            print(f"{'':12s} T5(a) certified {res['certificate']['certified']}/{res['certificate']['n']} "
+                  f"(coverage {res['certificate']['coverage']:.3f})", flush=True)
         results["arms"][name] = res
         print(f"{name:12s} acc={res['gold_acc']:.3f} agree={res['agree_real']:.3f} "
               f"kl={res['kl_from_real']:.3f} "
@@ -275,6 +283,8 @@ def main():
     e.add_argument("--seed", type=int, default=0)
     e.add_argument("--device", help="cuda/cpu (default: cuda if available)")
     e.add_argument("--post-hoc-kl", action="store_true", help="add the post-hoc KL-trained TPR arm")
+    e.add_argument("--certify", action="store_true",
+                   help="issue the T5(a) per-context substitution certificate for every arm (needs souffle)")
     args = ap.parse_args()
     {"dump": cmd_dump, "evaluate": cmd_evaluate}[args.cmd](args)
 
