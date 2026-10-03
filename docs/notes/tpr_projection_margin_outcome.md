@@ -26,7 +26,7 @@ Further measurements:
 - **Fit quality:** the d_F=8 oracle has FVU 0.25 and still decides correctly only 5% of the time.
 - **Cleanup unbinding:** per-slot list accuracy is 0.42 and query-length accuracy 0.999, but σ is recovered exactly in
   only 0.6% of contexts.
-- **T6(a) diagnostic:** 44% of `‖U_gold − U_rival‖²` (top-5 rivals) lies inside `span(W)`.
+- **Span diagnostic:** only 44% of `‖U_gold − U_rival‖²` (top-5 rivals) lies inside `span(W)`. So T6(a)'s hypothesis, that the subspace contains every readout difference, is **false** at this site.
 
 ## Decision rules
 
@@ -36,7 +36,8 @@ Further measurements:
   *not* linearly recoverable from `u` (42% per slot), so σ̂ is nearly always wrong.
 - **Q3 — projection is not the lever: half.**
   - Holds: `proj-tpr` is within 0.011 of the rank-matched `proj-pca` (0.971 vs 0.982). The TPR subspace is not
-    special beyond its rank, and neither projection widens margins over `real`, consistent with T6(a).
+    special beyond its rank, and neither projection widens margins over `real`. This is **not** a test of T6(a): its
+    hypothesis fails here (see the span diagnostic), and the margin loss is what removing out-of-span components gives.
   - Fails: the pre-registered second clause ("neither beats `oracle`"). Both projections beat the MSE oracle by a
     wide margin.
 
@@ -55,6 +56,18 @@ Further measurements:
    readout-side re-expression of a frozen host does not manufacture margin. Q3 is the clean part. Linear projection
    onto any rank-240 subspace leaves the decision nearly intact, but with *less* margin. Widening would need a change
    to the generator, not the readout.
+
+## Status of the theory this note cites
+
+T5 and T6 (i-orca `examples/pic_binding/PROPOSAL.md`, jascal/i-orca#26) are **open** conjectures with no `.thy`
+lemma. The pre-registration's phrase "last-layer substitution is certified by the margin theorem" is kept as written,
+since it is a dated document, but it overstates. Nothing in this note is certified by T5.
+- The MSE oracle's collapse (gold accuracy 0.054, mean margin −2.13) is an empirical instance of what T5(a) would
+  price: a fit whose error exceeds the margin loses the decision.
+- The post-hoc KL arm's agreement with the host (0.986) at reduced margin (3.07 vs 3.80) is the same kind of
+  instance.
+
+Neither is a citation of a theorem.
 
 ## Caveats
 
