@@ -25,6 +25,12 @@ from experiments.german_r1_codex import (  # noqa: E402
     score_case,
     verdict,
 )
+from experiments.german_r1_codex import DATA_ROOT as _GERMANDATA  # noqa: E402
+
+requires_germandata = pytest.mark.skipif(
+    not (_GERMANDATA / "registers" / "article_paradigm.json").is_file(),
+    reason=f"needs the germandata registers at {_GERMANDATA}",
+)
 
 
 def test_task_loader_keeps_preexpanded_tokens_aligned() -> None:
@@ -128,6 +134,7 @@ def test_narrow_and_arbitrate_ignores_empty_constraint_intersection() -> None:
     assert prediction == "Dat"
 
 
+@requires_germandata
 def test_morph_gnn_ambiguous_register_changes_only_full_arm() -> None:
     registers = RegisterLayer.from_directory(DATA_ROOT / "registers")
     student = GermanR1Student(registers)
@@ -152,6 +159,7 @@ def test_morph_gnn_ambiguous_register_changes_only_full_arm() -> None:
     assert predictions["full"]["morph_gnn"] == ["Fem|Sing"]
 
 
+@requires_germandata
 def test_government_scans_full_np_span_and_stops_at_boundary() -> None:
     registers = RegisterLayer.from_directory(DATA_ROOT / "registers")
     tokens = ("mit", "dem", "sehr", "alten", "großen", "Haus", "steht", "Garten")
@@ -164,6 +172,7 @@ def test_government_scans_full_np_span_and_stops_at_boundary() -> None:
     assert 7 not in proposals
 
 
+@requires_germandata
 def test_two_way_preposition_narrows_and_arbitrates() -> None:
     registers = RegisterLayer.from_directory(DATA_ROOT / "registers")
     proposals = registers.government_candidates(
@@ -183,6 +192,7 @@ def test_two_way_preposition_narrows_and_arbitrates() -> None:
     )
 
 
+@requires_germandata
 def test_verb_government_matches_inflected_form_and_scans_forward() -> None:
     registers = RegisterLayer.from_directory(DATA_ROOT / "registers")
     assert "absolvieren" in registers.verb_government
