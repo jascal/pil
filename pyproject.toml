@@ -18,7 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 viz = ["matplotlib>=3.7", "tqdm>=4.66"]
-dev = ["pytest>=8.0", "ruff>=0.4", "matplotlib>=3.7", "tqdm>=4.66"]
+dev = ["pytest>=8.0", "ruff>=0.4", "matplotlib>=3.7", "tqdm>=4.66", "scipy>=1.11", "tokenizers>=0.15"]
 
 [project.urls]
 Homepage = "https://github.com/jascal/pil"

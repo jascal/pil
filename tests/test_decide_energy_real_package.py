@@ -5,10 +5,13 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "experiments"))
 sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
+pytest.importorskip("serve_package", reason="needs a sibling rosetta checkout at ../rosetta/py")
 
 os.environ.setdefault("WYLY_TAG", "pythia70m")
 os.environ.setdefault("WYLY_LIB", "mined")

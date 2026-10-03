@@ -5,10 +5,13 @@ import math
 import sys
 from pathlib import Path
 
+import pytest
 import torch
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "experiments"))
+sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
+pytest.importorskip("serve_package", reason="needs a sibling rosetta checkout at ../rosetta/py")
 
 from campaign_qa1_cond_headroom import (  # noqa: E402
     MOVELOC_DET,

@@ -25,6 +25,9 @@ TOKENIZER_PATH = Path(
     "/home/allans/code/fieldrun/bundles/Qwen2.5-0.5B-Instruct/"
     "Qwen2.5-0.5B-Instruct.tokenizer.json"
 )
+requires_tokenizer = pytest.mark.skipif(
+    not TOKENIZER_PATH.is_file(), reason=f"tokenizer missing: {TOKENIZER_PATH}"
+)
 TEXT = "Manasse ist ein einzigartiger Parfümeur."
 TOKENS = ("Manasse", "ist", "ein", "einzigartiger", "Parfümeur", ".")
 
@@ -47,6 +50,7 @@ def _source_record(sid: str, position: int, cur: int) -> dict:
     }
 
 
+@requires_tokenizer
 def test_no_contraction_real_tokenizer_alignment_and_residuals_are_unchanged(tmp_path):
     """The compound must use subword/position 7, not either adjacent word."""
     tokenizer = Tokenizer.from_file(str(TOKENIZER_PATH))
@@ -131,6 +135,7 @@ def test_no_contraction_real_tokenizer_alignment_and_residuals_are_unchanged(tmp
     np.testing.assert_array_equal(reduced.mean_residual[compound_row], expected_mean)
 
 
+@requires_tokenizer
 def test_contraction_populates_both_word_rows_with_shared_residual(tmp_path):
     tokenizer = Tokenizer.from_file(str(TOKENIZER_PATH))
     sentence = GsdSentence(
@@ -217,6 +222,7 @@ def test_contraction_map_is_closed_unicode_and_case_insensitive():
     )
 
 
+@requires_tokenizer
 def test_written_out_words_and_vorn_are_not_shared_contractions():
     tokenizer = Tokenizer.from_file(str(TOKENIZER_PATH))
     written_out = GsdSentence(
@@ -308,6 +314,7 @@ def test_coverage_metrics_clean_boundary_and_systematic_gaps():
     assert last_gap.last_word_gaps == 1
 
 
+@requires_tokenizer
 def test_build_dataset_chunks_merges_and_resumes(tmp_path, monkeypatch, capsys):
     bundle_path = tmp_path / "fixture-bundle"
     tokenizer_path = Path(f"{bundle_path}.tokenizer.json")
