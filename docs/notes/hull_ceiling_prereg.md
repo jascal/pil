@@ -152,3 +152,16 @@ contexts and rank 240 certifies 47%.
   uniform certification fails because GPT-2's margins use a small fraction of what its unembedding geometry
   allows, not because fit error exceeds that geometry.
 - A CEILING-BOUND result on the study data would contradict the smoke data and would be reported as such.
+
+## Addendum B (2026-10-04, after a second smoke run, before any real run)
+
+**Correction to Addendum A's "expected outcome".** It said 2δ is "≈ 5–30 for real fits", and so predicted
+NOT-EXCLUDED-BOUND. Those 2δ values came from the PCA-32 and mean-only substitutes, **not from trained fits**.
+- The second smoke run used the amended pipeline, on the same non-study smoke data, with 30-step fits.
+  15/16 cells came out **CEILING-BOUND** and one MIXED (lifted ceiling median ≈ 27–61 by task).
+- 30-step fits are far worse than the study's 3,000-step fits, so this does not predict the study either.
+- **No expected outcome is stated.** The smoke runs bracket the answer from both sides: a good substitute
+  (PCA-240) is NOT-EXCLUDED, and an untrained one is CEILING. Where the trained families fall is the question.
+
+Nothing else changes. The ceiling-fraction metric (smoke median ≈ 0.05 on both tasks) depends only on the host, so
+it is not affected by the fits.
