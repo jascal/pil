@@ -99,3 +99,56 @@ reported as a result.
 - Script: `experiments/hull_ceiling.py`, committed (frozen) before the real run. `--smoke` uses stimulus seed 999,
   600 contexts, 30 training steps and a 500-iteration cap; smoke numbers are not results.
 - Outcome: `docs/notes/hull_ceiling_outcome.md`. This file is not edited after the first run.
+
+---
+
+## Addendum A (2026-10-04, after a smoke run, before any real run)
+
+**What prompted it.** The `--smoke` run used stimulus seed 999 and 600 contexts. That is non-study data; seeds 31/32
+have not been touched. It exposed two flaws in §1–§4. **Disclosure: the smoke data also shows the likely outcome**
+(below), so this study is now a confirmation on fresh data, not a blind test.
+
+**Flaw 1: the bias-free ceiling is vacuous on GPT-2 small.**
+- GPT-2's decode input is dominated by a component that is the same in every context. On SVO smoke data the
+  medians are: `‖u‖` ≈ 226, `‖mean u‖` ≈ 226, and `‖u − mean u‖` ≈ 15 (the large dims are 496, 430, 36, …).
+- So `‖u‖·h(t)` ≈ 390, while the host margin `m` ≈ 1.6 and `2δ` ≈ 5–30 for real fits. Only a zero substitute
+  reaches the ceiling, and every real fit is ALIGNMENT automatically.
+
+**Flaw 2: the control rank.** #134's PCA control was rank **240**, not 32. On smoke data, rank 32 certifies 1.1% of
+contexts and rank 240 certifies 47%.
+
+**Amendments (these supersede the sections named):**
+
+1. **Ceiling (supersedes §3's ceiling).** `c` = the train-split mean of `u`, per task. The ceiling treats `c` as a
+   per-token bias `b_v = ⟨c, U_v⟩` and uses the context-varying part `w = u − c`. By i-orca#29
+   `certificate_hull_ceiling_biased` (kernel-checked), for every `s > 0`:
+   - `m < ‖(w, s)‖ · h_s(t)`, where `h_s(t)` = the hull distance of `(U_t, b_t/s)` from `conv{(U_v, b_v/s) : v ≠ t}`.
+   - `h_s` is bracketed by the same Frank–Wolfe solver and cap, for each `s` in the fixed grid
+     **{1, 2, 3, 5, 10, 20, 30, 100}**. The smoke minimum was near `s` = 3; the grid was fixed after seeing it.
+2. **Classification (supersedes §3's labels).** For each uniform-refused context, with `C_hi(s) = ‖(w,s)‖·h_hi,s`
+   and `C_lo(s) = ‖(w,s)‖·h_lo,s`:
+   - **CEILING** if `2δ ≥ C_hi(s)` for some `s` in the grid. This is certain: certification would need `2δ < m`,
+     and the theorem gives `m < C_hi(s)`.
+   - **NOT-EXCLUDED** if `2δ < C_lo(s)` for every `s` in the grid. The lifted bound is an upper bound that is not
+     attained in general, so this is *not* a claim that a better-aligned residual exists. It says only that the
+     ceiling does not rule certification out on this grid. (It replaces "ALIGNMENT".)
+   - **UNDECIDED** otherwise.
+   - The same 10⁻⁹ relative slack applies.
+3. **Soundness check (strengthens §3).** Every context must satisfy `m ≤ C_hi(s)·(1 + 10⁻⁹)` for every `s`. The
+   original bias-free check `m ≤ ‖u‖·h_hi` is kept too. Either violation aborts the run.
+4. **Labels (amends §4).** CEILING-BOUND / NOT-EXCLUDED-BOUND / MIXED at the same 80% share. The same 5%
+   UNDECIDED solver-limited rule and the same majority-of-16 headline apply.
+5. **Control (amends §1, §4).** The PCA control is **rank 240**, matching #134. The ≥ 0.50 threshold is unchanged,
+   even though the smoke value (0.47 on 360 training contexts) is near it.
+6. **Primary descriptive metric (new).** The **ceiling fraction** `m / min_s C_hi(s)` per test context, which
+   depends on the host only. Reported as quartiles per task. The theorem makes it ≤ 1.
+7. **Kept as secondary.** The original bias-free classification (§3) is still computed and reported, labelled
+   *original, vacuous*, so the amendment hides nothing.
+
+**Expected outcome, stated now (from smoke data).**
+- The lifted ceiling's median is ≈ 27, still well above `2δ` for real fits. Even a mean-only substitute was
+  CEILING on only 8/180 smoke contexts.
+- So the expected headline is **NOT-EXCLUDED-BOUND**, with a ceiling fraction of about 0.05. That would read as:
+  uniform certification fails because GPT-2's margins use a small fraction of what its unembedding geometry
+  allows, not because fit error exceeds that geometry.
+- A CEILING-BOUND result on the study data would contradict the smoke data and would be reported as such.
