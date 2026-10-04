@@ -195,8 +195,11 @@ def cmd_evaluate(args):
 
             res["certificate"] = coverage_report(u[te].double().cpu().numpy(), vec.double().cpu().numpy(),
                                                  U.double().cpu().numpy())
-            print(f"{'':12s} T5(a) certified {res['certificate']['certified']}/{res['certificate']['n']} "
-                  f"(coverage {res['certificate']['coverage']:.3f})", flush=True)
+            c = res["certificate"]
+            print(f"{'':12s} T5(a) certified / {c['n']}: uniform {c['uniform']['certified']}  "
+                  f"hybrid(K={c['hybrid_k']}) {c['hybrid']['certified']}  "
+                  f"pairwise {c['pairwise']['certified']}",
+                  flush=True)
         results["arms"][name] = res
         print(f"{name:12s} acc={res['gold_acc']:.3f} agree={res['agree_real']:.3f} "
               f"kl={res['kl_from_real']:.3f} "

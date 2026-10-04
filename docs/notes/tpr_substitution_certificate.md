@@ -57,3 +57,42 @@ No certified context changed its argmax: the soundness check passed on every arm
    - Its i-orca statement is a one-line consequence of the same algebra, but it is **not** proved here. Its coverage
      is `open`.
    - Pre-norm substitution remains `open` (PROPOSAL T5 scope).
+
+## Pairwise and hybrid certificates (i-orca #28)
+
+**Theorems (`proved`)** in i-orca `PIC_Binding.thy`, all 15 surface theorems checked by `i-orca check --session PIC_Core`:
+- `substitution_pairwise_iff`: the substituted decode keeps `t` **iff** `L(t) − L(v) > ⟨r − r̂, U_t − U_v⟩` for every
+  rival `v`.
+- `uniform_implies_pairwise`: the uniform condition implies the pairwise one.
+- `substitution_certified_hybrid`: pairwise on the top-K rivals of the real logits, plus the tail bound
+  `L(t) − L(v) > |⟨r − r̂, U_t⟩| + ‖r − r̂‖·u_max` outside them.
+
+**Checker.** `certificate_facts` / `certify_all_souffle` issue all three verdicts from one Soufflé program, with the
+same conservative fixed point and a Python twin. Every run also re-checks the proved relations on the data:
+- uniform ⊆ pairwise;
+- hybrid ⊆ pairwise;
+- every certified context keeps its argmax.
+
+**Run.** Dump regenerated on GPU (seed 0), 4,000 test contexts. Arm metrics differ slightly from the CPU-dump run
+above, because fits are GPU-nondeterministic.
+
+| arm | agrees with host | uniform | hybrid (K = 32) | **pairwise** |
+|---|---:|---:|---:|---:|
+| `real` | 1.000 | 1.000 | 1.000 | 1.000 |
+| MSE TPR d_F = 8 | 0.055 | 0.000 | 0.000 | 0.055 |
+| MSE TPR d_F = 32 | 0.844 | 0.000 (1/4000) | 0.000 | 0.844 |
+| KL-trained TPR d_F = 8 | 0.986 | 0.000 | 0.000 | **0.986** |
+| `cleanup` | 0.080 | 0.000 | 0.000 | 0.080 |
+| projection onto span W | 0.996 | 0.476 | 0.000 | 0.996 |
+| rank-matched PCA projection | 0.998 | 0.942 | 0.141 | 0.998 |
+
+**Reading.**
+- **Pairwise coverage equals decision agreement on every arm, to the context.** This is what the iff predicts: the
+  exact certificate certifies exactly the contexts where the substitution keeps the decision. The 98.6% agreement
+  of the KL fit therefore *is* a certified 98.6%, per context, on this finite set. The uniform form's 0% was the
+  looseness of a single vocabulary-wide δ, not unfaithfulness.
+- **The hybrid tail bound is too loose to help.** `‖r − r̂‖·u_max` with 50,257 tokens overwhelms the gaps outside
+  the top 32. Its value is checkability from the top-K logits alone, and here it buys almost nothing.
+- **What "certified" means now.** Pairwise certifies the *observed* contexts exactly. It does not extend to unseen
+  contexts. A guarantee for unseen contexts needs a bound that holds over a domain, which is the uniform form or
+  T5(b), and that remains `open`.
