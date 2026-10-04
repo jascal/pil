@@ -31,8 +31,8 @@ small fresh sample; they are not a substitute for the signed point-estimate deci
 - fieldrun `3e38dfe` (CPU int8, `--tail 1`) wrote 150 records per model with reconstruction argmax 1.00 on both.
   Oracle-D had zero violations on each EVAL2 dump, so the soundness gate passed. Maximum `s`-recovery residuals
   were `2.20e-5` (3B) and `6.35e-6` (0.5B), below the `1e-3` gate.
-- The 3B library fp16 versus fieldrun int8 agreement control is reported separately in
-  `results/directional_calibration_library_agreement.json` if its CPU run completes; it is not a verdict gate.
+- The 3B library fp16 versus fieldrun int8 agreement control (prereg: reported, not a gate) was **not run**; its
+  CPU run did not complete and no result was recorded. The verdicts above rest on fieldrun int8 alone.
 - The preregistered synthetic binning/quantile tests and the full pil suite passed (862 tests); ruff passed.
 
 ## Scope
