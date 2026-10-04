@@ -10,6 +10,7 @@ import torch
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "experiments"))
 sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
+pytest.importorskip("serve_package", reason="needs a sibling rosetta checkout at ../rosetta/py")
 
 import wyly_lm_v5 as v5  # noqa: E402
 from serve_package import decide, load_package  # noqa: E402

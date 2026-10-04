@@ -3,8 +3,11 @@ from __future__ import annotations
 # This repository intentionally keeps experiment drivers outside an import package.
 # ruff: noqa: E402, I001
 
+import shutil
 import sys
 from pathlib import Path
+
+import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "experiments"))
@@ -44,6 +47,7 @@ def test_qa1_movement_perturbation_flips_live_location() -> None:
     assert new_gold != old_gold
 
 
+@pytest.mark.skipif(shutil.which("souffle") is None, reason="needs souffle on PATH")
 def test_agreement_identity_aggregate_matches_souffle() -> None:
     subject_numbers = [0, 1, 1, 0]
     expected_verb_numbers = [0, 1, 1, 0]

@@ -7,10 +7,13 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "experiments"))
 sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
+pytest.importorskip("serve_package", reason="needs a sibling rosetta checkout at ../rosetta/py")
 
 import campaign_gate_b_pilot as gbp  # noqa: E402
 from beam_engine import beam_decode  # noqa: E402

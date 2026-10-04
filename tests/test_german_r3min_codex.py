@@ -13,6 +13,7 @@ from experiments.german_r1_codex import (  # noqa: E402
     Sentence,
     TaskRecord,
 )
+from experiments.german_r1_codex import DATA_ROOT as _GERMANDATA  # noqa: E402
 from experiments.german_r2_codex import SurfacePosPredictor  # noqa: E402
 from experiments.german_r3min_codex import (  # noqa: E402
     aligned_head_record,
@@ -26,6 +27,11 @@ from experiments.german_r3min_codex import (  # noqa: E402
     parse_free_clause_aux_prediction,
     parse_head_deprel_record,
     verb_aware_forward_np_span,
+)
+
+requires_germandata = pytest.mark.skipif(
+    not (_GERMANDATA / "registers" / "article_paradigm.json").is_file(),
+    reason=f"needs the germandata registers at {_GERMANDATA}",
 )
 
 
@@ -117,6 +123,7 @@ def test_governor_index_resolves_offset_and_treats_root_as_none() -> None:
     assert governor_index(2, head_offset) is None
 
 
+@requires_germandata
 def test_oracle_case_uses_one_way_preposition_without_gold_case_input() -> None:
     student = _case_student()
 
@@ -134,6 +141,7 @@ def test_oracle_case_uses_one_way_preposition_without_gold_case_input() -> None:
     assert decision.source == "preposition_one_way"
 
 
+@requires_germandata
 def test_oracle_case_two_way_preposition_uses_arbitration_branch() -> None:
     student = _case_student()
 
@@ -150,6 +158,7 @@ def test_oracle_case_two_way_preposition_uses_arbitration_branch() -> None:
     assert decision.source == "preposition_two_way"
 
 
+@requires_germandata
 def test_full_case_subject_resolves_to_nom_before_register_rules() -> None:
     decision = full_case_pass1_decision(
         _case_student(),
@@ -164,6 +173,7 @@ def test_full_case_subject_resolves_to_nom_before_register_rules() -> None:
     assert (decision.label, decision.rule) == ("Nom", 1)
 
 
+@requires_germandata
 def test_full_case_reverse_child_copula_resolves_to_nom() -> None:
     decision = full_case_pass1_decision(
         _case_student(),
@@ -178,6 +188,7 @@ def test_full_case_reverse_child_copula_resolves_to_nom() -> None:
     assert (decision.label, decision.rule) == ("Nom", 2)
 
 
+@requires_germandata
 def test_full_case_child_preposition_beats_nmod_genitive_rule() -> None:
     decision = full_case_pass1_decision(
         _case_student(),
@@ -192,6 +203,7 @@ def test_full_case_child_preposition_beats_nmod_genitive_rule() -> None:
     assert (decision.label, decision.rule) == ("Acc", 3)
 
 
+@requires_germandata
 def test_full_case_iobj_resolves_to_dat() -> None:
     decision = full_case_pass1_decision(
         _case_student(),
@@ -206,6 +218,7 @@ def test_full_case_iobj_resolves_to_dat() -> None:
     assert (decision.label, decision.rule) == ("Dat", 4)
 
 
+@requires_germandata
 def test_full_case_obj_uses_non_acc_verb_government_hit() -> None:
     student = _case_student()
     student.registers.verb_government["helfen"] = "Dat"
@@ -225,6 +238,7 @@ def test_full_case_obj_uses_non_acc_verb_government_hit() -> None:
     assert decision.rule5_attempted and decision.rule5_hit
 
 
+@requires_germandata
 def test_full_case_obj_defaults_to_acc_when_verb_register_is_empty() -> None:
     decision = full_case_pass1_decision(
         _case_student(),
@@ -240,6 +254,7 @@ def test_full_case_obj_defaults_to_acc_when_verb_register_is_empty() -> None:
     assert decision.rule5_attempted and not decision.rule5_hit
 
 
+@requires_germandata
 def test_full_case_nmod_without_case_child_resolves_to_gen() -> None:
     decision = full_case_pass1_decision(
         _case_student(),
@@ -254,6 +269,7 @@ def test_full_case_nmod_without_case_child_resolves_to_gen() -> None:
     assert (decision.label, decision.rule) == ("Gen", 7)
 
 
+@requires_germandata
 def test_full_case_dependent_inherits_definite_head_pass1_case() -> None:
     result = full_oracle_case_sentence(
         _case_student(),
@@ -270,6 +286,7 @@ def test_full_case_dependent_inherits_definite_head_pass1_case() -> None:
     assert result.fired_rules == (1, 8)
 
 
+@requires_germandata
 def test_full_case_dependent_inherits_head_pass1_baseline_fallback() -> None:
     result = full_oracle_case_sentence(
         _case_student(),

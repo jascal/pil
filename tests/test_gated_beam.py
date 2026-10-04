@@ -5,8 +5,11 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
+pytest.importorskip("serve_package", reason="needs a sibling rosetta checkout at ../rosetta/py")
 
 from beam_engine import Path, Step, beam_decode  # noqa: E402
 from serve_package import serve_energy, serve_sw  # noqa: E402

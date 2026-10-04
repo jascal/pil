@@ -6,11 +6,14 @@ import tempfile
 from pathlib import Path
 from random import Random
 
+import pytest
 import torch
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "experiments"))
+sys.path.insert(0, str(REPO.parent / "rosetta" / "py"))
+pytest.importorskip("serve_package", reason="needs a sibling rosetta checkout at ../rosetta/py")
 
 from campaign_qa1_cond_headroom import select_gate_tau  # noqa: E402
 from campaign_qa1_config_holdout import (  # noqa: E402
