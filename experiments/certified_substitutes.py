@@ -28,6 +28,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import hf_models  # noqa: E402
+from hf_models import single_token  # noqa: E402
 from substitution_certificate import certificate_facts, certify_all_souffle  # noqa: E402
 from tpr_projection_margin import N_LIST, NOUNS, PS, roles_of  # noqa: E402
 
@@ -48,7 +50,7 @@ STEPS = 3000
 
 def build_rows(task, tok, rng):
     if task == "LIST":
-        nouns = [w for w in NOUNS if len(tok.encode(" " + w)) == 1][:100]
+        nouns = [w for w in NOUNS if single_token(tok, w)][:100]
         rows = []
         while len(rows) < N_CONTEXTS:
             words = rng.sample(range(len(nouns)), N_LIST)
@@ -64,8 +66,8 @@ def build_rows(task, tok, rng):
             pairs = list(zip(words, list_roles, strict=True)) + list(zip(words[:p], query_roles, strict=True))
             rows.append((text, pairs))
         return rows, len(nouns), 30
-    occ = [w for w in OCCUPATIONS if len(tok.encode(" " + w)) == 1][:40]
-    verbs = [w for w in VERBS if w.endswith("ed") and len(tok.encode(" " + w)) == 1][:16]
+    occ = [w for w in OCCUPATIONS if single_token(tok, w)][:40]
+    verbs = [w for w in VERBS if w.endswith("ed") and single_token(tok, w)][:16]
     combos = [
         (s, v, o) for s in range(len(occ)) for o in range(len(occ)) if s != o for v in range(len(verbs))
     ]
@@ -81,12 +83,8 @@ def build_rows(task, tok, rng):
 
 
 def cmd_dump(args):
-    from transformers import GPT2LMHeadModel, GPT2TokenizerFast  # optional dependency, dump only
-
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    tok = GPT2TokenizerFast.from_pretrained("gpt2")
-    tok.pad_token, tok.padding_side = tok.eos_token, "right"
-    model = GPT2LMHeadModel.from_pretrained("gpt2").to(device).eval()
+    tok, model = hf_models.load(args.model, device)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     for task in ("LIST", "SVO"):
@@ -101,11 +99,11 @@ def cmd_dump(args):
                 f[i, j], r[i, j], m[i, j] = a, s, 1
         us = []
         with torch.no_grad():
-            for s in range(0, len(rows), 256):
-                enc = tok([t for t, _ in rows[s : s + 256]], return_tensors="pt", padding=True).to(device)
-                last = enc["attention_mask"].sum(1) - 1
-                h = model.transformer(**enc).last_hidden_state  # ln_f applied: the decode input
-                us.append(h[torch.arange(len(last), device=device), last].float().cpu())
+            for s in range(0, len(rows), args.batch):
+                enc = tok([t for t, _ in rows[s : s + args.batch]], return_tensors="pt", padding=True).to(
+                    device
+                )
+                us.append(hf_models.decode_inputs(model, enc["input_ids"], enc["attention_mask"]).cpu())
         np.savez_compressed(
             out / f"{task}.npz",
             u=torch.cat(us).numpy(),
@@ -114,7 +112,8 @@ def cmd_dump(args):
             m=m,
             n_fill=n_fill,
             n_role=n_role,
-            U=model.lm_head.weight.detach().float().cpu().numpy(),
+            U=hf_models.unembedding(model).cpu().numpy(),
+            model=args.model,
         )
         print(f"wrote {out / task}.npz: {len(rows)} contexts, {n_fill} fillers, {n_role} roles", flush=True)
 
@@ -156,7 +155,7 @@ class PairCode(nn.Module):
         return self.W((self.c(f * self.n_role + r) * m[..., None]).sum(1))
 
 
-def params(family, n_fill, n_role, k_or_df, n_pairs, d=768):
+def params(family, n_fill, n_role, k_or_df, n_pairs, d=768):  # d = the model's hidden size
     if family == "additive":
         return k_or_df * (n_fill + n_role) + d * k_or_df + d
     if family == "tpr":
@@ -164,15 +163,15 @@ def params(family, n_fill, n_role, k_or_df, n_pairs, d=768):
     return k_or_df * n_pairs + d * k_or_df + d  # paircode: only codes of SEEN pairs count
 
 
-def largest_k(family, budget, n_fill, n_role, n_pairs):
+def largest_k(family, budget, n_fill, n_role, n_pairs, d=768):
     k = 1
-    while params(family, n_fill, n_role, k + 1, n_pairs) <= budget:
+    while params(family, n_fill, n_role, k + 1, n_pairs, d) <= budget:
         k += 1
     return k
 
 
-def build(family, size, n_fill, n_role):
-    return {"additive": Additive, "tpr": TPR, "paircode": PairCode}[family](n_fill, n_role, size)
+def build(family, size, n_fill, n_role, d=768):
+    return {"additive": Additive, "tpr": TPR, "paircode": PairCode}[family](n_fill, n_role, size, d)
 
 
 # ---------------------------------------------------------------- training
@@ -211,9 +210,7 @@ def train(model, f, r, m, u, U, objective, seed, steps=None, batch=512, lr=3e-3)
 def cmd_run(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     t0 = time.time()
-    summary = dict(
-        tag="empirical", prereg="docs/notes/certified_substitutes_prereg.md", seeds=SEEDS, tasks={}
-    )
+    summary = dict(tag="empirical", prereg=args.prereg, seeds=SEEDS, tasks={})
     for task in ("LIST", "SVO"):
         z = np.load(Path(args.dumps) / f"{task}.npz")
         n_fill, n_role = int(z["n_fill"]), int(z["n_role"])
@@ -236,8 +233,13 @@ def cmd_run(args):
         T = lambda a, dt=torch.float32: torch.tensor(a, dtype=dt, device=device)  # noqa: E731
         f, r, m = T(z["f"], torch.long), T(z["r"], torch.long), T(z["m"])
         u, U = T(z["u"]), T(z["U"])
+        d = int(z["u"].shape[1])
+        summary["model"] = str(z["model"]) if "model" in z else "gpt2"
         tr_t, te_t = torch.tensor(tr, device=device), torch.tensor(te, device=device)
-        budgets = {"B8": params("tpr", n_fill, n_role, 8, 0), "B32": params("tpr", n_fill, n_role, 32, 0)}
+        budgets = {
+            "B8": params("tpr", n_fill, n_role, 8, 0, d),
+            "B32": params("tpr", n_fill, n_role, 32, 0, d),
+        }
         task_out = dict(
             n_fill=n_fill,
             n_role=n_role,
@@ -255,15 +257,15 @@ def cmd_run(args):
         )
         for bname, budget in budgets.items():
             sizes = {
-                "additive": largest_k("additive", budget, n_fill, n_role, len(seen)),
+                "additive": largest_k("additive", budget, n_fill, n_role, len(seen), d),
                 "tpr": 8 if bname == "B8" else 32,
-                "paircode": largest_k("paircode", budget, n_fill, n_role, len(seen)),
+                "paircode": largest_k("paircode", budget, n_fill, n_role, len(seen), d),
             }
             for family, size in sizes.items():
                 for objective in ("mse", "cert"):
                     per_seed = []
                     for seed in SEEDS["fit"]:
-                        model = build(family, size, n_fill, n_role).to(device)
+                        model = build(family, size, n_fill, n_role, d).to(device)
                         train(model, f[tr_t], r[tr_t], m[tr_t], u[tr_t], U, objective, seed)
                         with torch.no_grad():
                             uh = model(f[te_t], r[te_t], m[te_t]).double().cpu().numpy()
@@ -284,7 +286,7 @@ def cmd_run(args):
                     }
                     key = f"{bname}/{family}/{objective}"
                     task_out["cells"][key] = dict(
-                        size=size, params=params(family, n_fill, n_role, size, len(seen)), **cell
+                        size=size, params=params(family, n_fill, n_role, size, len(seen), d), **cell
                     )
                     print(
                         f"[{time.time() - t0:7.1f}s] {task} {key:24s} size {size:4d} "
@@ -359,12 +361,21 @@ def main():
     d = sub.add_parser("dump")
     d.add_argument("--out", required=True)
     d.add_argument("--smoke", action="store_true", help="bug check: stimulus seed 999, 600 contexts")
+    d.add_argument("--model", default="gpt2", choices=sorted(hf_models.REVISIONS))
+    d.add_argument("--batch", type=int, default=256)
+    d.add_argument("--stimulus-seed", type=int, default=21)
     rr = sub.add_parser("run")
     rr.add_argument("--dumps", required=True)
     rr.add_argument("--out", required=True)
     rr.add_argument("--smoke", action="store_true", help="bug check: 30 steps; numbers are NOT results")
+    rr.add_argument("--split-seed", type=int, default=22)
+    rr.add_argument("--prereg", default="docs/notes/certified_substitutes_prereg.md")
     args = ap.parse_args()
     global N_CONTEXTS, STEPS
+    if getattr(args, "stimulus_seed", None) is not None:
+        SEEDS["stimulus"] = args.stimulus_seed
+    if getattr(args, "split_seed", None) is not None:
+        SEEDS["split"] = args.split_seed
     if args.smoke:
         SEEDS["stimulus"], N_CONTEXTS, STEPS = 999, 600, 30
     {"dump": cmd_dump, "run": cmd_run}[args.cmd](args)
