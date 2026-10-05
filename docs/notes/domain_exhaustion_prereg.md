@@ -81,3 +81,14 @@ order: (S, V, O) indices, which do not depend on the shuffle.
 - Any change after smoke goes in a dated addendum, before the real run, disclosing what the smoke run showed.
 - Outcome: `docs/notes/domain_exhaustion_outcome.md`, the summary JSON, and the `D_cert` bitmasks
   (`docs/notes/domain_exhaustion_certified.npz`). None is edited after the first real run.
+
+---
+
+## Addendum A (2026-10-05, after a smoke run, before any real run): disclosure only, no design change
+
+- **What was run:** the `--smoke` pipeline (the first 600 contexts of a seed-999 shuffle; pool 300; 30 steps), for
+  all 18 fits, under `systemd-inhibit`. Seeds 71/72 are untouched.
+- **Result:** it completed and wrote the summary and the `D_cert` bitmasks. The iff checks held (0 ties).
+  - `F_cov` = 0 everywhere, since 30-step fits are undertrained.
+  - 15 of 600 smoke contexts were out of vocabulary, because the smoke train split is only 180 contexts.
+- **The design is unchanged. No expected outcome is stated.**
