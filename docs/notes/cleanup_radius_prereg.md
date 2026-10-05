@@ -77,3 +77,15 @@
 - `--smoke`: stimulus seed 999, 600 contexts, 30 steps. Smoke numbers are not results.
 - Any change after a smoke run goes in a dated addendum, before the real run, disclosing what the smoke run showed.
 - Outcome: `docs/notes/cleanup_radius_outcome.md` plus the summary JSON. Neither is edited after the first real run.
+
+---
+
+## Addendum A (2026-10-05, after a smoke run, before any real run): disclosure only, no design change
+
+- **What was run:** the `--smoke` pipeline on stimulus seed 999 (600 contexts, 30 training steps), for all 27 fits.
+  Seeds 51/52 are untouched.
+- **Result:** it completed. No abort fired and no flag triggered.
+  - E = 0 in every fit: 30-step fits leave `‖n‖ ≈ ‖u‖`, as #139's addendum A established. So H1 was untestable on
+    smoke data.
+  - The smoke gains `ρ_dir/ρ` were 1.6–7 (median per fit). These are undertrained fits on non-study data.
+- **The design is unchanged. No expected outcome is stated.**
