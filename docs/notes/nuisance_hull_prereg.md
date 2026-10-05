@@ -84,3 +84,15 @@ ceiling)? That is the most any model-side bound could certify without running th
 - Any change after smoke goes in a dated addendum, before the real run.
 - Outcome: `docs/notes/nuisance_hull_outcome.md` plus the summary JSON. Neither is edited after the first real run
   except through a labelled post-review section.
+
+---
+
+## Addendum A (2026-10-05, after a smoke run, before any real run): disclosure only, no design change
+
+- **What was run:** the `--smoke` pipeline (stimulus 999, 80 classes, 640 contexts, 30 steps) for all 9 fits, under
+  `systemd-inhibit`. Seeds 91/92 are untouched.
+- **Result:** it completed, with 0 ties.
+  - The host decision was constant in 71% of smoke test classes.
+  - `F_cov` = 0 and `H_all` = 0, since 30-step fits are undertrained. So the hull check ran on 0 classes on smoke data;
+    the unit tests exercise it, including the abort.
+- **The design is unchanged.**
