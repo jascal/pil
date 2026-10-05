@@ -89,3 +89,15 @@ real run**; if that proof fails, the neighbourhood half of this study is withdra
   30 steps; smoke numbers are not results.
 - Any change after smoke goes in a dated addendum, before the real run, disclosing what the smoke run showed.
 - Outcome: `docs/notes/halfspace_verdict_outcome.md` plus the summary JSON. Neither is edited after the first real run.
+
+---
+
+## Addendum A (2026-10-05, after a smoke run, before any real run): disclosure only, no design change
+
+- **What was run:** the `--smoke` pipeline on stimulus seed 999 (600 contexts, 30 steps), for all 27 fits, under
+  `systemd-inhibit`. Seeds 61/62 are untouched.
+- **Result:** it completed, and the iff checks (§2 (i)) held on every fit, with 0 mismatches and 0 ties.
+  - E = 0 and `F_cov` = 0 everywhere, since 30-step fits are undertrained (as in #139/#140). So the neighbourhood
+    checks (§2 (ii)) were not exercised on smoke data; the unit tests exercise them, including tightness.
+  - Host agreement `A` was 0–0.39 per fit, and the `agree` verdict matched it exactly.
+- **The design is unchanged. No expected outcome is stated.**
