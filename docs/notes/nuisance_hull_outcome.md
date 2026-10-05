@@ -34,11 +34,15 @@ the **ceiling** for any model-side (set-level) certificate over the class. **No 
 - Both verdicts are carried by `t6`. `mse` (0.071 / 0.110) and `cert` (0.014 / 0.021) are below both thresholds.
 - The thresholds were set after the disclosed exploration, which had given about 0.19 / 0.28 for `t6` on 2 seeds.
   The confirmatory values are lower: 0.151 / 0.232.
-- **Soundness:**
-  - all **4,080** random convex combinations of hull-certified classes kept exact clean-up and the code decision
-    (the hull abort);
-  - all **73,400** neighbourhood perturbations held;
-  - 0 ties; Soufflé and Python agreed on every context; no fit was flagged.
+- **Soundness:** the hull claim is proved by the i-orca lemma (`hull_certified_conditions`), not by sampling.
+  - The **4,080** random convex combinations are a **regression guard**, not soundness evidence. Interior points
+    almost always pass when the vertices pass strict inequalities, so a failure would indicate a bug in `hull_check`
+    or in the decision comparison, not a counterexample.
+  - All **73,400** neighbourhood perturbations held; 0 ties; Soufflé and Python agreed on every context; no fit was
+    flagged.
+- **Read H1/H2 as a replication under fresh seeds, not as a pre-specified effect.** The thresholds were set after the
+  exploration, and the rule asks for "at least one objective", so the verdicts were hard to fail. H2's lowest `t6` seed
+  is 0.201.
 
 ## Per cell (test classes, seed mean [min, max])
 
@@ -54,11 +58,16 @@ the **ceiling** for any model-side (set-level) certificate over the class. **No 
 
 ## Reading (interpretation)
 
-1. **The model-side route has a non-zero ceiling.** For about 15% of all held-out σ-classes, 23% of the
-   decision-stable ones, with `t6`, a perfectly tight sound bound over the 8 time phrases would certify every variant
-   without running GPT-2 on each. That holds even though the variants' residuals spread over a radius about 70× the
-   per-context neighbourhoods: the certificate region is a long polytope, and the phrase variation runs along benign
-   directions.
+1. **The model-side route has a non-zero ceiling, under #141's certificate.** For about 15% of all held-out
+   σ-classes, 23% of the decision-stable ones, with `t6`, a perfectly tight sound bound over the 8 time phrases would
+   certify every variant without running GPT-2 on each.
+   - **Certification is strongly correlated across variants.** If each variant were certified independently with
+     probability `F_cov`, all 8 would be with probability `F_cov⁸` (about 0.001–0.006 for `t6`). The observed hull
+     share is **28–134× that** (`t6`, per seed), and 138–348× for the non-zero `mse` seeds. Phrase variation is not
+     scattering the certificates.
+   - What is certified is the convex hull of each class's 8 residuals, plus a small neighbourhood (`ρ_loc` ≈ 0.08–0.14)
+     around each vertex. The classes are wide (median radius 9.68, the maximum distance from the class centroid), and
+     the per-vertex neighbourhoods do not cover them. The hull is what is certified.
 2. **The ceiling is fit-sensitive.** `mse` seed 0 certifies no class. `cert` is low throughout. `t6`, the objective
    that pushes code points into the host's decision cell, is consistently best.
 3. **What this does not show** is whether any computable bound gets near the hull. That is study (2), and its
@@ -68,8 +77,33 @@ the **ceiling** for any model-side (set-level) certificate over the class. **No 
    probably no more than computing a bound. A model-side bound pays off only for nuisance sets much larger than its own
    cost, such as products of several independent nuisance slots.
 
+## Context the result inherits
+
+- **The 65% cap is a host-stability cap of this certificate and this nuisance.** #141's agreement condition fails
+  whenever GPT-2's argmax flips with the phrase, so even a perfect bound cannot certify those classes. Adjectives
+  showed the cap can be 0. It is not a limit on set bounds in general.
+- **Per-context `F_cov` is lower than in #141/#142** (`t6` 0.46 here against about 0.67–0.69 on plain SVO). This
+  run cannot separate the two causes: one shared code point having to fall in 8 decision cells at once, and the new
+  template. Study (2) inherits this lower base rate.
+- **The 120 validation classes are never read.** Training is a fixed number of steps, so the 60/10/30 split does no
+  selection work. This is harmless, but the split does not do what the pre-registration implies.
+
 ## Not claimed
 
 - No bound is computed; the ceiling is what a perfectly tight sound bound would achieve.
 - One nuisance set (8 time phrases). Adjectives failed in exploration because GPT-2 copies them into its prediction.
 - GPT-2 small, one template, TPR `d_F=32` only.
+
+## Post-review changes (2026-10-05; review by Grok on #143)
+
+No result changed. The changes are:
+- **Soundness wording:** the 4,080 convex combinations are relabelled a regression guard; the proof is the lemma.
+- **Replication framing** for H1/H2, added to the verdict.
+- **The dependence finding** is stated as the ratio to the independence baseline `F_cov⁸`, computed per fit from the
+  summary.
+- **The radius comparison is corrected.** The earlier "about 70× the per-context neighbourhoods" compared a class
+  radius with per-vertex balls, which do not cover the class. Only the hull is certified.
+- **New "Context the result inherits" section:** the host-stability cap, the lower per-context `F_cov`, and the unused
+  validation split.
+- **The PR title and body are updated:** the body is no longer "pre-registration only", and the title now reads
+  "ceiling, under #141's certificate".
