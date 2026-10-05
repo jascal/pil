@@ -92,3 +92,12 @@ order: (S, V, O) indices, which do not depend on the shuffle.
   - `F_cov` = 0 everywhere, since 30-step fits are undertrained.
   - 15 of 600 smoke contexts were out of vocabulary, because the smoke train split is only 180 contexts.
 - **The design is unchanged. No expected outcome is stated.**
+
+## Erratum (2026-10-05, after the real run): documentation only, no design change
+
+§2 says the `D_cert` bitmask is over D's "canonical order: (S, V, O) indices". The frozen script (`a0c525c`,
+`canonical_index`) actually indexes an **(S, O, V)** grid: `S·40·16 + O·16 + V`, with V fastest, packed with
+`np.packbits` (default big-endian bit order). The committed artifact follows the script. The run is unaffected: every
+per-part coverage figure in the summary is reproduced exactly by decoding the bitmasks this way. Decode with
+`experiments/domain_certified.py`; `tests/test_domain_certified.py` pins the axis contract. Found in review (Grok,
+#142).

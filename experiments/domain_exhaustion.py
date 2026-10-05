@@ -83,7 +83,8 @@ def cmd_dump(args):
 
 
 def canonical_index(f: np.ndarray) -> np.ndarray:
-    """(S, V, O) -> S * N_OCC * N_VERB + O * N_VERB + V over the 40 x 40 x 16 grid (S != O cells used).
+    """Index over the (S, O, V) grid: S * N_OCC * N_VERB + O * N_VERB + V, i.e. 40 x 40 x 16, V fastest
+    (S != O cells used). Decode with domain_certified.decode_certified.
     Fillers: S and O are occupations 0..39 (roles 0 and 2); V is N_OCC + verb (role 1)."""
     s, v, o = f[:, 0], f[:, 1] - N_OCC, f[:, 2]
     return s * N_OCC * N_VERB + o * N_VERB + v
