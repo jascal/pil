@@ -115,3 +115,21 @@ makes none.)
   smoke run showed.**
 - Outcome: `docs/notes/cleanup_certificate_outcome.md`, plus the run summary JSON next to it. Neither file is edited
   after the first real run.
+
+---
+
+## Addendum A (2026-10-04, after smoke runs, before any real run): disclosure only, no design change
+
+**What was run.** All of this used smoke data only (stimulus seed 999, 600 contexts); seeds 41/42 are untouched.
+- The `--smoke` pipeline (30 steps), for every cell. It completed; no abort fired and no flag triggered.
+- One diagnostic, to test a suspected design flaw: SVO, `d_F = 8`, `mse`, fit seed 0, the full 3,000 steps.
+
+**The suspected flaw, and why it was not one.**
+- At 30 steps, `‖n‖ ≈ 150–225`, about `‖u‖` itself. The suspicion was that Adam (lr 3e-3) cannot move the output
+  bias `b₀` far enough in 3,000 steps to reach GPT-2's large constant decode-input coordinates (`‖mean u‖ ≈ 226`).
+- The 3,000-step diagnostic refuted it. `W·T(σ)` absorbs the constant component: median `‖n‖ ≈ 9.3`, although
+  `‖b₀ − mean u‖ ≈ 226`. Initialising `b₀` at the train mean changed little (`‖n‖ ≈ 7.8`).
+- **So the design is unchanged.**
+
+**Disclosure.** That diagnostic fit had median `ρ ≈ 0.06`, median `β ≈ 0.08`, and cleaned agreement 0.06. This was
+one cell, one seed, on non-study data. **No expected outcome is stated**, as §5 requires. The real run is the test.
