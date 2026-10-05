@@ -1,0 +1,355 @@
+{
+  "tag": "empirical",
+  "prereg": "docs/notes/nuisance_hull_prereg.md",
+  "smoke": false,
+  "seeds": {
+    "stimulus": 91,
+    "split": 92,
+    "fit": [
+      0,
+      1,
+      2
+    ]
+  },
+  "data": {
+    "classes": 1200,
+    "train_classes": 720,
+    "val_classes": 120,
+    "test_classes": 360,
+    "contexts": 9600,
+    "phrases": [
+      "Yesterday,",
+      "On Monday,",
+      "Last week,",
+      "This morning,",
+      "In the evening,",
+      "Once again,",
+      "Later that day,",
+      "At noon,"
+    ]
+  },
+  "cells": {
+    "dF32/mse": {
+      "per_seed": [
+        {
+          "flagged": false,
+          "seed": 0,
+          "H_all": 0.0,
+          "H_const": 0.0,
+          "const_share": 0.65,
+          "F_cov": 0.01423611111111111,
+          "median_class_radius": 9.678187853630972,
+          "median_rho_loc": 0.020611796689334397,
+          "hull_classes": 0,
+          "hull_combos_checked": 0,
+          "ties": [
+            0,
+            0
+          ],
+          "neighbourhood_checks": 410,
+          "oov": 0
+        },
+        {
+          "flagged": false,
+          "seed": 1,
+          "H_all": 0.07777777777777778,
+          "H_const": 0.11965811965811966,
+          "const_share": 0.65,
+          "F_cov": 0.34965277777777776,
+          "median_class_radius": 9.678187853630972,
+          "median_rho_loc": 0.1236041580608449,
+          "hull_classes": 28,
+          "hull_combos_checked": 448,
+          "ties": [
+            0,
+            0
+          ],
+          "neighbourhood_checks": 10070,
+          "oov": 0
+        },
+        {
+          "flagged": false,
+          "seed": 2,
+          "H_all": 0.1361111111111111,
+          "H_const": 0.2094017094017094,
+          "const_share": 0.65,
+          "F_cov": 0.42083333333333334,
+          "median_class_radius": 9.678187853630972,
+          "median_rho_loc": 0.14261430335501712,
+          "hull_classes": 49,
+          "hull_combos_checked": 784,
+          "ties": [
+            0,
+            0
+          ],
+          "neighbourhood_checks": 12120,
+          "oov": 0
+        }
+      ],
+      "H_all": {
+        "mean": 0.07129629629629629,
+        "range": [
+          0.0,
+          0.1361111111111111
+        ]
+      },
+      "H_const": {
+        "mean": 0.10968660968660969,
+        "range": [
+          0.0,
+          0.2094017094017094
+        ]
+      },
+      "const_share": {
+        "mean": 0.65,
+        "range": [
+          0.65,
+          0.65
+        ]
+      },
+      "F_cov": {
+        "mean": 0.26157407407407407,
+        "range": [
+          0.01423611111111111,
+          0.42083333333333334
+        ]
+      },
+      "median_class_radius": {
+        "mean": 9.678187853630972,
+        "range": [
+          9.678187853630972,
+          9.678187853630972
+        ]
+      },
+      "median_rho_loc": {
+        "mean": 0.09561008603506548,
+        "range": [
+          0.020611796689334397,
+          0.14261430335501712
+        ]
+      },
+      "flagged_seeds": 0
+    },
+    "dF32/cert": {
+      "per_seed": [
+        {
+          "flagged": false,
+          "seed": 0,
+          "H_all": 0.002777777777777778,
+          "H_const": 0.004273504273504274,
+          "const_share": 0.65,
+          "F_cov": 0.065625,
+          "median_class_radius": 9.678187853630972,
+          "median_rho_loc": 0.049630793941569745,
+          "hull_classes": 1,
+          "hull_combos_checked": 16,
+          "ties": [
+            0,
+            0
+          ],
+          "neighbourhood_checks": 1890,
+          "oov": 0
+        },
+        {
+          "flagged": false,
+          "seed": 1,
+          "H_all": 0.025,
+          "H_const": 0.038461538461538464,
+          "const_share": 0.65,
+          "F_cov": 0.16215277777777778,
+          "median_class_radius": 9.678187853630972,
+          "median_rho_loc": 0.09973850787262087,
+          "hull_classes": 9,
+          "hull_combos_checked": 144,
+          "ties": [
+            0,
+            0
+          ],
+          "neighbourhood_checks": 4670,
+          "oov": 0
+        },
+        {
+          "flagged": false,
+          "seed": 2,
+          "H_all": 0.013888888888888888,
+          "H_const": 0.021367521367521368,
+          "const_share": 0.65,
+          "F_cov": 0.15381944444444445,
+          "median_class_radius": 9.678187853630972,
+          "median_rho_loc": 0.09536472787350968,
+          "hull_classes": 5,
+          "hull_combos_checked": 80,
+          "ties": [
+            0,
+            0
+          ],
+          "neighbourhood_checks": 4430,
+          "oov": 0
+        }
+      ],
+      "H_all": {
+        "mean": 0.01388888888888889,
+        "range": [
+          0.002777777777777778,
+          0.025
+        ]
+      },
+      "H_const": {
+        "mean": 0.021367521367521364,
+        "range": [
+          0.004273504273504274,
+          0.038461538461538464
+        ]
+      },
+      "const_share": {
+        "mean": 0.65,
+        "range": [
+          0.65,
+          0.65
+        ]
+      },
+      "F_cov": {
+        "mean": 0.12719907407407408,
+        "range": [
+          0.065625,
+          0.16215277777777778
+        ]
+      },
+      "median_class_radius": {
+        "mean": 9.678187853630972,
+        "range": [
+          9.678187853630972,
+          9.678187853630972
+        ]
+      },
+      "median_rho_loc": {
+        "mean": 0.0815780098959001,
+        "range": [
+          0.049630793941569745,
+          0.09973850787262087
+        ]
+      },
+      "flagged_seeds": 0
+    },
+    "dF32/t6": {
+      "per_seed": [
+        {
+          "flagged": false,
+          "seed": 0,
+          "H_all": 0.15,
+          "H_const": 0.23076923076923078,
+          "const_share": 0.65,
+          "F_cov": 0.42777777777777776,
+          "median_class_radius": 9.678187853630972,
+          "median_rho_loc": 0.11878202399653011,
+          "hull_classes": 54,
+          "hull_combos_checked": 864,
+          "ties": [
+            0,
+            0
+          ],
+          "neighbourhood_checks": 12320,
+          "oov": 0
+        },
+        {
+          "flagged": false,
+          "seed": 1,
+          "H_all": 0.13055555555555556,
+          "H_const": 0.20085470085470086,
+          "const_share": 0.65,
+          "F_cov": 0.4253472222222222,
+          "median_class_radius": 9.678187853630972,
+          "median_rho_loc": 0.14414414548229662,
+          "hull_classes": 47,
+          "hull_combos_checked": 752,
+          "ties": [
+            0,
+            0
+          ],
+          "neighbourhood_checks": 12250,
+          "oov": 0
+        },
+        {
+          "flagged": false,
+          "seed": 2,
+          "H_all": 0.17222222222222222,
+          "H_const": 0.26495726495726496,
+          "const_share": 0.65,
+          "F_cov": 0.5291666666666667,
+          "median_class_radius": 9.678187853630972,
+          "median_rho_loc": 0.1532337304319243,
+          "hull_classes": 62,
+          "hull_combos_checked": 992,
+          "ties": [
+            0,
+            0
+          ],
+          "neighbourhood_checks": 15240,
+          "oov": 0
+        }
+      ],
+      "H_all": {
+        "mean": 0.15092592592592594,
+        "range": [
+          0.13055555555555556,
+          0.17222222222222222
+        ]
+      },
+      "H_const": {
+        "mean": 0.23219373219373218,
+        "range": [
+          0.20085470085470086,
+          0.26495726495726496
+        ]
+      },
+      "const_share": {
+        "mean": 0.65,
+        "range": [
+          0.65,
+          0.65
+        ]
+      },
+      "F_cov": {
+        "mean": 0.4607638888888889,
+        "range": [
+          0.4253472222222222,
+          0.5291666666666667
+        ]
+      },
+      "median_class_radius": {
+        "mean": 9.678187853630972,
+        "range": [
+          9.678187853630972,
+          9.678187853630972
+        ]
+      },
+      "median_rho_loc": {
+        "mean": 0.13871996663691702,
+        "range": [
+          0.11878202399653011,
+          0.1532337304319243
+        ]
+      },
+      "flagged_seeds": 0
+    }
+  },
+  "verdict": {
+    "H1": {
+      "H_all": {
+        "dF32/mse": 0.07129629629629629,
+        "dF32/cert": 0.01388888888888889,
+        "dF32/t6": 0.15092592592592594
+      },
+      "verdict": "pass"
+    },
+    "H2": {
+      "H_const": {
+        "dF32/mse": 0.10968660968660969,
+        "dF32/cert": 0.021367521367521364,
+        "dF32/t6": 0.23219373219373218
+      },
+      "verdict": "pass"
+    }
+  },
+  "seconds": 797.1
+}
