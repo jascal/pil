@@ -1,0 +1,530 @@
+{
+  "tag": "empirical",
+  "prereg": "docs/notes/hull_ceiling_prereg.md",
+  "smoke": false,
+  "seeds": {
+    "stimulus": 31,
+    "split": 32,
+    "fit": 0
+  },
+  "fw_cap": 20000,
+  "tasks": {
+    "LIST": {
+      "n_train": 7200,
+      "n_test": 3600,
+      "test_dropped_unseen_pair": 0,
+      "distinct_decisions": 100,
+      "hull": {
+        "converged": 100,
+        "median_h_hi": 1.8150640166536913,
+        "max_iters": 105,
+        "lifted_converged": {
+          "1": 100,
+          "2": 100,
+          "3": 100,
+          "5": 100,
+          "10": 100,
+          "20": 100,
+          "30": 100,
+          "100": 100
+        }
+      },
+      "norms": {
+        "u": [
+          127.21397679548086,
+          146.87357398837958,
+          165.70935628670873
+        ],
+        "mean_u": 144.0054030098667,
+        "w": [
+          15.24683919037392,
+          23.756695649435517,
+          36.27981828461742
+        ]
+      },
+      "host_margin": [
+        2.9284924322534156,
+        3.8744976090743677,
+        4.696654037715364
+      ],
+      "ceiling_fraction": [
+        0.048092229158559555,
+        0.07675697143439858,
+        0.12024465339303197
+      ],
+      "control_ok": true,
+      "cells": {
+        "B8/tpr/mse": {
+          "uniform_coverage": 0.0,
+          "agree": 0.02638888888888889,
+          "refused": 3600,
+          "ceiling": 335,
+          "other": 3265,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0765688080528468,
+            1.1907695810999894,
+            1.356413431725247
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B8/tpr/cert": {
+          "uniform_coverage": 0.0,
+          "agree": 0.6430555555555556,
+          "refused": 3600,
+          "ceiling": 205,
+          "other": 3394,
+          "undecided": 1,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0869707113682556,
+            1.1918457613386666,
+            1.3221756037656933
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B8/paircode/mse": {
+          "uniform_coverage": 0.0,
+          "agree": 0.0033333333333333335,
+          "refused": 3600,
+          "ceiling": 421,
+          "other": 3178,
+          "undecided": 1,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0789152889798115,
+            1.1920363106170166,
+            1.338037865667437
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B8/paircode/cert": {
+          "uniform_coverage": 0.0,
+          "agree": 0.4955555555555556,
+          "refused": 3600,
+          "ceiling": 285,
+          "other": 3314,
+          "undecided": 1,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0941053449138454,
+            1.1959185101190961,
+            1.3919050042943428
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B32/tpr/mse": {
+          "uniform_coverage": 0.0,
+          "agree": 0.7422222222222222,
+          "refused": 3600,
+          "ceiling": 131,
+          "other": 3468,
+          "undecided": 1,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0604176627901047,
+            1.151478616767473,
+            1.2959554781254674
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B32/tpr/cert": {
+          "uniform_coverage": 0.0,
+          "agree": 0.9677777777777777,
+          "refused": 3600,
+          "ceiling": 109,
+          "other": 3490,
+          "undecided": 1,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.051891938856019,
+            1.163826173163695,
+            1.251136157990611
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B32/paircode/mse": {
+          "uniform_coverage": 0.0,
+          "agree": 0.09055555555555556,
+          "refused": 3600,
+          "ceiling": 314,
+          "other": 3285,
+          "undecided": 1,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0677556755661795,
+            1.1779379108758419,
+            1.3505677184221496
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B32/paircode/cert": {
+          "uniform_coverage": 0.0,
+          "agree": 0.8297222222222222,
+          "refused": 3600,
+          "ceiling": 388,
+          "other": 3212,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0929833420513657,
+            1.2103081358455745,
+            1.4361265291633636
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "control/pca240": {
+          "uniform_coverage": 0.9355555555555556,
+          "agree": 0.9980555555555556,
+          "refused": 232,
+          "ceiling": 0,
+          "other": 232,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": null,
+          "original_bias_free": {
+            "refused": 232,
+            "ceiling": 0,
+            "other": 232,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        }
+      },
+      "labels": [
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND"
+      ],
+      "original_labels": [
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND"
+      ]
+    },
+    "SVO": {
+      "n_train": 7200,
+      "n_test": 3600,
+      "test_dropped_unseen_pair": 0,
+      "distinct_decisions": 87,
+      "hull": {
+        "converged": 87,
+        "median_h_hi": 1.631909416907472,
+        "max_iters": 104,
+        "lifted_converged": {
+          "1": 87,
+          "2": 87,
+          "3": 87,
+          "5": 87,
+          "10": 87,
+          "20": 87,
+          "30": 87,
+          "100": 87
+        }
+      },
+      "norms": {
+        "u": [
+          217.97293799516223,
+          226.59645408718336,
+          235.13473104952539
+        ],
+        "mean_u": 225.73823088092013,
+        "w": [
+          11.224523812014134,
+          13.973248265758766,
+          17.991864590877103
+        ]
+      },
+      "host_margin": [
+        0.753149190225642,
+        1.4479753409763276,
+        2.266782394228194
+      ],
+      "ceiling_fraction": [
+        0.026286967659379743,
+        0.05069564418659085,
+        0.08406935052483165
+      ],
+      "control_ok": true,
+      "cells": {
+        "B8/tpr/mse": {
+          "uniform_coverage": 0.0,
+          "agree": 0.08555555555555555,
+          "refused": 3600,
+          "ceiling": 82,
+          "other": 3518,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0298162836633726,
+            1.0755185080414895,
+            1.1776936853587134
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B8/tpr/cert": {
+          "uniform_coverage": 0.0,
+          "agree": 0.6497222222222222,
+          "refused": 3600,
+          "ceiling": 31,
+          "other": 3569,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0419355491966766,
+            1.134070741594619,
+            1.2134615824384039
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B8/paircode/mse": {
+          "uniform_coverage": 0.0,
+          "agree": 0.029722222222222223,
+          "refused": 3600,
+          "ceiling": 93,
+          "other": 3507,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0694776552020506,
+            1.1388539889505997,
+            1.248781506326229
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B8/paircode/cert": {
+          "uniform_coverage": 0.0,
+          "agree": 0.8013888888888889,
+          "refused": 3600,
+          "ceiling": 27,
+          "other": 3572,
+          "undecided": 1,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0319632812412243,
+            1.0876444976520006,
+            1.2142419837857665
+          ],
+          "original_bias_free": {
+            "refused": 3600,
+            "ceiling": 0,
+            "other": 3600,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B32/tpr/mse": {
+          "uniform_coverage": 0.0005555555555555556,
+          "agree": 0.7408333333333333,
+          "refused": 3598,
+          "ceiling": 12,
+          "other": 3586,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0127273230894043,
+            1.0522847203346637,
+            1.1140354793897078
+          ],
+          "original_bias_free": {
+            "refused": 3598,
+            "ceiling": 0,
+            "other": 3598,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B32/tpr/cert": {
+          "uniform_coverage": 0.0005555555555555556,
+          "agree": 0.8788888888888889,
+          "refused": 3598,
+          "ceiling": 10,
+          "other": 3588,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0540063808120954,
+            1.097271902073596,
+            1.1434492392522058
+          ],
+          "original_bias_free": {
+            "refused": 3598,
+            "ceiling": 0,
+            "other": 3598,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B32/paircode/mse": {
+          "uniform_coverage": 0.009722222222222222,
+          "agree": 0.855,
+          "refused": 3565,
+          "ceiling": 6,
+          "other": 3559,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0382858033775386,
+            1.077319982026714,
+            1.1637403878511443
+          ],
+          "original_bias_free": {
+            "refused": 3565,
+            "ceiling": 0,
+            "other": 3565,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "B32/paircode/cert": {
+          "uniform_coverage": 0.0044444444444444444,
+          "agree": 0.8808333333333334,
+          "refused": 3584,
+          "ceiling": 9,
+          "other": 3575,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": [
+            1.0560279968598223,
+            1.0643729397960238,
+            1.1447029963822695
+          ],
+          "original_bias_free": {
+            "refused": 3584,
+            "ceiling": 0,
+            "other": 3584,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        },
+        "control/pca240": {
+          "uniform_coverage": 0.6163888888888889,
+          "agree": 0.9813888888888889,
+          "refused": 1381,
+          "ceiling": 0,
+          "other": 1381,
+          "undecided": 0,
+          "label": "NOT-EXCLUDED-BOUND",
+          "shrink_factor_quartiles": null,
+          "original_bias_free": {
+            "refused": 1381,
+            "ceiling": 0,
+            "other": 1381,
+            "undecided": 0,
+            "label": "ALIGNMENT-BOUND"
+          }
+        }
+      },
+      "labels": [
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND",
+        "NOT-EXCLUDED-BOUND"
+      ],
+      "original_labels": [
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND",
+        "ALIGNMENT-BOUND"
+      ]
+    }
+  },
+  "verdict": {
+    "control_ok": true,
+    "headline": "NOT-EXCLUDED-BOUND",
+    "counts": {
+      "NOT-EXCLUDED-BOUND": 16
+    },
+    "ceiling_fraction_median": {
+      "LIST": 0.07675697143439858,
+      "SVO": 0.05069564418659085
+    },
+    "original_bias_free_headline": "ALIGNMENT-BOUND"
+  },
+  "seconds": 1821.6
+}
