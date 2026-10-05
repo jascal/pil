@@ -1,0 +1,105 @@
+{
+  "tag": "exploratory",
+  "seed": 101,
+  "n_sigma": 100,
+  "words": [
+    "Yesterday",
+    "Today",
+    "Tonight",
+    "Recently",
+    "Later",
+    "Earlier",
+    "Again",
+    "Then",
+    "Meanwhile",
+    "Suddenly",
+    "Finally",
+    "Once",
+    "Now",
+    "Still",
+    "Soon",
+    "Eventually",
+    "Instead",
+    "Apparently",
+    "Clearly",
+    "Luckily",
+    "Sadly",
+    "Indeed",
+    "Naturally"
+  ],
+  "k1_exactness": {
+    "max_abs_lo_minus_exact": 7.105427357601002e-14,
+    "max_width": 0.0
+  },
+  "k": {
+    "2": {
+      "contained": 100,
+      "decision_constant": 92,
+      "certified_ibp": 0,
+      "certified_tightest_box": 35,
+      "certified_hull": 92,
+      "median_box_width_over_actual_range": 1.9576593743379432e+149,
+      "median_margin_range_ibp_over_actual": 2.165587718524736e+150,
+      "box_width_by_layer_class0": [
+        649874872.2413688,
+        3.374570046154188e+20,
+        2.320117972598415e+32,
+        2.6729876543022286e+44,
+        2.705662754937663e+56,
+        1.1259015194140174e+69,
+        1.937882497658693e+81,
+        3.804634058086313e+93,
+        3.6567219888895427e+106,
+        1.3453532350879307e+119,
+        7.231902115553215e+131,
+        1.1204522395718381e+145
+      ]
+    },
+    "8": {
+      "contained": 100,
+      "decision_constant": 74,
+      "certified_ibp": 0,
+      "certified_tightest_box": 0,
+      "certified_hull": 74,
+      "median_box_width_over_actual_range": 1.49015049218854e+149,
+      "median_margin_range_ibp_over_actual": 1.881840857586458e+150,
+      "box_width_by_layer_class0": [
+        1988854775.9053626,
+        1.0327257165854663e+21,
+        7.10029859489275e+32,
+        1.2406414518200407e+45,
+        1.255807463861945e+57,
+        3.4470911379671397e+69,
+        5.933073337690881e+81,
+        1.164837027888475e+94,
+        1.0708596742990217e+107,
+        3.9398251982066606e+119,
+        2.117840091562169e+132,
+        3.281209612257504e+145
+      ]
+    },
+    "23": {
+      "contained": 100,
+      "decision_constant": 70,
+      "certified_ibp": 0,
+      "certified_tightest_box": 0,
+      "certified_hull": 70,
+      "median_box_width_over_actual_range": 1.67789940874333e+149,
+      "median_margin_range_ibp_over_actual": 2.011543433857154e+150,
+      "box_width_by_layer_class0": [
+        2704741285.7433925,
+        1.4044517532530712e+21,
+        9.65602642600356e+32,
+        1.771991580366364e+45,
+        1.7936526397461007e+57,
+        4.688116264603601e+69,
+        8.069103978675351e+81,
+        1.584202749784504e+94,
+        1.5226139864053263e+107,
+        5.601885127238237e+119,
+        3.011274945952204e+132,
+        4.665425089068169e+145
+      ]
+    }
+  }
+}
