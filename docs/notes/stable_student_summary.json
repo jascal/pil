@@ -1,0 +1,390 @@
+{
+  "tag": "empirical",
+  "prereg": "docs/notes/stable_student_prereg.md",
+  "smoke": false,
+  "seeds": {
+    "stimulus": 151,
+    "split": 152,
+    "fit": [
+      20,
+      21,
+      22,
+      23,
+      24
+    ]
+  },
+  "held_out": [
+    "Apparently",
+    "Eventually",
+    "Finally",
+    "Luckily",
+    "Naturally",
+    "Once",
+    "Today"
+  ],
+  "clip": 1.0,
+  "data": {
+    "classes": 4000,
+    "train": 2400,
+    "test": 1200,
+    "outputs": 104,
+    "test_all_constant": 0.6783333420753479,
+    "test_seen_constant": 0.6875,
+    "train_seen_constant": 1740
+  },
+  "cells": {
+    "plain": {
+      "per_seed": [
+        {
+          "faith_seen": 0.838854193687439,
+          "faith_held": 0.8508332967758179,
+          "cert16": 0.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": null,
+          "seed": 20
+        },
+        {
+          "faith_seen": 0.8378645777702332,
+          "faith_held": 0.851190447807312,
+          "cert16": 0.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": null,
+          "seed": 21
+        },
+        {
+          "faith_seen": 0.8448437452316284,
+          "faith_held": 0.8573809266090393,
+          "cert16": 0.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": null,
+          "seed": 22
+        },
+        {
+          "faith_seen": 0.8330729603767395,
+          "faith_held": 0.8359524011611938,
+          "cert16": 0.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": null,
+          "seed": 23
+        },
+        {
+          "faith_seen": 0.8424479365348816,
+          "faith_held": 0.8515475988388062,
+          "cert16": 0.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": null,
+          "seed": 24
+        }
+      ],
+      "faith_seen": {
+        "mean": 0.8394166827201843,
+        "range": [
+          0.8330729603767395,
+          0.8448437452316284
+        ]
+      },
+      "faith_held": {
+        "mean": 0.8493809342384339,
+        "range": [
+          0.8359524011611938,
+          0.8573809266090393
+        ]
+      },
+      "cert16": {
+        "mean": 0.0,
+        "range": [
+          0.0,
+          0.0
+        ]
+      },
+      "cert23": {
+        "mean": 0.0,
+        "range": [
+          0.0,
+          0.0
+        ]
+      },
+      "CF23": {
+        "mean": 0.0,
+        "range": [
+          0.0,
+          0.0
+        ]
+      },
+      "FC23": null,
+      "held_faith_among_cert": null,
+      "FC16": null
+    },
+    "ibp": {
+      "per_seed": [
+        {
+          "faith_seen": 0.7910416722297668,
+          "faith_held": 0.8023809194564819,
+          "cert16": 0.9991666674613953,
+          "cert23": 0.9125000238418579,
+          "CF23": 0.5825000405311584,
+          "FC23": 0.36164382100105286,
+          "held_faith_among_cert": 0.7214611768722534,
+          "n_cert23": 1095,
+          "FC16": 0.3127606213092804,
+          "seed": 20
+        },
+        {
+          "faith_seen": 0.03760416805744171,
+          "faith_held": 0.0386904776096344,
+          "cert16": 0.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": null,
+          "seed": 21
+        },
+        {
+          "faith_seen": 0.03760416805744171,
+          "faith_held": 0.0386904776096344,
+          "cert16": 0.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": null,
+          "seed": 22
+        },
+        {
+          "faith_seen": 0.6876562833786011,
+          "faith_held": 0.6939285397529602,
+          "cert16": 0.8300000429153442,
+          "cert23": 0.8208333253860474,
+          "CF23": 0.4958333373069763,
+          "FC23": 0.39593908190727234,
+          "held_faith_among_cert": 0.6812182664871216,
+          "n_cert23": 985,
+          "FC16": 0.2821285128593445,
+          "seed": 23
+        },
+        {
+          "faith_seen": 0.3946354389190674,
+          "faith_held": 0.39523810148239136,
+          "cert16": 0.17166666686534882,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": 0.25242719054222107,
+          "seed": 24
+        }
+      ],
+      "faith_seen": {
+        "mean": 0.3897083461284637,
+        "range": [
+          0.03760416805744171,
+          0.7910416722297668
+        ]
+      },
+      "faith_held": {
+        "mean": 0.39378570318222045,
+        "range": [
+          0.0386904776096344,
+          0.8023809194564819
+        ]
+      },
+      "cert16": {
+        "mean": 0.40016667544841766,
+        "range": [
+          0.0,
+          0.9991666674613953
+        ]
+      },
+      "cert23": {
+        "mean": 0.34666666984558103,
+        "range": [
+          0.0,
+          0.9125000238418579
+        ]
+      },
+      "CF23": {
+        "mean": 0.21566667556762695,
+        "range": [
+          0.0,
+          0.5825000405311584
+        ]
+      },
+      "FC23": {
+        "mean": 0.3787914514541626,
+        "range": [
+          0.36164382100105286,
+          0.39593908190727234
+        ]
+      },
+      "held_faith_among_cert": {
+        "mean": 0.7013397216796875,
+        "range": [
+          0.6812182664871216,
+          0.7214611768722534
+        ]
+      },
+      "FC16": {
+        "mean": 0.2824387749036153,
+        "range": [
+          0.25242719054222107,
+          0.3127606213092804
+        ]
+      },
+      "collapsed": 4
+    },
+    "ibp_clip": {
+      "per_seed": [
+        {
+          "faith_seen": 0.8460416793823242,
+          "faith_held": 0.8550000190734863,
+          "cert16": 1.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": 0.3125,
+          "seed": 20
+        },
+        {
+          "faith_seen": 0.8354166746139526,
+          "faith_held": 0.8445237874984741,
+          "cert16": 1.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": 0.3125,
+          "seed": 21
+        },
+        {
+          "faith_seen": 0.8440625071525574,
+          "faith_held": 0.8519047498703003,
+          "cert16": 1.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": 0.3125,
+          "seed": 22
+        },
+        {
+          "faith_seen": 0.8348958492279053,
+          "faith_held": 0.8413094878196716,
+          "cert16": 0.9991666674613953,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": 0.31192660331726074,
+          "seed": 23
+        },
+        {
+          "faith_seen": 0.8517187833786011,
+          "faith_held": 0.8627380728721619,
+          "cert16": 1.0,
+          "cert23": 0.0,
+          "CF23": 0.0,
+          "FC23": null,
+          "held_faith_among_cert": null,
+          "n_cert23": 0,
+          "FC16": 0.3125,
+          "seed": 24
+        }
+      ],
+      "faith_seen": {
+        "mean": 0.8424270987510681,
+        "range": [
+          0.8348958492279053,
+          0.8517187833786011
+        ]
+      },
+      "faith_held": {
+        "mean": 0.8510952234268189,
+        "range": [
+          0.8413094878196716,
+          0.8627380728721619
+        ]
+      },
+      "cert16": {
+        "mean": 0.9998333334922791,
+        "range": [
+          0.9991666674613953,
+          1.0
+        ]
+      },
+      "cert23": {
+        "mean": 0.0,
+        "range": [
+          0.0,
+          0.0
+        ]
+      },
+      "CF23": {
+        "mean": 0.0,
+        "range": [
+          0.0,
+          0.0
+        ]
+      },
+      "FC23": null,
+      "held_faith_among_cert": null,
+      "FC16": {
+        "mean": 0.31238532066345215,
+        "range": [
+          0.31192660331726074,
+          0.3125
+        ]
+      },
+      "collapsed": 0
+    }
+  },
+  "verdict": {
+    "H1": {
+      "collapsed": 0,
+      "fits": 5,
+      "verdict": "pass"
+    },
+    "H2": {
+      "faith_seen": 0.8424270987510681,
+      "plain": 0.8394166827201843,
+      "verdict": "pass"
+    },
+    "H3": {
+      "cert16": 0.9998333334922791,
+      "verdict": "pass"
+    },
+    "H4": {
+      "cert23": 0.0,
+      "verdict": "fail"
+    }
+  },
+  "seconds": 2377.8
+}
