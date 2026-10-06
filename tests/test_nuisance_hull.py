@@ -1,3 +1,4 @@
+import shutil
 import sys
 from pathlib import Path
 
@@ -46,6 +47,7 @@ def test_hull_verdicts():
     assert hull.tolist() == [True, False] and const.tolist() == [True, False]
 
 
+@pytest.mark.skipif(shutil.which("souffle") is None, reason="needs souffle")
 def test_hull_check_passes_on_certified_classes_and_hulls_hold():
     p, f, r, m, group, u, U, x, rng = _classes()
     rd = cc.readout(p)
