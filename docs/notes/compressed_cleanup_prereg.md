@@ -85,3 +85,16 @@
 - Any change after smoke goes in a dated addendum, before the real run.
 - Outcome: `docs/notes/compressed_cleanup_outcome.md`, the summary JSON, and a table test. The outcome is edited only
   through a labelled post-review section.
+
+---
+
+## Addendum A (2026-10-05, after a smoke run, before any real run): disclosure only, no design change
+
+- **What was run:** the `--smoke` pipeline (stimulus 999, 600 contexts, 30 steps) for all 18 fits, under
+  `systemd-inhibit`. Seeds 111/112 are untouched.
+- **Result:** it completed. None of the three aborts fired (iff, offset bound, `ρ_ε ≤ ρ_dir`), and there were 0 ties.
+- **Disclosed smoke values** (undertrained fits, non-study data):
+  - LIST `d_F=32`: `ε` ≈ 0.55–0.77, and `ρ_ε ≤ 0` for every context (the compression error alone exhausts the slack);
+  - SVO `d_F=32`: `ε` ≈ 0.03–0.07 (from the ridge `λ`), and the median `ρ_ε/ρ_dir` ≈ 0.5–0.8;
+  - `F_cov` = 0 everywhere.
+- **The design is unchanged. No expected outcome is stated;** 30-step fits do not predict trained ones.
