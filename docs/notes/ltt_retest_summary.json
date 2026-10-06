@@ -1,0 +1,178 @@
+{
+  "tag": "empirical",
+  "prereg": "docs/notes/ltt_retest_prereg.md",
+  "smoke": false,
+  "seeds": {
+    "stimulus": 181,
+    "split": 182,
+    "fit": [
+      50,
+      51,
+      52,
+      53,
+      54
+    ]
+  },
+  "held_out": [
+    "Apparently",
+    "Eventually",
+    "Finally",
+    "Luckily",
+    "Naturally",
+    "Once",
+    "Today"
+  ],
+  "alpha": 0.1,
+  "delta": 0.1,
+  "draws_per_seed": 200,
+  "grid_q": [
+    0.8,
+    0.01
+  ],
+  "data": {
+    "classes": 14400,
+    "train": 2400,
+    "pool": 6000,
+    "draw": 1800,
+    "audit": 6000,
+    "outputs": 107,
+    "pool_seen_constant": 0.7136666774749756,
+    "audit_seen_constant": 0.7213333249092102
+  },
+  "per_seed": [
+    {
+      "draws": 200,
+      "violation_rate": 0.025,
+      "coverage": 0.23359333001077176,
+      "non_issuance": 0.175,
+      "FCa_mean": 0.08585189079696481,
+      "faith_issued_mean": 0.8996097864526691,
+      "held_faith_issued_mean": 0.9285272572979782,
+      "seed": 50,
+      "faith_seen": 0.8417291641235352,
+      "cert16": 0.9998333305120468,
+      "gate_auc": 0.7599018812179565,
+      "first_draw": {
+        "tau": 23.902297973632812,
+        "cal_n": 292,
+        "cal_w": 22,
+        "coverage": 0.16066665947437286,
+        "FCa": 0.0695020779967308,
+        "faith_issued": 0.9180498123168945,
+        "held_faith_issued": 0.9450207948684692
+      }
+    },
+    {
+      "draws": 200,
+      "violation_rate": 0.03,
+      "coverage": 0.21676999650895595,
+      "non_issuance": 0.235,
+      "FCa_mean": 0.08112285256970163,
+      "faith_issued_mean": 0.9108356533486859,
+      "held_faith_issued_mean": 0.9399264867788826,
+      "seed": 51,
+      "faith_seen": 0.8481145799160004,
+      "cert16": 0.9996666610240936,
+      "gate_auc": 0.7609065175056458,
+      "first_draw": {
+        "tau": 32.439208984375,
+        "cal_n": 575,
+        "cal_w": 45,
+        "coverage": 0.3253333270549774,
+        "FCa": 0.08401639014482498,
+        "faith_issued": 0.9077868461608887,
+        "held_faith_issued": 0.9390368461608887
+      }
+    },
+    {
+      "draws": 200,
+      "violation_rate": 0.135,
+      "coverage": 0.1240016659349203,
+      "non_issuance": 0.535,
+      "FCa_mean": 0.09495665725841317,
+      "faith_issued_mean": 0.8957180214184587,
+      "held_faith_issued_mean": 0.9240163148090403,
+      "seed": 52,
+      "faith_seen": 0.8507083356380463,
+      "cert16": 1.0,
+      "gate_auc": 0.750832200050354,
+      "first_draw": {
+        "tau": null,
+        "cal_n": 0,
+        "cal_w": 0,
+        "coverage": 0.0,
+        "FCa": null,
+        "faith_issued": null,
+        "held_faith_issued": null
+      }
+    },
+    {
+      "draws": 200,
+      "violation_rate": 0.0,
+      "coverage": 0.14526999928057194,
+      "non_issuance": 0.39,
+      "FCa_mean": 0.06938945764645202,
+      "faith_issued_mean": 0.9239920504757615,
+      "held_faith_issued_mean": 0.9497374296188354,
+      "seed": 53,
+      "faith_seen": 0.846145823597908,
+      "cert16": 0.9983333200216293,
+      "gate_auc": 0.7584165930747986,
+      "first_draw": {
+        "tau": 29.89347267150879,
+        "cal_n": 501,
+        "cal_w": 40,
+        "coverage": 0.27033331990242004,
+        "FCa": 0.0745992586016655,
+        "faith_issued": 0.9173859357833862,
+        "held_faith_issued": 0.9432798624038696
+      }
+    },
+    {
+      "draws": 200,
+      "violation_rate": 0.15,
+      "coverage": 0.16307583168148995,
+      "non_issuance": 0.315,
+      "FCa_mean": 0.08478998044764038,
+      "faith_issued_mean": 0.9106446186991504,
+      "held_faith_issued_mean": 0.9395642589478597,
+      "seed": 54,
+      "faith_seen": 0.8519999831914902,
+      "cert16": 0.9996666610240936,
+      "gate_auc": 0.7479648590087891,
+      "first_draw": {
+        "tau": 19.311527252197266,
+        "cal_n": 364,
+        "cal_w": 28,
+        "coverage": 0.21666666865348816,
+        "FCa": 0.08230768889188766,
+        "faith_issued": 0.9138461351394653,
+        "held_faith_issued": 0.9430769085884094
+      }
+    }
+  ],
+  "pooled": {
+    "draws": 1000,
+    "violation_rate": 0.068,
+    "coverage": 0.17654216468334197,
+    "non_issuance": 0.33,
+    "FCa_mean": 0.08282099806550723,
+    "faith_issued_mean": 0.9083292367743022,
+    "held_faith_issued_mean": 0.9366231896984043
+  },
+  "verdict": {
+    "H1": {
+      "violation_rate": 0.068,
+      "verdict": "pass"
+    },
+    "H2": {
+      "coverage": 0.17654216468334197,
+      "verdict": "fail"
+    },
+    "H3": {
+      "non_issuance": 0.33,
+      "verdict": "fail"
+    }
+  },
+  "seconds": 1188.8
+}
