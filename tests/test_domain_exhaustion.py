@@ -1,7 +1,9 @@
+import shutil
 import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
 
@@ -36,6 +38,7 @@ def test_partition_covers_domain_without_overlap():
     assert never.min() == 400
 
 
+@pytest.mark.skipif(shutil.which("souffle") is None, reason="needs souffle")
 def test_out_of_vocabulary_contexts_are_uncertified():
     rng = np.random.default_rng(0)
     n_fill, n_role, d_f, d = 12, 3, 3, 40
