@@ -1,0 +1,20 @@
+[    0.3s] 14400 classes: train 2400 pool 6000 (draws of 1800) audit 6000; outputs 107; audit seen-constant 0.721
+[  238.8s] seed 50: faith 0.842 cert16 1.000 gate AUC 0.760 | violations 0.025 coverage 0.234 non-issuance 0.175 FCa 0.08585189079696481 faith|issued 0.8996097864526691
+[  476.6s] seed 51: faith 0.848 cert16 1.000 gate AUC 0.761 | violations 0.030 coverage 0.217 non-issuance 0.235 FCa 0.08112285256970163 faith|issued 0.9108356533486859
+[  714.6s] seed 52: faith 0.851 cert16 1.000 gate AUC 0.751 | violations 0.135 coverage 0.124 non-issuance 0.535 FCa 0.09495665725841317 faith|issued 0.8957180214184587
+[  951.5s] seed 53: faith 0.846 cert16 0.998 gate AUC 0.758 | violations 0.000 coverage 0.145 non-issuance 0.390 FCa 0.06938945764645202 faith|issued 0.9239920504757615
+[ 1188.8s] seed 54: faith 0.852 cert16 1.000 gate AUC 0.748 | violations 0.150 coverage 0.163 non-issuance 0.315 FCa 0.08478998044764038 faith|issued 0.9106446186991504
+{
+  "H1": {
+    "violation_rate": 0.068,
+    "verdict": "pass"
+  },
+  "H2": {
+    "coverage": 0.17654216468334197,
+    "verdict": "fail"
+  },
+  "H3": {
+    "non_issuance": 0.33,
+    "verdict": "fail"
+  }
+}
