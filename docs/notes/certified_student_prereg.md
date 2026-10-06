@@ -87,3 +87,18 @@ were set after seeing the probe.**
 - Any change after smoke goes in a dated addendum, before the real run.
 - Outcome: `docs/notes/certified_student_outcome.md`, the summary JSON, and a table test. The outcome is edited only
   through a labelled post-review section.
+
+---
+
+## Addendum A (2026-10-06, after smoke runs, before any real run): disclosure only, no design change
+
+- **The smoke run** (stimulus 999, 200 σ, 300 steps, all 6 fits) completed, and the soundness checks held. The `ibp`
+  arm **collapsed** (faithfulness 0.03–0.06): with 300 steps the box reaches full size within 150 steps.
+- **To check whether this was a design flaw** (the shared frozen-embedding projection must blur the nuisance words
+  while keeping the fillers apart), one full-length fit (6,000 steps) per arm was run on the **smoke data**: seed 0,
+  120 train classes, 60 test.
+  - **It did not collapse:** `plain` gave faith 0.629 and `cert23` 0.000; `ibp` gave faith 0.657, `cert23` 0.850,
+    `CF23` 0.533, `FC23` 0.373, and held-out-word faithfulness among certified classes 0.647.
+  - The collapse was a 300-step artifact, so **the design is unchanged.**
+- **Disclosure:** these are one fit each on a tiny non-study dataset; seeds 141/142 are untouched. **No expected
+  outcome is stated,** and the thresholds in §4 are unchanged.
