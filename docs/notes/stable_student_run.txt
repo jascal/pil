@@ -1,0 +1,36 @@
+[    0.2s] 4000 classes: train 2400 (1740 seen-constant) test 1200; outputs 104; test seen-constant 0.688
+[   22.1s] plain    seed 20: faith seen 0.839 held 0.851 | cert16 0.000 cert23 0.000 | CF23 0.000 FC23 None FC16 None
+[   43.0s] plain    seed 21: faith seen 0.838 held 0.851 | cert16 0.000 cert23 0.000 | CF23 0.000 FC23 None FC16 None
+[   63.9s] plain    seed 22: faith seen 0.845 held 0.857 | cert16 0.000 cert23 0.000 | CF23 0.000 FC23 None FC16 None
+[   84.9s] plain    seed 23: faith seen 0.833 held 0.836 | cert16 0.000 cert23 0.000 | CF23 0.000 FC23 None FC16 None
+[  106.1s] plain    seed 24: faith seen 0.842 held 0.852 | cert16 0.000 cert23 0.000 | CF23 0.000 FC23 None FC16 None
+[  336.4s] ibp      seed 20: faith seen 0.791 held 0.802 | cert16 0.999 cert23 0.913 | CF23 0.583 FC23 0.36164382100105286 FC16 0.3127606213092804
+[  565.1s] ibp      seed 21: faith seen 0.038 held 0.039 | cert16 0.000 cert23 0.000 | CF23 0.000 FC23 None FC16 None
+[  792.0s] ibp      seed 22: faith seen 0.038 held 0.039 | cert16 0.000 cert23 0.000 | CF23 0.000 FC23 None FC16 None
+[ 1016.8s] ibp      seed 23: faith seen 0.688 held 0.694 | cert16 0.830 cert23 0.821 | CF23 0.496 FC23 0.39593908190727234 FC16 0.2821285128593445
+[ 1245.6s] ibp      seed 24: faith seen 0.395 held 0.395 | cert16 0.172 cert23 0.000 | CF23 0.000 FC23 None FC16 0.25242719054222107
+[ 1472.2s] ibp_clip seed 20: faith seen 0.846 held 0.855 | cert16 1.000 cert23 0.000 | CF23 0.000 FC23 None FC16 0.3125
+[ 1698.2s] ibp_clip seed 21: faith seen 0.835 held 0.845 | cert16 1.000 cert23 0.000 | CF23 0.000 FC23 None FC16 0.3125
+[ 1924.6s] ibp_clip seed 22: faith seen 0.844 held 0.852 | cert16 1.000 cert23 0.000 | CF23 0.000 FC23 None FC16 0.3125
+[ 2151.3s] ibp_clip seed 23: faith seen 0.835 held 0.841 | cert16 0.999 cert23 0.000 | CF23 0.000 FC23 None FC16 0.31192660331726074
+[ 2377.8s] ibp_clip seed 24: faith seen 0.852 held 0.863 | cert16 1.000 cert23 0.000 | CF23 0.000 FC23 None FC16 0.3125
+{
+  "H1": {
+    "collapsed": 0,
+    "fits": 5,
+    "verdict": "pass"
+  },
+  "H2": {
+    "faith_seen": 0.8424270987510681,
+    "plain": 0.8394166827201843,
+    "verdict": "pass"
+  },
+  "H3": {
+    "cert16": 0.9998333334922791,
+    "verdict": "pass"
+  },
+  "H4": {
+    "cert23": 0.0,
+    "verdict": "fail"
+  }
+}
