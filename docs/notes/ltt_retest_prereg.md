@@ -77,3 +77,14 @@ below were set with #149's results and post-hoc analysis in view.**
 - Any change after smoke goes in a dated addendum, before the real run.
 - **Outcome:** `docs/notes/ltt_retest_outcome.md`, the summary JSON, and a table test. The outcome is edited only
   through a labelled post-review section.
+
+---
+
+## Addendum A (2026-10-06, after the smoke run, before any real run): disclosure only, no design change
+
+- **The smoke run** (stimulus 999, 1,440 σ, 300 steps, R = 20) completed, and the soundness checks held. At 300 steps
+  every student is degenerate (faithfulness 0.03–0.05). LTT issued on 1 of 20 draws for seed 50 and on none for the
+  others, so the issuing and audit path ran end to end. These are not results.
+- **Script frozen at `d4aa121`**, sha256 of `experiments/ltt_retest.py` `c39f1672a8eefc65…`. Check it with
+  `git show d4aa121:experiments/ltt_retest.py | sha256sum`.
+- Thresholds in §4 unchanged.
