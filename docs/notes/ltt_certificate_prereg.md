@@ -82,3 +82,20 @@ coverage 0.25, about 0.89 at 0.50). **The thresholds below were set with both in
 - Any change after smoke goes in a dated addendum, before the real run.
 - **Outcome:** `docs/notes/ltt_certificate_outcome.md`, the summary JSON, and a table test. The outcome is edited only
   through a labelled post-review section.
+
+---
+
+## Addendum A (2026-10-06, after the smoke runs, before any real run): disclosure only, no design change
+
+- **The smoke run** (stimulus 999, 300 σ, 300 steps) completed, and the soundness checks held.
+  - **LTT issued nothing on any seed**, as expected: at 300 steps the student and gate are poor, and a 90-class
+    calibration split cannot reject at the first grid point.
+  - To exercise the issuing path end to end, the smoke was re-run with the test loosened **in-process only**
+    (`ltt_tau` wrapped with α = 0.6, δ = 0.5; the script unchanged). The path ran on all 5 seeds.
+- **Simulation check** (a unit test): scores ~ U(0, 1) with P(wrong | s) = 0.3(1 − s), 1,800 calibration classes, 400
+  draws.
+  - The selected τ's true false rate exceeded α in **8%** of draws (bound: δ = 10%).
+  - The mean selected τ was 0.42, against the oracle 0.33. The rule is valid and not trivially conservative.
+- **Script frozen at `da3976e`**, sha256 of `experiments/ltt_certificate.py` `0220780a827408c5…`. Check it with
+  `git show da3976e:experiments/ltt_certificate.py | sha256sum`.
+- Thresholds in §4 unchanged.
