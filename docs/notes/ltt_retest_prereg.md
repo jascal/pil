@@ -88,3 +88,19 @@ below were set with #149's results and post-hoc analysis in view.**
 - **Script frozen at `d4aa121`**, sha256 of `experiments/ltt_retest.py` `c39f1672a8eefc65…`. Check it with
   `git show d4aa121:experiments/ltt_retest.py | sha256sum`.
 - Thresholds in §4 unchanged.
+
+## Addendum B (2026-10-06, after a failed launch, before any result): an implementation fix, no design change
+
+- **The first dump hung**, at 100% CPU with the GPU idle and nothing written, for about 53 minutes. A timed copy of
+  the same steps ran alongside it and every step finished in seconds. The hung process was killed and the identical
+  command re-run, finishing in 3 min 48 s. The cause was not identified (probably a stuck CUDA synchronisation).
+- **The first real run crashed with CUDA out-of-memory** in seed 50's evaluation, after training and before any metric
+  was computed or printed.
+  - Cause: #146's `evaluate()` and #148's `cert16_and_decision()` bound a whole split in one batch, and this study's
+    splits are 6,000 classes (earlier ones were at most 1,800).
+  - **Fix:** both are now called over chunks of 1,500 classes and the results combined. The bound is per row, so the
+    results are unchanged. A new unit test checks that chunked and unchunked outputs are identical, and the smoke run
+    reproduced its previous output exactly.
+- **No number from the real data was seen.** The crash log contains only the data line (audit seen-constant 0.721).
+- **Re-frozen at `f9b2690`**, sha256 of `experiments/ltt_retest.py` `8adac330d020be76…` (it supersedes addendum A's freeze).
+  Check it with `git show f9b2690:experiments/ltt_retest.py | sha256sum`. Thresholds in §4 unchanged.
