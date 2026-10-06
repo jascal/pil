@@ -58,3 +58,26 @@ def test_decision_rules():
     assert [v[h]["verdict"] for h in ("H1", "H2", "H3")] == ["pass", "pass", "pass"]
     v = decide(dict(violation_rate=0.2, coverage=0.2, non_issuance=0.2))
     assert [v[h]["verdict"] for h in ("H1", "H2", "H3")] == ["fail", "fail", "fail"]
+
+
+def test_chunking_is_result_identical(monkeypatch):
+    import conditional_certificate as cc
+    import ltt_retest
+    from certified_student import evaluate
+    from stable_student import Student
+
+    torch.manual_seed(3)
+    E = torch.randn(40, 32, dtype=torch.float64)
+    m = Student(E, 6, 10, d=16, L=2, H=2).double()
+    sid = torch.randint(0, 40, (37, 5, 10))
+    sid[:, :, 0] = torch.arange(30, 35)
+    gold = torch.randint(0, 6, (37, 5))
+    seen, held, cls = torch.tensor([0, 1, 2]), torch.tensor([3, 4]), torch.arange(37)
+    opt_all, opt_seen = torch.arange(30, 35), torch.arange(30, 33)
+    monkeypatch.setattr(ltt_retest, "CHUNK", 8)
+    c1, p1 = ltt_retest.chunked_cert16(m, sid, cls, seen, opt_seen)
+    c0, p0 = cc.cert16_and_decision(m, sid, cls, seen, opt_seen)
+    assert torch.equal(c0, c1) and torch.equal(p0, p1)
+    r1 = ltt_retest.chunked_eval(m, sid, gold, cls, seen, held, opt_all, opt_seen)
+    r0 = evaluate(m, sid, gold, cls, seen, held, opt_all, opt_seen)
+    assert r1["faith_seen"] == pytest.approx(r0["faith_seen"]) and r1["cert16"] == pytest.approx(r0["cert16"])

@@ -35,6 +35,25 @@ R, SMOKE_R = 200, 20
 GRID_Q = tuple(round(0.80 - 0.01 * j, 2) for j in range(80))  # 0.80 .. 0.01, descending tau
 
 
+CHUNK = 1500  # classes per IBP batch: #146's evaluate() bounds a whole split at once, which OOMs at 6,000
+
+
+def chunked_eval(m, sid, gold, cls, seen_ix, held_ix, opt_all, opt_seen):
+    """evaluate() (with its soundness aborts) over chunks of cls; returns the size-weighted faith_seen and
+    cert16. The bound is per row, so chunking does not change any row's result."""
+    parts = [
+        (len(c), evaluate(m, sid, gold, c, seen_ix, held_ix, opt_all, opt_seen)) for c in cls.split(CHUNK)
+    ]
+    n = sum(k for k, _ in parts)
+    return {key: sum(k * r[key] for k, r in parts) / n for key in ("faith_seen", "cert16")}
+
+
+def chunked_cert16(m, sid, cls, seen_ix, opt_seen):
+    """cc.cert16_and_decision over chunks of cls, concatenated."""
+    parts = [cc.cert16_and_decision(m, sid, c, seen_ix, opt_seen) for c in cls.split(CHUNK)]
+    return torch.cat([c for c, _ in parts]), torch.cat([p for _, p in parts])
+
+
 def grid_from_train(train_scores):
     """Thresholds at train-score quantiles q = 0.80 .. 0.01 (descending tau); independent of calibration."""
     q = torch.tensor(GRID_Q, dtype=train_scores.dtype, device=train_scores.device)
@@ -154,13 +173,11 @@ def cmd_run(args):
     per_seed, all_draws = [], []
     for seed in SEEDS["fit"]:
         m = cc.train_student(E, len(outs), T, sid, gold, tr, tr_const, seen_ix, opt_seen, seed, steps, device)
-        r = evaluate(
-            m, sid, gold, aud, seen_ix, held_ix, opt_all, opt_seen
-        )  # soundness aborts + #146 metrics
+        r = chunked_eval(m, sid, gold, aud, seen_ix, held_ix, opt_all, opt_seen)  # soundness aborts + metrics
         gate = cc.train_gate(E, T, sid, seen_const.float(), tr, seen_ix, seed, gsteps, device)
         s_tr, s_po, s_au = (cc.gate_scores(gate, sid, x) for x in (tr, pool, aud))
-        c_po, _ = cc.cert16_and_decision(m, sid, pool, seen_ix, opt_seen)
-        c_au, p_au = cc.cert16_and_decision(m, sid, aud, seen_ix, opt_seen)
+        c_po, _ = chunked_cert16(m, sid, pool, seen_ix, opt_seen)
+        c_au, p_au = chunked_cert16(m, sid, aud, seen_ix, opt_seen)
         grid = grid_from_train(s_tr)
         rng = np.random.default_rng([SEEDS["split"], seed])
         draws = []
