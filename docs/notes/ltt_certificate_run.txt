@@ -1,0 +1,21 @@
+[    0.2s] 6000 classes: train 2400 cal 1800 test 1800; outputs 107; test seen-constant 0.707
+[  230.5s] seed 40: faith 0.834 cert16 1.000 gate AUC 0.759733259677887 | LTT tau None (0 rejected; cal n 0 w 0) coverage 0.000 FCi None faith|issued None | empirical rule: coverage 0.076 FCi 0.051094889640808105
+[  466.4s] seed 41: faith 0.842 cert16 1.000 gate AUC 0.7786698341369629 | LTT tau 20.117868423461914 (43 rejected; cal n 714 w 59) coverage 0.404 FCi 0.11401098966598511 faith|issued 0.8791208863258362 | empirical rule: coverage 0.226 FCi 0.06142506003379822
+[  702.3s] seed 42: faith 0.852 cert16 1.000 gate AUC 0.7595692873001099 | LTT tau 25.135372161865234 (45 rejected; cal n 737 w 61) coverage 0.428 FCi 0.1258106380701065 faith|issued 0.8690012693405151 | empirical rule: coverage 0.191 FCi 0.07267441600561142
+[  932.0s] seed 43: faith 0.840 cert16 0.998 gate AUC 0.7440193295478821 | LTT tau 10.439249038696289 (40 rejected; cal n 699 w 59) coverage 0.373 FCi 0.1264881044626236 faith|issued 0.8630952835083008 | empirical rule: coverage 0.084 FCi 0.07894736528396606
+[ 1162.2s] seed 44: faith 0.851 cert16 0.999 gate AUC 0.7503558993339539 | LTT tau 15.133262634277344 (42 rejected; cal n 680 w 54) coverage 0.396 FCi 0.11235955357551575 faith|issued 0.882022500038147 | empirical rule: coverage 0.223 FCi 0.08208955079317093
+{
+  "H1": {
+    "violations": 4,
+    "seeds": 5,
+    "verdict": "fail"
+  },
+  "H2": {
+    "coverage": 0.32033333778381345,
+    "verdict": "pass"
+  },
+  "H3": {
+    "coverage_range": 0.4283333420753479,
+    "verdict": "fail"
+  }
+}
