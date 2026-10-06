@@ -74,3 +74,14 @@ confirmation on fresh data, not a test of an unseen effect.
 - Any change after smoke goes in a dated addendum, before the real run.
 - **Outcome:** `docs/notes/stable_student_outcome.md`, the summary JSON, and a table test. The outcome is edited only
   through a labelled post-review section.
+
+---
+
+## Addendum A (2026-10-06, after the smoke run, before any real run): disclosure only, no design change
+
+- **The smoke run** (stimulus 999, 200 σ, 300 steps, all 15 fits) completed, and the soundness checks held. At 300
+  steps every IBP fit is poor (`ibp` faithfulness 0.05; `ibp_clip` 0.08–0.23, against `plain` 0.59–0.71): the box
+  reaches full size within 150 steps, as in #146's smoke (its Addendum A). These are not results.
+- **Script frozen at `b3eaa26`**, sha256 of `experiments/stable_student.py` `d4b16c67d0127b7b…`. Check it with
+  `git show b3eaa26:experiments/stable_student.py | sha256sum`.
+- **No expected outcome beyond the disclosed probe**; the thresholds in §4 are unchanged.
