@@ -70,3 +70,30 @@ GPT-2's decision differs from the certified one on some word.
 ## Not claimed
 
 - One nuisance position, one template, GPT-2 small as the teacher, a 2-layer student, one IBP weight and schedule.
+
+## Post-review changes (2026-10-06; review by Grok on #146)
+
+No result changed. The pre-registered verdict is the three-seed mean, collapse included: `CF23` 0.328, `FC23`
+0.513, held-out faithfulness 0.532. The non-collapsed seeds are context, not the verdict.
+
+- **Like-for-like comparison** (post-hoc, from the dump). GPT-2 is **seen-constant on 70.8%** of test classes. So
+  `cert16` (about 0.99 for seeds 1–2) is to be compared with 0.708, not with the all-23 figure of 69.9%. `cert23`
+  (0.47 / 0.90 for seeds 1–2) is the bound's actual generalisation to the 7 held-out words.
+- **Output-set censoring** (post-hoc, from the dump). Labels outside the 107-label output set count as unfaithful.
+  The rates are 0.16% of test seen-word labels and 0.15% of held-out-word labels, and 0.9% of test classes have any
+  such label. So censoring moves `FC23` and H3 by about 1 point at most. (The rate *among certified classes* would
+  need the fitted students, which were not saved.)
+- **Softmax bounds** (`alo ≤ ahi`). With `e_lo ≤ e_hi` and `S_lo ≤ S_hi`, `alo = e_lo/(e_lo + S_hi) ≤
+  e_hi/(e_hi + S_lo) = ahi`, since `x/(x + S)` increases in `x` and decreases in `S`. The bounds cannot cross
+  mathematically, only by floating-point rounding. A defensive endpoint sort plus a forced-crossing test belongs in the
+  next study's code, not in this frozen script.
+- **Float precision.** The interval bound runs in float32 and is sound up to rounding. The abort checks the discrete
+  word set, not outward rounding, so these certificates are empirical-grade, not machine-checked. Keep that
+  distinction wherever the numbers are quoted.
+- **Dead code and data:** the 10% validation split is never read (fixed-step training), and the `keep`/`kc` masks are
+  inactive on this dump (every train seen label is in the output set).
+- **The freeze is checkable from the PR:** `git show 22862e9:experiments/certified_student.py | sha256sum` gives
+  `4995f25a…`.
+- **The mechanism to keep** (Grok's phrasing): a sound box loss on the invariant classes, through shared weights,
+  certifies invariance everywhere, including on the classes the clean loss was meant to keep sensitive. The shared
+  position-0 projection is the channel.
