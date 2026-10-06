@@ -87,3 +87,19 @@ nothing about H3.
 - Any change after smoke goes in a dated addendum, before the real run.
 - **Outcome:** `docs/notes/conditional_certificate_outcome.md`, the summary JSON, and a table test. The outcome is
   edited only through a labelled post-review section.
+
+---
+
+## Addendum A (2026-10-06, after the smoke runs, before any real run): two implementation details, no design change
+
+- **The gate's invariance check now compares inputs, not outputs.** As first written, it compared the gate's float
+  outputs across the 23 variants. A unit test showed that identical inputs at different batch positions can differ in
+  the last bits. The check now asserts that the gate's **integer input** (the sequence with position 0 removed) is
+  identical across variants, and evaluates the gate once per class. This is the structural guarantee §2 relies on.
+- **Smoke mode only:** the minimum issued count for τ is 5, not 20. The smoke run's validation split has 20 classes,
+  so the issuing path could never run. With 5 it ran on 3 of 5 seeds. **The real run uses 20**, as pre-registered.
+- **The smoke run** (stimulus 999, 200 σ, 300 steps) completed, and the soundness checks held. The numbers are poor at
+  300 steps (student faithfulness 0.08–0.18), as in #146's and #147's smoke runs. They are not results.
+- **Script frozen at `2002d8b`**, sha256 of `experiments/conditional_certificate.py` `52de3eee4c12ec5f…`. Check it with
+  `git show 2002d8b:experiments/conditional_certificate.py | sha256sum`.
+- Thresholds in §4 unchanged; no expected outcome beyond the disclosed probe.
