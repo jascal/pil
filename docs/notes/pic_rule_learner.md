@@ -190,7 +190,7 @@ Parity-8 `all_neg` moves: `changed=65`, hard accuracy `0.971111` to `0.912222`, 
 
 The 8-way task holds on `all_neg`, `bipolar_neg`, and `scattered_neg`. `changed=0`, hard accuracy stays `1.000000`, and the mean margin stays `27.419769`. The scattered rows, which hold the heavier negative mass, leave the hard argmax where it was.
 
-**Decision: negative load bearing.** Parity's negative rows move the hard argmax. The 8-way negative rows do not.
+**Decision: negative load bearing.** The word is task-dependent. Parity-8 `all_neg` changes the hard argmax on 65 validation rows. On the 8-way task `all_neg` holds: `changed=0`, accuracy stays `1.000000`, and the margin stays `27.419769`, including the scattered rows.
 
 `experiments/modadd_pole_audit.py` fits the published mod-add program (`p=97`, 50% of pairs, seed 0, pythia residue tokens, the bench schema library) and scores `head_incidences` only. Schema weights are not scored. Two one-thread runs matched. The fit keeps `rules=0`, with hard train and hard val accuracy `1.000000`. That is `FAILED_FIT`: there are no rule rows to label. The bipolar-rules sentence above stays the parity and 8-way result.
 
