@@ -173,6 +173,17 @@ template enumeration (∂ILP's blowup). Claims tags: the semiring/margin/invaria
   circuit*: full-window count rules whose head signs alternate with the ones-count parity.
   The T3 gate is PIC-native (the ⊗ = + coalition bracket behind a margin turnstile ⊢_γ) and
   stays pure Datalog (a Soufflé `count` aggregate).
+
+### Negative head incidences
+
+After `round_structure` and the head refit, `head_incidences` is the matrix `export_program` writes into `headw`. `pil/pole.py` labels each rule row. Total L1 at or below `1e-6` is dead and does not vote. Negative L1 at or below `0.05` of the total is thin. A heavier negative side whose largest entry holds strictly more than half of that mass is bipolar. A heavier side at or below half is scattered. These cuts were locked before the run. `experiments/pole_audit.py`, seed 0, one CPU thread. Two runs matched. Held-out accuracy is printed and is not a gate. `pil/datalog_export.py` is unchanged.
+
+Parity-8 is the demo config in the bullet above (6000 rows, tokens 10/11, `frame_dim=16`, eight phases). It has two candidates, so a nonzero negative side has leader share 1. The row can be thin or bipolar. It cannot be scattered; a nonzero `scattered` count would mean the candidate axis was scored wrong. The fit is `dead=0 thin=0 bipolar=38 scattered=0 voters=38`, hard train `0.971765`, hard val `0.971111`. Every rule is bipolar. Negative fractions run from `0.477216` to `0.522570`, and every negative leader share is `1`. The negative token is 10 on 20 rules and 11 on 18. A two-candidate bipolar head puts real mass on both tokens, and that negative token is not a semantic cluster.
+
+The 8-way task is generated in the script: window 4, each position a token in `0..7`, target the token at position 0, 4000 rows, `frame_dim=16`, four phases, at most 128 rules. A negative side can land on more than one candidate. The fit is `dead=0 thin=0 bipolar=2 scattered=7 voters=9`, hard train `1.000000`, hard val `1.000000`. The bipolar rules are rule 2 (negative fraction `0.536776`, leader token 7, share `0.545839`) and rule 3 (negative fraction `0.538633`, leader token 0, share `0.538099`). The other seven are scattered, with negative leader shares from `0.197018` to `0.396760`. Those scattered rows carry the heavier negative mass, up to `0.748271`.
+
+**Decision: bipolar rules present.** At least one voting rule on each program puts real negative mass on one candidate, so a name would have something to point at. This measurement does not add that name.
+
 - **Random init must be random-in-data-measure** *(empirical)*: uniform-random bodies are
   born dead under a Zipfian vocabulary (§3's prediction, confirmed); data-seeded rules with
   zero heads train immediately (boosting residual is their first gradient).
