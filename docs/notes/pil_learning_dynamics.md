@@ -264,6 +264,78 @@ count.** That reframes the theory target (see §6 / Q2′): the realization boun
 
 Caveats: 2 seeds, mild non-monotone noise in the `n_hard` direction; the `M`-dominance is the robust signal.
 
+### Per-rule ablation at the two superposition cells
+
+`experiments/rule_participation_audit.py` keeps the bank `routing_complexity.train_bank` would have discarded and ablates each rule on the real `build_sources` / learner forward path. Settings are the §5e loop at one seed: `dim=32`, `n_clusters=24`, `n_hard=24`, 1500 steps, batch 64, held-out 25%, `seed=0`, device CPU. A hard cluster counts as moved when its held-out within-cluster margin changes by more than `1e-3`. Cluster `c` owns topic atom `c` and code atoms `(24+2c, 24+2c+1)`. Those sets are pairwise disjoint, so a rule whose moved clusters share an atom is reuse, and a rule whose moved set is two or more hard clusters is unrelated packing.
+
+Held-out hard-within accuracy: **M=16 → 0.859375**, **M=8 → 0.734375**. Both clear 0.65. Two CPU runs with this seed produced the same table.
+
+| M | rule | moved hard clusters | verdict |
+|---|---:|---|---|
+| 16 | 0 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,17,18,19,20,21,22,23 | packing |
+| 16 | 1 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 16 | 2 | 0,1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 16 | 3 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 16 | 4 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 16 | 5 | 0,1,2,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 16 | 6 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,21,22,23 | packing |
+| 16 | 7 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 16 | 8 | 0,1,2,3,4,5,6,7,8,9,10,13,14,15,17,18,19,20,21,22,23 | packing |
+| 16 | 9 | 0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 16 | 10 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,23 | packing |
+| 16 | 11 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,15,16,17,18,19,20,21,22,23 | packing |
+| 16 | 12 | 0,1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22 | packing |
+| 16 | 13 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,23 | packing |
+| 16 | 14 | 1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 16 | 15 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 8 | 0 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,17,19,20,21,22,23 | packing |
+| 8 | 1 | 0,1,2,3,4,5,6,7,8,9,10,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 8 | 2 | 0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 8 | 3 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 8 | 4 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 8 | 5 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+| 8 | 6 | 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18,19,20,21,22,23 | packing |
+| 8 | 7 | 0,1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 | packing |
+
+**Verdict: unrelated packing.** All 16 rules at M=16 and all 8 rules at M=8 move two or more hard clusters, and no such pair shares an atom. There is no reuse rule. The superposition sentences in this section, and in `paper/pic.tex`, stay as written. `pic/spec/PIC_SPEC.md` is unchanged.
+
+### Share of the margin drop, with the noise removed
+
+The footprint cut above is `0.001`. The same `seed=0` banks are rescored by where the mass sits. `CONCENTRATION = 0.5`, strict: a measure is **single** when the leader's share is `> 0.5` and **spread** when it is `≤ 0.5`. An even split is spread. The three voting measures are the absolute within-cluster margin change on the training rows (`noise=0.08`), the same change on a `noise=0` counterpart with identical targets, and `|W|` on each cluster's two code atoms. Topic-atom `|W|` is printed and does not vote. Top-3 share is printed and does not vote. A rule is `single` or `spread` only when all three measures say so. A budget agrees only when every non-idle rule agrees. Prose changes only when both budgets agree on single.
+
+Each cell is `leader:top1/top3` for a margin measure and `leader:top1` for a weight measure. Two CPU runs matched.
+
+| M | rule | noisy | clean | weight | topic | label |
+|---|---:|---|---|---|---|---|
+| 16 | 0 | 2:0.166135/0.426743 | 2:0.162197/0.412931 | 22:0.101080 | 13:0.088744 | spread |
+| 16 | 1 | 14:0.216117/0.488758 | 19:0.253473/0.548831 | 19:0.108807 | 17:0.157697 | spread |
+| 16 | 2 | 5:0.152047/0.429190 | 23:0.195797/0.488890 | 2:0.121148 | 16:0.124123 | spread |
+| 16 | 3 | 9:0.156137/0.388731 | 15:0.199466/0.538412 | 18:0.098123 | 1:0.159866 | spread |
+| 16 | 4 | 17:0.193949/0.489727 | 17:0.184120/0.415313 | 17:0.123916 | 11:0.093231 | spread |
+| 16 | 5 | 15:0.208907/0.499685 | 4:0.207675/0.550804 | 23:0.124859 | 12:0.145221 | spread |
+| 16 | 6 | 14:0.486123/0.645369 | 14:0.447961/0.626406 | 15:0.111417 | 20:0.145755 | spread |
+| 16 | 7 | 5:0.227777/0.521825 | 5:0.235681/0.539216 | 1:0.120168 | 21:0.095992 | spread |
+| 16 | 8 | 9:0.237946/0.531252 | 3:0.253224/0.593813 | 3:0.146645 | 15:0.102160 | spread |
+| 16 | 9 | 14:0.158376/0.411935 | 9:0.132717/0.357531 | 21:0.097177 | 5:0.125431 | spread |
+| 16 | 10 | 4:0.209951/0.490512 | 4:0.204076/0.525164 | 4:0.110201 | 3:0.130735 | spread |
+| 16 | 11 | 13:0.238909/0.537776 | 13:0.218877/0.534641 | 13:0.095904 | 18:0.163574 | spread |
+| 16 | 12 | 12:0.213064/0.517810 | 12:0.210543/0.532796 | 16:0.117932 | 0:0.145974 | spread |
+| 16 | 13 | 16:0.202060/0.464418 | 16:0.196078/0.396869 | 4:0.096235 | 8:0.106565 | spread |
+| 16 | 14 | 7:0.223717/0.477301 | 7:0.238587/0.512395 | 7:0.116185 | 2:0.131955 | spread |
+| 16 | 15 | 14:0.227838/0.494773 | 14:0.200257/0.453182 | 8:0.099046 | 9:0.094343 | spread |
+| 8 | 0 | 22:0.180384/0.392178 | 22:0.158343/0.420538 | 22:0.093859 | 23:0.110253 | spread |
+| 8 | 1 | 3:0.200054/0.488456 | 3:0.136531/0.374265 | 0:0.090992 | 5:0.105280 | spread |
+| 8 | 2 | 23:0.240326/0.570283 | 23:0.231946/0.508637 | 23:0.136576 | 16:0.097382 | spread |
+| 8 | 3 | 0:0.230275/0.505001 | 0:0.212583/0.464525 | 0:0.112280 | 9:0.104491 | spread |
+| 8 | 4 | 16:0.146329/0.346575 | 15:0.157272/0.418545 | 16:0.111363 | 12:0.117935 | spread |
+| 8 | 5 | 9:0.437314/0.614839 | 9:0.368236/0.589422 | 9:0.102467 | 15:0.085688 | spread |
+| 8 | 6 | 14:0.223366/0.460470 | 14:0.198560/0.418599 | 15:0.106327 | 20:0.091018 | spread |
+| 8 | 7 | 5:0.232405/0.571940 | 5:0.220296/0.518639 | 1:0.117782 | 8:0.082565 | spread |
+
+**Agreement: spread on both budgets.** Every rule is spread on the noisy margin, the clean margin, and the code-pair weights. Removing the generator noise does not gather the drop onto one cluster, and neither does the code-pair `|W|`. The largest noisy top-1 share is `0.486` (`M=16`, rule 6), still at or below one half. The superposition sentences in this section and in `paper/pic.tex` stay as written. `pic/spec/PIC_SPEC.md` is unchanged.
+
+The neuron dump contract for a later fieldrun emitter (per-neuron gate, output column, SwiGLU sign regime including `−×−`, `U` fixed, `A` free and shared, positions split on margin versus `2δ`) is `docs/notes/neuron_dump_contract.md`. The free-frame LP was not rerun.
+
 ## 5f. The interference is mild and lives in ℝ^M — coherence tracks the Welch floor only when n > M
 
 `experiments/interference_probe.py`. The open routing-side conjecture says: at fixed rule budget `M`
