@@ -182,7 +182,7 @@ Parity-8 is the demo config in the bullet above (6000 rows, tokens 10/11, `frame
 
 The 8-way task is generated in the script: window 4, each position a token in `0..7`, target the token at position 0, 4000 rows, `frame_dim=16`, four phases, at most 128 rules. A negative side can land on more than one candidate. The fit is `dead=0 thin=0 bipolar=2 scattered=7 voters=9`, hard train `1.000000`, hard val `1.000000`. The bipolar rules are rule 2 (negative fraction `0.536776`, leader token 7, share `0.545839`) and rule 3 (negative fraction `0.538633`, leader token 0, share `0.538099`). The other seven are scattered, with negative leader shares from `0.197018` to `0.396760`. Those scattered rows carry the heavier negative mass, up to `0.748271`.
 
-**Decision: bipolar rules present.** At least one voting rule on each program puts real negative mass on one candidate, so a name would have something to point at. This measurement does not add that name.
+**Decision: bipolar rules present.** Parity-8 is bipolar on every voting rule. On the 8-way task, 7 of 9 rules are scattered, and those rows hold the heavier negative mass, up to `0.748271`. The other two are bipolar, so a name would have something to point at on both programs. This measurement does not add that name.
 
 - **Random init must be random-in-data-measure** *(empirical)*: uniform-random bodies are
   born dead under a Zipfian vocabulary (§3's prediction, confirmed); data-seeded rules with
