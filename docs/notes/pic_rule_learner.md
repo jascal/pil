@@ -184,6 +184,16 @@ The 8-way task is generated in the script: window 4, each position a token in `0
 
 **Decision: bipolar rules present.** Parity-8 is bipolar on every voting rule. On the 8-way task, 7 of 9 rules are scattered, and those rows hold the heavier negative mass, up to `0.748271`. The other two are bipolar, so a name would have something to point at on both programs. This measurement does not add that name.
 
+`experiments/negative_headw_audit.py` refits those two programs and zeros selected negative incidences on the validation rows (`val_fraction=0.15`). Positive entries stay. The hard logits are `G @ C + bias`. A mode moves when the hard argmax changes on at least one validation row. Mean margin is top-1 minus top-2 and does not vote. Two one-thread runs matched. `pil/datalog_export.py` is unchanged.
+
+Parity-8 `all_neg` moves: `changed=65`, hard accuracy `0.971111` to `0.912222`, mean margin `38.179592` to `19.376131`. `bipolar_neg` is the same edit, because every rule is bipolar. `scattered_neg` holds (`changed=0`). That mode selects no parity rows, so a move there would mean the edit hit the wrong rows.
+
+The 8-way task holds on `all_neg`, `bipolar_neg`, and `scattered_neg`. `changed=0`, hard accuracy stays `1.000000`, and the mean margin stays `27.419769`. The scattered rows, which hold the heavier negative mass, leave the hard argmax where it was.
+
+**Decision: negative load bearing.** Parity's negative rows move the hard argmax. The 8-way negative rows do not.
+
+`experiments/modadd_pole_audit.py` fits the published mod-add program (`p=97`, 50% of pairs, seed 0, pythia residue tokens, the bench schema library) and scores `head_incidences` only. Schema weights are not scored. Two one-thread runs matched. The fit keeps `rules=0`, with hard train and hard val accuracy `1.000000`. That is `FAILED_FIT`: there are no rule rows to label. The bipolar-rules sentence above stays the parity and 8-way result.
+
 - **Random init must be random-in-data-measure** *(empirical)*: uniform-random bodies are
   born dead under a Zipfian vocabulary (§3's prediction, confirmed); data-seeded rules with
   zero heads train immediately (boosting residual is their first gradient).

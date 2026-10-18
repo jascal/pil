@@ -145,7 +145,17 @@ def bench_parity(n_bits: int, seed: int = 0) -> dict:
     }
 
 
-def bench_modadd(p: int = 97, seed: int = 0) -> dict:
+def build_modadd(p: int = 97, seed: int = 0):
+    """The published mod-add task, schemas attached, not yet fit.
+
+    Residue tokens are the pythia ids for ``"0"``..``str(p-1)``. ``+`` and ``=`` stay
+    context tokens and are not candidates. Returns train contexts, train targets, held-out
+    contexts, held-out targets, the program, and the learner config.
+    """
+    if not ROSETTA_PKG.is_dir():
+        raise FileNotFoundError(
+            f"modadd tokens come from {ROSETTA_PKG}; refusing a substitute vocabulary"
+        )
     ts = TokenSpace.from_rosetta_package(ROSETTA_PKG)
     tok = [ts.encode(str(r))[0] for r in range(p)]
     plus, eq = ts.encode("+")[0], ts.encode("=")[0]
@@ -153,7 +163,7 @@ def bench_modadd(p: int = 97, seed: int = 0) -> dict:
 
     a, b = torch.meshgrid(torch.arange(p), torch.arange(p), indexing="ij")
     a, b = a.flatten(), b.flatten()
-    X = torch.stack([tok_t[a], torch.full_like(a, plus), tok_t[b], torch.full_like(a, eq)], dim=1)
+    x = torch.stack([tok_t[a], torch.full_like(a, plus), tok_t[b], torch.full_like(a, eq)], dim=1)
     y = tok_t[(a + b).remainder(p)]
 
     g = torch.Generator().manual_seed(seed)
@@ -171,7 +181,7 @@ def bench_modadd(p: int = 97, seed: int = 0) -> dict:
     values = {int(t): r for r, t in enumerate(tok)}
     library = arithmetic_library(0, 2, p) + copy_library(4)
     accepted, scores = propose_schemas(
-        library, X[tr], prog.target_index(y[tr]), prog.candidate_ids, 50304, values,
+        library, x[tr], prog.target_index(y[tr]), prog.candidate_ids, 50304, values,
         min_hit_rate=0.2,
     )
     prog.attach_schemas(SchemaBank(accepted, 50304, values))
@@ -179,25 +189,30 @@ def bench_modadd(p: int = 97, seed: int = 0) -> dict:
         n_phases=6, init_rules=128, births_per_phase=64, epochs_per_phase=25,
         max_rules=1024, recency_gamma=1.0, thresh_fraction=0.5, seed=seed, verbose=False,
     )
+    return x[tr], y[tr], x[te], y[te], prog, lc, accepted, scores
+
+
+def bench_modadd(p: int = 97, seed: int = 0) -> dict:
+    xtr, ytr, xte, yte, prog, lc, accepted, scores = build_modadd(p, seed)
     learner = PICRuleLearner(prog, lc)
     t0 = time.time()
-    learner.fit(X[tr], y[tr])
+    learner.fit(xtr, ytr)
     t_rules = time.time() - t0
-    yte_i = prog.target_index(y[te])
-    hard = learner._acc(X[te], yte_i, hard=True)
+    yte_i = prog.target_index(yte)
+    hard = learner._acc(xte, yte_i, hard=True)
 
     t0 = time.time()
-    mlp = train_mlp(X[tr], prog.target_index(y[tr]), p, 50304, epochs=400, seed=seed)
+    mlp = train_mlp(xtr, prog.target_index(ytr), p, 50304, epochs=400, seed=seed)
     t_mlp = time.time() - t0
     return {
         "task": f"modadd(p={p}, 50% train)",
-        "eval": f"held-out pairs (n={len(te)})",
+        "eval": f"held-out pairs (n={len(xte)})",
         "rule_hard_acc": hard,
         "schemas_adopted": {s.name: round(r, 3) for s, r in zip(accepted, scores, strict=True)},
-        "mlp_acc": mlp_acc(mlp, X[te], yte_i),
+        "mlp_acc": mlp_acc(mlp, xte, yte_i),
         "rules": prog.n_rules,
         "rule_params": rule_param_count(prog),
-        "mlp_params": used_param_count(mlp, X),
+        "mlp_params": used_param_count(mlp, torch.cat([xtr, xte])),
         "rule_s": round(t_rules), "mlp_s": round(t_mlp),
         "summary": program_summary(prog),
     }

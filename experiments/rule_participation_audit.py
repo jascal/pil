@@ -29,7 +29,10 @@ from pil.rule_participation import (
     MARGIN_MOVE_TOL,
     bank_verdict,
     budget_agreement,
+    budget_load,
     code_pair_mass,
+    deletion_effect,
+    logits_with_rule_zeroed,
     mass_share,
     rule_agreement,
     rule_margin_abs_delta,
@@ -84,6 +87,7 @@ def audit_budget(M: int, args, device: str) -> tuple[str, str, str, float]:
     clean_z, clean_tgt = _clean_held(args, device, tgt, ev)
     verdicts: list[str] = []
     agreements: list[str] = []
+    loads: list[str] = []
     for rule in range(bank.n_rules):
         moved = rule_moved_clusters(
             model, held_z, A, bank, held_tgt, hc, rule, tol=args.tol
@@ -91,6 +95,13 @@ def audit_budget(M: int, args, device: str) -> tuple[str, str, str, float]:
         kind = rule_verdict(moved, n_clusters)
         verdicts.append(kind)
         lines.append(f"M={M} rule={rule} moved={_fmt_moved(moved)} verdict={kind}")
+        after = logits_with_rule_zeroed(model, held_z, A, bank, rule)
+        acc_after, drop, flipped, load = deletion_effect(base, after, held_tgt, hc)
+        loads.append(load)
+        lines.append(
+            f"M={M} rule={rule} acc_after={acc_after:.6f} drop={drop:.6f} "
+            f"flipped={flipped} load={load}"
+        )
         noisy = mass_share(rule_margin_abs_delta(
             model, held_z, A, bank, held_tgt, n_clusters, rule
         ))
@@ -118,6 +129,7 @@ def audit_budget(M: int, args, device: str) -> tuple[str, str, str, float]:
     )
     agreement = budget_agreement(agreements)
     lines.append(f"BUDGET_AGREEMENT M={M} agreement={agreement}")
+    lines.append(f"BUDGET_LOAD M={M} load={budget_load(loads)}")
     return "\n".join(lines), overall, agreement, acc
 
 

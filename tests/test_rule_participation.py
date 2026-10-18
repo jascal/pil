@@ -7,11 +7,14 @@ import torch
 from pil.learner import PILConfig, ProjectiveIncidenceLearner
 from pil.proposer import RuleBank, build_sources, targeted_rulebank
 from pil.rule_participation import (
+    ACC_DROP,
     MARGIN_MOVE_TOL,
     bank_verdict,
     budget_agreement,
+    budget_load,
     cluster_atoms,
     code_pair_mass,
+    deletion_effect,
     logits_with_rule_zeroed,
     mass_share,
     moved_hard_clusters,
@@ -141,6 +144,21 @@ def test_rule_agreement_requires_all_three_measures():
     assert budget_agreement(["single", "idle"]) == "agree_single"
     assert budget_agreement(["single", "spread"]) == "disagree"
     assert budget_agreement(["spread", "idle"]) == "agree_spread"
+
+
+def test_wired_rule_changes_the_holdout_and_an_idle_copy_holds():
+    wired = 1
+    model, z, A, tgt, hc, bank = _wire_one_cluster(2, wired, dim=8)
+    before = logits_with_rule_zeroed(model, z, A, bank, None)
+    after = logits_with_rule_zeroed(model, z, A, bank, 0)
+    acc_after, drop, flipped, load = deletion_effect(before, after, tgt, hc)
+    assert flipped > 0 and drop > 0
+    assert load == ("material" if drop > ACC_DROP else "held")
+    idle_acc, idle_drop, idle_flipped, idle_load = deletion_effect(before, before, tgt, hc)
+    assert idle_flipped == 0 and idle_drop == 0.0 and idle_load == "held"
+    assert idle_acc == deletion_effect(before, before.clone(), tgt, hc)[0]
+    assert budget_load(["held", "material"]) == "coalition"
+    assert budget_load(["held", "held"]) == "redundant"
 
 
 def test_two_disjoint_clusters_are_packing_and_one_is_reuse():

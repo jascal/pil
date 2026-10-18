@@ -14,9 +14,14 @@ from torch import Tensor
 
 from .learner import ProjectiveIncidenceLearner
 from .proposer import RuleBank, build_sources
+from .synthetic import within_cluster_report
 
 # Above float dust on margins of order 1, below a real routing effect.
 MARGIN_MOVE_TOL = 1e-3
+
+# Held-out hard-within accuracy drop above this is load-bearing. One flipped row of the
+# 512-row holdout is about 0.002 and stays held. Not revised after a table.
+ACC_DROP = 0.05
 
 # Leader share must be strictly above this. An even split is spread. Not retuned after a run.
 CONCENTRATION = 0.5
@@ -169,6 +174,39 @@ def rule_agreement(noisy: str, clean: str, weight: str) -> str:
     if noisy == clean == weight == "spread":
         return "spread"
     return "disagree"
+
+
+def deletion_effect(
+    before: Tensor,
+    after: Tensor,
+    targets: Tensor,
+    hard_clusters: Tensor,
+) -> tuple[float, float, int, str]:
+    """``(acc_after, drop, flipped, load)`` when one rule has been zeroed.
+
+    ``drop`` is the intact hard-within accuracy minus the accuracy after deletion.
+    ``flipped`` counts held-out hard rows whose within-cluster sign changes.
+    ``load`` is ``material`` when ``drop > ACC_DROP``, else ``held``.
+    """
+    acc_before = within_cluster_report(before, targets, hard_clusters)["hard_within_acc"]
+    acc_after = within_cluster_report(after, targets, hard_clusters)["hard_within_acc"]
+    drop = acc_before - acc_after
+    sibling = targets ^ 1
+    taken = targets[:, None]
+    other = sibling[:, None]
+    margin_before = before.gather(1, taken).squeeze(1) - before.gather(1, other).squeeze(1)
+    margin_after = after.gather(1, taken).squeeze(1) - after.gather(1, other).squeeze(1)
+    is_hard = hard_clusters[targets // 2]
+    flipped = int(((margin_before > 0) != (margin_after > 0))[is_hard].sum())
+    load = "material" if drop > ACC_DROP else "held"
+    return acc_after, drop, flipped, load
+
+
+def budget_load(rule_loads: list[str]) -> str:
+    """``coalition`` when any rule is material, else ``redundant``."""
+    if any(load == "material" for load in rule_loads):
+        return "coalition"
+    return "redundant"
 
 
 def budget_agreement(rule_labels: list[str]) -> str:

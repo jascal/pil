@@ -16,6 +16,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 
 import torch
+from torch import Tensor
 
 from pil.pole import pole_label
 from pil.rule_learner import PICRuleLearner, RuleLearnerConfig
@@ -47,7 +48,7 @@ def _score(name: str, prog: RuleProgram) -> tuple[str, int, int, int]:
     return "\n".join(lines), counts["bipolar"], voters, counts["scattered"]
 
 
-def fit_parity() -> tuple[str, int, int, int]:
+def parity_task() -> tuple[Tensor, Tensor, RuleProgram, RuleLearnerConfig]:
     g = torch.Generator().manual_seed(0)
     bits = torch.randint(0, 2, (6000, 8), generator=g)
     X, y = bits + 10, bits.sum(1).remainder(2) + 10
@@ -59,6 +60,11 @@ def fit_parity() -> tuple[str, int, int, int]:
         n_phases=8, init_rules=96, births_per_phase=64, epochs_per_phase=25,
         max_rules=512, recency_gamma=1.0, seed=0, verbose=False,
     )
+    return X, y, prog, lc
+
+
+def fit_parity() -> tuple[str, int, int, int]:
+    X, y, prog, lc = parity_task()
     learner = PICRuleLearner(prog, lc)
     rep = learner.fit(X, y)
     text, bipolar, voters, scattered = _score("parity8", prog)
@@ -69,7 +75,7 @@ def fit_parity() -> tuple[str, int, int, int]:
     return acc + "\n" + text, bipolar, voters, scattered
 
 
-def fit_eight() -> tuple[str, int, int, int]:
+def eight_task() -> tuple[Tensor, Tensor, RuleProgram, RuleLearnerConfig]:
     g = torch.Generator().manual_seed(0)
     X = torch.randint(0, 8, (4000, 4), generator=g)
     y = X[:, 0].clone()
@@ -81,6 +87,11 @@ def fit_eight() -> tuple[str, int, int, int]:
         n_phases=4, init_rules=32, births_per_phase=16, epochs_per_phase=10,
         max_rules=128, seed=0, verbose=False,
     )
+    return X, y, prog, lc
+
+
+def fit_eight() -> tuple[str, int, int, int]:
+    X, y, prog, lc = eight_task()
     learner = PICRuleLearner(prog, lc)
     rep = learner.fit(X, y)
     text, bipolar, voters, scattered = _score("eight", prog)

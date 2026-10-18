@@ -94,6 +94,10 @@ class RuleLearnerConfig:
 class FitReport:
     history: list[dict] = field(default_factory=list)
     final: dict = field(default_factory=dict)
+    # The validation slice ``fit`` already draws. Stashed so a later measurement can
+    # score the same rows. Training does not read these fields.
+    val_X: Tensor | None = None
+    val_y: Tensor | None = None
 
     def log(self, **row) -> None:
         self.history.append(row)
@@ -501,6 +505,8 @@ class PICRuleLearner:
         perm = torch.randperm(X.shape[0], generator=self.gen)
         Xtr, ytr = X[perm[n_val:]], y[perm[n_val:]]
         Xva, yva = X[perm[:n_val]], y[perm[:n_val]]
+        rep.val_X = Xva.detach().clone()
+        rep.val_y = yva.detach().clone()
         soft_tr = (soft[0][perm[n_val:]], soft[1][perm[n_val:]]) if soft is not None else None
 
         for rid in self.seed_rules(Xtr, cfg.init_rules):
