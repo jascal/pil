@@ -43,3 +43,54 @@ def pole_label(row: Tensor) -> tuple[float, int, float, str]:
     else:
         label = "scattered"
     return neg_share, leader, leader_share, label
+
+
+ABLATION_MODES = ("all_neg", "bipolar_neg", "scattered_neg")
+
+
+def ablated_incidence(rows: Tensor, mode: str) -> Tensor:
+    """Copy ``rows`` with selected negative entries set to 0.
+
+    ``all_neg`` clears every negative entry. ``bipolar_neg`` and ``scattered_neg`` clear
+    negatives only on rows ``pole_label`` calls by that name. Positive entries stay.
+    """
+    if mode not in ABLATION_MODES:
+        raise ValueError(f"unknown ablation mode {mode}")
+    out = rows.detach().clone()
+    if mode == "all_neg":
+        return out.clamp_min(0)
+    target = "bipolar" if mode == "bipolar_neg" else "scattered"
+    for k in range(out.shape[0]):
+        if pole_label(rows[k])[3] == target:
+            out[k] = out[k].clamp_min(0)
+    return out
+
+
+def incidence_logits(prog, x: Tensor, incidences: Tensor) -> Tensor:
+    """Hard-gate logits ``G @ C + bias`` for a program with no lookup or schema bank.
+
+    ``C`` is a ``(K, V)`` incidence matrix, normally ``head_incidences`` or an ablation of it.
+    """
+    if len(prog.lookup) or len(prog.direct_lookup) or prog.schema_bank is not None:
+        raise RuntimeError("headw ablation scores rule incidences only")
+    gates = prog.all_gates(x, hard=True)
+    if prog.n_rules:
+        active = torch.cat(gates, dim=1)
+    else:
+        active = x.new_zeros(x.shape[0], 0)
+    return active @ incidences + prog.bias
+
+
+def decide_delta(before: Tensor, after: Tensor) -> tuple[int, float, float]:
+    """``(changed, mean_margin_before, mean_margin_after)`` on hard logits.
+
+    ``changed`` is the number of rows whose argmax differs. Mean margin is top-1 minus
+    top-2. The margin does not vote.
+    """
+
+    def _margin(logits: Tensor) -> float:
+        top2 = logits.detach().topk(2, dim=-1).values
+        return float((top2[:, 0] - top2[:, 1]).mean())
+
+    changed = int((before.argmax(dim=-1) != after.argmax(dim=-1)).sum())
+    return changed, _margin(before), _margin(after)

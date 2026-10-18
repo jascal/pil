@@ -336,6 +336,17 @@ Each cell is `leader:top1/top3` for a margin measure and `leader:top1` for a wei
 
 The neuron dump contract for a later fieldrun emitter (per-neuron gate, output column, SwiGLU sign regime including `−×−`, `U` fixed, `A` free and shared, positions split on margin versus `2δ`) is `docs/notes/neuron_dump_contract.md`. The free-frame LP was not rerun.
 
+### Accuracy after deleting one rule
+
+Same banks, same seed, same holdout. `experiments/rule_participation_audit.py` already zeros each rule on the `build_sources` path. The new lines record `hard_within_acc` after that deletion. `ACC_DROP = 0.05`. A rule is material when the drop is above that cut, and held when it is at or below it. `held` is relative to the cut. `flipped` counts held-out hard rows whose within-cluster sign changes, including on held rules. A budget is a coalition when any rule is material. Two CPU runs matched. Both budgets stay `packing` and `agree_spread`. The superposition sentences stay. `PROSE action=unchanged`.
+
+| M | intact acc | material | held | drop | flipped | load |
+|---|---:|---:|---:|---|---|---|
+| 16 | 0.859375 | 3 | 13 | 0.017578–0.068359 | 23–54 | coalition |
+| 8 | 0.734375 | 5 | 3 | 0.042969–0.080078 | 68–98 | coalition |
+
+Every rule flips at least 23 held-out rows: `M=16` flips 23–54 and `M=8` flips 68–98. A held rule is under the `0.05` cut and still has a nonzero flip count. The material rules are `M=16` rules 0, 4, and 14 (drops `0.068359`, `0.062500`, `0.064453`) and `M=8` rules 0, 3, 4, 5, and 6 (drops `0.076172`, `0.076172`, `0.070312`, `0.070312`, `0.080078`).
+
 ## 5f. The interference is mild and lives in ℝ^M — coherence tracks the Welch floor only when n > M
 
 `experiments/interference_probe.py`. The open routing-side conjecture says: at fixed rule budget `M`
