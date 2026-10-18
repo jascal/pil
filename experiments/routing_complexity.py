@@ -31,7 +31,12 @@ def split(z, tgt, seed):
     return perm[:n_tr], perm[n_tr:]
 
 
-def run(n_hard, M, dim, V, K, n_clusters, steps, batch, seed, device):
+def train_bank(n_hard, M, dim, V, K, n_clusters, steps, batch, seed, device):
+    """The ``run`` loop, with the trained bank retained.
+
+    Settings match the published §5e grid: ``PILConfig`` frame-reg 0, margin weight 0.5,
+    margin target 1.8, AdamW lr 5e-3, 2048 examples, 75/25 split from ``seed + 99``.
+    """
     cfg = PILConfig(dim=dim, n_propositions=V, n_sources_per_step=1, lr=5e-3, frame_reg=0.0,
                     margin_weight=0.5, margin_target=1.8, seed=seed, device=device)
     z, A, tgt, _, hc = create_compositional_problem(
@@ -50,6 +55,13 @@ def run(n_hard, M, dim, V, K, n_clusters, steps, batch, seed, device):
         out["total_loss"].backward()
         opt.step()
         model.normalize_U()
+    return model, bank, z, A, tgt, hc, ev
+
+
+def run(n_hard, M, dim, V, K, n_clusters, steps, batch, seed, device):
+    model, bank, z, A, tgt, hc, ev = train_bank(
+        n_hard, M, dim, V, K, n_clusters, steps, batch, seed, device
+    )
     L = model.forward(build_sources(z[ev], A, bank), target=None)["logits"]
     return within_cluster_report(L, tgt[ev], hc)["hard_within_acc"]
 
