@@ -347,6 +347,19 @@ Same banks, same seed, same holdout. `experiments/rule_participation_audit.py` a
 
 Every rule flips at least 23 held-out rows: `M=16` flips 23–54 and `M=8` flips 68–98. A held rule is under the `0.05` cut and still has a nonzero flip count. The material rules are `M=16` rules 0, 4, and 14 (drops `0.068359`, `0.062500`, `0.064453`) and `M=8` rules 0, 3, 4, 5, and 6 (drops `0.076172`, `0.076172`, `0.070312`, `0.070312`, `0.080078`).
 
+### Multi-seed follow-up: packing persists, single-rule materiality has a boundary
+
+The [45-bank follow-up](xor_coalition_outcome.md) crosses five seeds, budgets
+8/16/32, and 8/16/24 hard clusters (24 total clusters, same training loop).
+All 840 rules move margins on multiple disjoint hard clusters. However, the
+predeclared broad coalition criterion fails: M=32 with 24 hard clusters has
+material single-rule deletions in only 1/5 banks; the other eight cells have 5/5.
+The four exceptions cross the same 0.05 accuracy-drop cut after 2–4 cumulative
+training-ranked deletions. Packing is robust in this grid; materiality of an
+individual rule depends on budget and task. The original single-seed results
+above remain unchanged. The new noisy hard-cluster concentration diagnostic is
+spread for 735/840 rules; it is not the original clean/weight agreement test.
+
 ## 5f. The interference is mild and lives in ℝ^M — coherence tracks the Welch floor only when n > M
 
 `experiments/interference_probe.py`. The open routing-side conjecture says: at fixed rule budget `M`
