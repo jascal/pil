@@ -1,0 +1,55 @@
+{
+  "schema": "pdc.r7-diagnostic-verification.v1",
+  "frames": {
+    "initial": {
+      "admitted": {
+        "original": 0,
+        "half_floor": 0,
+        "highest_plus_bias": 0,
+        "random_plus_bias": 0
+      },
+      "protected_matches": 183,
+      "body_values_checked": 1950,
+      "maximum_discrepancy": 2.1316282072803006e-13,
+      "singleton_host_matches": 9,
+      "singleton_strict_drift_matches": 0
+    },
+    "decode": {
+      "admitted": {
+        "original": 0,
+        "half_floor": 0,
+        "highest_plus_bias": 0,
+        "random_plus_bias": 0
+      },
+      "protected_matches": 183,
+      "body_values_checked": 1950,
+      "maximum_discrepancy": 6.821210263296962e-13,
+      "singleton_host_matches": 9,
+      "singleton_strict_drift_matches": 0
+    },
+    "admission": {
+      "admitted": {
+        "original": 0,
+        "half_floor": 0,
+        "highest_plus_bias": 0,
+        "random_plus_bias": 0
+      },
+      "protected_matches": 183,
+      "body_values_checked": 1950,
+      "maximum_discrepancy": 5.684341886080801e-13,
+      "singleton_host_matches": 9,
+      "singleton_strict_drift_matches": 0
+    }
+  },
+  "input_hashes_verified": true,
+  "new_model_calls": 0,
+  "final_heldout_used": 0,
+  "accounting_note": "26 materialized bodies include one bias-only body requiring zero projection dots",
+  "accounting_per_frame": {
+    "unique_bodies": 1950,
+    "native_source_projection_row_dots": 3193125,
+    "protected_pool_projection_row_dots": 311649,
+    "duplicate_train_tail_projection_row_dots": 127725,
+    "body_score_annotations": 3320850
+  }
+}
