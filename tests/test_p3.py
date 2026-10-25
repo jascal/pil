@@ -29,11 +29,11 @@ def test_backtracking_terminates_and_enforces_at_hostile_lr():
     """lr=1.0 would scramble everything unclipped; the trust region must keep every
     currently-decided context decided, terminating via alpha halving (alpha=0 worst case)."""
     cfg, model, src, tgt = setup()
-    t_frozen = model.forward(src, target=None)["logits"].argmax(-1)   # entry decisions
+    t_frozen = model.forward(src, target=None)["logits"].argmax(-1)  # entry decisions
     p3 = run_phase(model, src, t_frozen, lr=1.0, steps=25)
     s = p3.summary()
-    assert s["enforced_flips_total"] == 0                  # the hard constraint, exact
-    assert s["clip_frac"] > 0.0                            # hostile lr must actually clip
+    assert s["enforced_flips_total"] == 0  # the hard constraint, exact
+    assert s["clip_frac"] > 0.0  # hostile lr must actually clip
     assert torch.isfinite(model.U).all()
     # decided set is a ratchet: everything decided at entry is still decided
     L = model.forward(src, target=None)["logits"]
@@ -64,7 +64,7 @@ def test_alpha_zero_restores_exactly():
     t_frozen = model.forward(src, target=None)["logits"].argmax(-1)
     U0 = model.U.detach().clone()
     b0 = model.bias.detach().clone()
-    opt = torch.optim.AdamW(model.parameters(), lr=50.0)   # absurd: forces alpha -> 0
+    opt = torch.optim.AdamW(model.parameters(), lr=50.0)  # absurd: forces alpha -> 0
     p3 = CertifiedP3(model, opt, src, t_frozen, alpha_min=0.5)  # only alpha=1, 0.5 tried
     rec = p3.step(model.forward(src, target=t_frozen)["total_loss"])
     if rec["alpha"] == 0.0:
@@ -77,8 +77,8 @@ def test_exact_floor_variant_counts_excluded_flips():
     t_frozen = model.forward(src, target=None)["logits"].argmax(-1)
     p3 = run_phase(model, src, t_frozen, lr=0.05, steps=15, exact_floor=0.05)
     s = p3.summary()
-    assert s["enforced_flips_total"] == 0                  # above-floor contexts still exact
-    assert s["flips_on_excluded_total"] >= 0               # counted, reported, never silent
+    assert s["enforced_flips_total"] == 0  # above-floor contexts still exact
+    assert s["flips_on_excluded_total"] >= 0  # counted, reported, never silent
 
 
 def test_reflip_events_counted_independently_of_first_flip():
@@ -88,22 +88,22 @@ def test_reflip_events_counted_independently_of_first_flip():
     bank = src[:16]
     cert = TrajectoryCertificate(model, bank)
     U_orig = model.U.detach().clone()
-    with torch.no_grad():                                   # flip: scramble the frame
+    with torch.no_grad():  # flip: scramble the frame
         model.U.copy_(torch.randn_like(model.U))
     model.normalize_U()
     cert.step()
-    with torch.no_grad():                                   # recover: restore the frame
+    with torch.no_grad():  # recover: restore the frame
         model.U.copy_(U_orig)
     model.normalize_U()
     cert.step()
-    with torch.no_grad():                                   # flip again
+    with torch.no_grad():  # flip again
         model.U.copy_(torch.randn_like(model.U) + 1.0)
     model.normalize_U()
     cert.step()
     s = cert.summary()
-    assert s["total_flip_events"] >= 2 * (s["total_new_flips"] > 0)   # re-flips seen
-    assert s["total_flip_events"] > s["total_new_flips"]              # strictly more events
-    assert s["viol_premise_flip"] == 0                     # huge deltas: premise never held
+    assert s["total_flip_events"] >= 2 * (s["total_new_flips"] > 0)  # re-flips seen
+    assert s["total_flip_events"] > s["total_new_flips"]  # strictly more events
+    assert s["viol_premise_flip"] == 0  # huge deltas: premise never held
 
 
 def test_tmass_groups_tracked():
@@ -125,7 +125,7 @@ def test_renorm_free_does_not_project_rows_to_unit_sphere():
     """renorm=False is the teacher-seeded variant: a frame's row norms carry its margin structure,
     so a phase must leave them untouched (renorm=True would unit-normalize them)."""
     cfg, model, src, tgt = setup()
-    with torch.no_grad():                                   # varied, non-unit row norms (teacher-like)
+    with torch.no_grad():  # varied, non-unit row norms (teacher-like)
         model.U.data *= torch.linspace(0.5, 3.0, model.U.shape[0]).unsqueeze(1)
     t = model.forward(src)["logits"].argmax(-1)
 
@@ -140,4 +140,26 @@ def test_renorm_free_does_not_project_rows_to_unit_sphere():
     # the varied entry norms survive: not collapsed to the unit sphere (renorm=True would)
     assert not torch.allclose(norms, torch.ones_like(norms), atol=0.1), "renorm=False must not unit-normalize"
     assert norms.max() / norms.min() > 2.0, "the varied row-norm structure is preserved"
-    assert all(r["enforced_flips"] == 0 for r in p3.records)   # inviolability still exact
+    assert all(r["enforced_flips"] == 0 for r in p3.records)  # inviolability still exact
+
+
+def test_candidate_guard_rejects_and_restores_exactly():
+    _, model, src, _ = setup(n=8)
+    frozen = model.forward(src, target=None)["logits"].argmax(-1)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001)
+    calls = []
+
+    def reject():
+        calls.append(True)
+        return False
+
+    guard = CertifiedP3(model, optimizer, src, frozen, renorm=False, alpha_min=1 / 16, candidate_guard=reject)
+    before_U = model.U.detach().clone()
+    before_b = model.bias.detach().clone()
+    loss = model.forward(src, target=frozen)["total_loss"]
+    record = guard.step(loss)
+    assert calls
+    assert record["alpha"] == 0
+    assert record["delta"] == 0
+    assert torch.equal(model.U, before_U)
+    assert torch.equal(model.bias, before_b)

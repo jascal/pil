@@ -1,0 +1,2946 @@
+[
+  {
+    "position": 0,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_000.npz",
+      "frame_sha256": "76abbc685d7d62be2fd437795044dd0fcd441c7590928c12dafde7e293d1bb63",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 1,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_001.npz",
+      "frame_sha256": "aeb7f84ec2c95014486c7ed545d82826ade7393b51778aa1057f817b54d46ad8",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 2,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_002.npz",
+      "frame_sha256": "0528ac6e1799c4825ef5c29d5b26e90da3e7c3038edf1f71ee15cc85674f062f",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 3,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_003.npz",
+      "frame_sha256": "52170352d85b7c4ac211ff45c2736bb363c9d1237d59d12fdd96fc701dfcb991",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 4,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_004.npz",
+      "frame_sha256": "1745aa455027e08a1d56b70cc4ad25d63d32e6aa5174ab41c7af5a2e53825d03",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 5,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_005.npz",
+      "frame_sha256": "40436500222fad775e1dce2779fcc17b87b7d2e16130d2bfc929ac8c775deebe",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 6,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_006.npz",
+      "frame_sha256": "5560f982cf29b539ab02d93228825891b0cc8897af95cc2c631cb7e3e7f90e94",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 7,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_007.npz",
+      "frame_sha256": "c048d1ab43d5d7069e6b492d875d8d288b0d8042f7efd36fe31dc670fed9e0f4",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 8,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_008.npz",
+      "frame_sha256": "1ee219ecf3fbd0e93972a4d73f8485fe9fe952c6c14bfa181e296d6040262794",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 9,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_009.npz",
+      "frame_sha256": "d6ca6672d8baaeb5736ea7ae025f1c8627d586c027b2595b4572a7d18d6a239b",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 10,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_010.npz",
+      "frame_sha256": "06658ead4fe856ceaf37baf7aad0d120b5621e85a0a7e149bb448cc5fb856fc2",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 11,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_011.npz",
+      "frame_sha256": "39ce51b63651dac325791855453dac144f685078bc2addd18e400a5c28379548",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 12,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_012.npz",
+      "frame_sha256": "814af8a38ab50ae17d8737da3db1e3f89245aad2858e77b237474ffe7daedfa2",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 13,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_013.npz",
+      "frame_sha256": "4959329b3f5690ef12f06f19db45fdca9c878e16a9b7a0e4a0f28a40b49c980b",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 14,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_014.npz",
+      "frame_sha256": "108e5b023781f399e81a3371d4b792d0fc5b0c36c71575e457d042e19d401b7b",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 15,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_015.npz",
+      "frame_sha256": "71433801062c2233e4e63a85d2ad09684240b6f60943bc629d8ec42bbd60420b",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 16,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_016.npz",
+      "frame_sha256": "c19ebe041abf947315bb12edb4342192cfbbc4a47e83d01be080c89f2f0416fd",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 17,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_017.npz",
+      "frame_sha256": "4d7dba4010fbf2a9693c5307749e8ec8539c2e72173eb49670d7e3d00986769a",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 18,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_018.npz",
+      "frame_sha256": "b40e7c7f2afeeca644057a1ce06a8f3eae4ade7058ae522aec1a8c8ab749673f",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 19,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_019.npz",
+      "frame_sha256": "062779c144fb0df60088df5454bed96d3e4877d5434e744eec2579d9796647ec",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 20,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_020.npz",
+      "frame_sha256": "3fb10f410e75064e5f966496cd6c4144950705eb3cf804e16ffe0a2001211478",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 21,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_021.npz",
+      "frame_sha256": "26d0cdbe9f8a7dadf9130f6ba79a111ee7f8c9dbe470e97943cc38d75e2dfc40",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 22,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_022.npz",
+      "frame_sha256": "effa8297b37a73c54b6e0e23d057af16c15c657119c706cc70e6eb15d0a7930b",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 23,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_023.npz",
+      "frame_sha256": "c98832196bb72915ee97e98022a64d58796d4d5d1bbf54576cedc495e11a3b23",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 24,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_024.npz",
+      "frame_sha256": "09fda7e096417dead55d2859021d279e683a22c844e7815968b2c892553c96ed",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 25,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_025.npz",
+      "frame_sha256": "a91a032b6e0d0a45c55654d2e11c38a2ec6fc14ed059aa84c1e0da03dfa4cd82",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 26,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_026.npz",
+      "frame_sha256": "57f786c31d8bb6fe1180f4603814728dd0beb8f0b05c4a1c49fd5ffe5f4f721b",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 27,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_027.npz",
+      "frame_sha256": "a98c03af4aaceea82e88a95917a846b996a068a2b6119b93c95ba2879538d12e",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 28,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_028.npz",
+      "frame_sha256": "2642c3e2e40169bd45463e4bb4ab9dde56736e578b072ede002940e5d4341dae",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 29,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_029.npz",
+      "frame_sha256": "571be4977edf46d2047b19b022f534d339df29cb550cf4101eb7c0b7ca0abce3",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 30,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_030.npz",
+      "frame_sha256": "1a31514930552157d945e4c68f02abe4d8976155ffc0414a0d0e9886e5542562",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 31,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_031.npz",
+      "frame_sha256": "928b16c012fb4b2794975bd3db04c5621ad53cfe291c6faec07e40bd823e071c",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 32,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_032.npz",
+      "frame_sha256": "5af87b8ffeaf4ca3d32e2d3be9350504b97cbc5f5abf160c9f19c3e5bfb9ef83",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 33,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_033.npz",
+      "frame_sha256": "4ec2a72a63af799c3d671aa0552a0435d858b0b4184e6a439af045b6dfa14190",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 34,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_034.npz",
+      "frame_sha256": "32c9a9a7013b9812527b40a4c196b5a5644589f7bfb626c428dc0140acf6b96c",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 35,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_035.npz",
+      "frame_sha256": "5e3167d31790950860f36f4bc4603ea3907429050a9519cbfaf4d45eb90246b5",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 36,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_036.npz",
+      "frame_sha256": "2ffaebfe7c7ad488fdc09a53aa1870b7fb27abaca0260946d62b258c723295b2",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 37,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_037.npz",
+      "frame_sha256": "5c0420e43929ce8fc583b6fd1818cfe1c00e668081ca8ac1343bf91f47e7ab12",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 38,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_038.npz",
+      "frame_sha256": "ec71304015318da3b1deb9092e13a63b8864dd3e7f8d969a8761913cf3f8205b",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 39,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_039.npz",
+      "frame_sha256": "3ab46aa8abf91d29ed0d30141b263bf2eb5a4679213dfddc00eecbd69dc61f8c",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 40,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_040.npz",
+      "frame_sha256": "c473f09d945d5300a607cf3774dbcbe1af0acd3d72662f02c7fa81adb78a8992",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 41,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_041.npz",
+      "frame_sha256": "a8b553d3062919800c02bec92a13bbb35fe14f2647863f4e2e288aef17f9070e",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 42,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_042.npz",
+      "frame_sha256": "c8ba45cd4f08818b2d2ebbead25cdc19ec9fa4315d420f3e63a2f8889775dbd3",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 43,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_043.npz",
+      "frame_sha256": "1ecac9daee473b94d4a799356d4815142508389c7a4b2515b1fd141943ee41ef",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 44,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_044.npz",
+      "frame_sha256": "588731c19935579877cbd30163affa368e701c50700e1addf539fc67e2dac54d",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 45,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_045.npz",
+      "frame_sha256": "8289cd0c8d4fdf2c5f1531c5ff34c133a393e14dece165c0600646ef058c0979",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 46,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_046.npz",
+      "frame_sha256": "000d3b0fa384886c09e6eaead335ae30118609e3b5ed604369fdcc82a205221a",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 47,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_047.npz",
+      "frame_sha256": "4640f37dd2443244ff7432c28794e265ad1134153fb7ae7388cdaa136197e3ac",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 48,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_048.npz",
+      "frame_sha256": "373a416f83aa34d851cf8a132e7f52dcb48d05596a67e21023ceebbc4f3f981d",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 49,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_049.npz",
+      "frame_sha256": "a51b8e30bf59fdfaea8bba97ccf780279ea1f45c3ed0a51a845dc9c02de8a8fe",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 50,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_050.npz",
+      "frame_sha256": "661bc33db6e62a8f278f766b7989ea0179cf7450aac13f540391586dcb6cf6db",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 51,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_051.npz",
+      "frame_sha256": "fabee0d5993a95ca535aaf9b1a4a09fefe2b70268fa46b7a1300d83e73738692",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 52,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_052.npz",
+      "frame_sha256": "4f363db22af7f90d2104181217a90fbcea33be80b7ec464c95bc4bf20ac4c2db",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 53,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_053.npz",
+      "frame_sha256": "e8c63612bc7b69b8532e076c8b07ffdd6901f83565a428e8470a794223dd25d9",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 54,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_054.npz",
+      "frame_sha256": "d8b96287931c9c824d807a3d2d57d2a93c8614dd69f5c5c3fe7bb562395c3dac",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 55,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_055.npz",
+      "frame_sha256": "a1cc533a5a8fcaffb5b0d8389ca8c52fb1d9f173c6ea4bb522d905fa2adb86e2",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 56,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_056.npz",
+      "frame_sha256": "ce29dd440f49b06c06611f811952e172f4fcc20217630cf7dd4ea52c1a6e8b51",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 57,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_057.npz",
+      "frame_sha256": "7a014d25893167e1713e14b24c9e138df571c796909e60abcb9ec78caeea9bac",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 58,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_058.npz",
+      "frame_sha256": "d74552ff7efd8072d34b8f66f970faeb5626b8fc483221d65f67b87eae184066",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 59,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_059.npz",
+      "frame_sha256": "63e68bed532edce2c089e2e25315f7c5e4d6a0ec69403cbed131cddf161cc2e9",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 60,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_060.npz",
+      "frame_sha256": "ded44fa527a390ffd84c1a58e14c678ee985ddfa09a60a91bcc08a3095258aae",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.0,
+        "gamma": 0.5,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.0,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.0,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 61,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_061.npz",
+      "frame_sha256": "968ff2747337195920bc1ae885f5decc8ee55407736daba528bf2c57914fd9b6",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.25,
+        "gamma": 0.625,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.25
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.25
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 62,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_062.npz",
+      "frame_sha256": "a9063d5332045532be92688a0317774b6a258e6fcf76e5ed06eff3ed6243f521",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 0,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          0,
+          1
+        ],
+        "margin": 1.5,
+        "gamma": 0.75,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          1.5,
+          0.0
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          1.5,
+          0.0
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  },
+  {
+    "position": 63,
+    "status": "reducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "feasible",
+        "primal_max_violation": 0.0
+      }
+    ],
+    "witness": {
+      "frame_path": "results/pdc_r4/positive_frame_063.npz",
+      "frame_sha256": "60a353cf8239d0bc611c79359fab992c37086d330bea27cd105d703d5e6a3c44",
+      "faithful_margin": 1.0,
+      "source": 0,
+      "admission": {
+        "admitted": true,
+        "target": 1,
+        "coalition": [
+          0
+        ],
+        "candidates": [
+          1,
+          0
+        ],
+        "margin": 1.75,
+        "gamma": 0.875,
+        "delta": 0.0,
+        "kappa": 0.0,
+        "coalition_scores": [
+          0.0,
+          -1.75
+        ],
+        "tail_scores": [
+          0.0,
+          0.0
+        ],
+        "full_scores": [
+          0.0,
+          -1.75
+        ],
+        "substitution_error": 0.0,
+        "full_strict_target": true
+      }
+    }
+  }
+]
