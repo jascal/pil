@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+
 import numpy as np
 
 
@@ -65,7 +66,11 @@ def main():
                 j = int(good[0]) if len(good) else int(violation.argmin())
                 v = verdicts[i]
                 assert v['admitted'] == bool(len(good)) and v['source'] == j
-                for key, value in [('margin', margin[j]), ('two_delta', delta[j]), ('violation', violation[j])]:
+                for key, value in [
+                    ('margin', margin[j]),
+                    ('two_delta', delta[j]),
+                    ('violation', violation[j]),
+                ]:
                     max_error = max(max_error, abs(v[key] - value))
                 admitted.append(bool(len(good)))
                 if saved is not None:
@@ -92,8 +97,14 @@ def main():
                 maximum_oracle_error=max_error)
         reports[arm] = endpoints
     report = dict(gate='passed', arms=reports,
-        intermediate_scope='Consistency checks of saved runtime logs; intermediate frames were not independently reconstructed.',
-        endpoint_scope='Independent NumPy reconstruction of every source guard, full-host decisions and full-vocabulary frame potential.',
+        intermediate_scope=(
+            'Consistency checks of saved runtime logs; '
+            'intermediate frames were not independently reconstructed.'
+        ),
+        endpoint_scope=(
+            'Independent NumPy reconstruction of every source guard, '
+            'full-host decisions and full-vocabulary frame potential.'
+        ),
         data_sha256=hashlib.sha256(a.data.read_bytes()).hexdigest(), new_model_forwards=0)
     a.out.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))
