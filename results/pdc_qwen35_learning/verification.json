@@ -1,0 +1,45 @@
+{
+  "gate": "passed",
+  "arms": {
+    "decode": {
+      "initial": {
+        "admitted": 0,
+        "protected_matches": 208,
+        "minimum_global_margin": 0.39489547714058304,
+        "fp": 0.026851433043415994,
+        "welch": 0.00038659949500440964,
+        "maximum_oracle_error": 6.750155989720952e-14
+      },
+      "final": {
+        "admitted": 0,
+        "protected_matches": 208,
+        "minimum_global_margin": 1.3205510594360703e-05,
+        "fp": 0.026851455264208547,
+        "welch": 0.00038659949500440964,
+        "maximum_oracle_error": 1.2434497875801753e-13
+      }
+    },
+    "admission": {
+      "initial": {
+        "admitted": 0,
+        "protected_matches": 208,
+        "minimum_global_margin": 0.39489547714058304,
+        "fp": 0.026851433043415994,
+        "welch": 0.00038659949500440964,
+        "maximum_oracle_error": 6.750155989720952e-14
+      },
+      "final": {
+        "admitted": 0,
+        "protected_matches": 208,
+        "minimum_global_margin": 1.8858629744045174e-05,
+        "fp": 0.02685176383304397,
+        "welch": 0.00038659949500440964,
+        "maximum_oracle_error": 1.2079226507921703e-13
+      }
+    }
+  },
+  "intermediate_scope": "Consistency checks of saved runtime logs; intermediate frames were not independently reconstructed.",
+  "endpoint_scope": "Independent NumPy reconstruction of every source guard, full-host decisions and full-vocabulary frame potential.",
+  "data_sha256": "771a77f88c9b5074165570ec75ea7787660ab59b58fbcb96e46f24fda80d8e99",
+  "new_model_forwards": 0
+}

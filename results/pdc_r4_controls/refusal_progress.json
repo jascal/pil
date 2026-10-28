@@ -1,0 +1,49 @@
+[
+  {
+    "position": 0,
+    "status": "irreducible",
+    "attempts": [
+      {
+        "source": 0,
+        "status": "infeasible",
+        "dual": [
+          0.0,
+          0.5,
+          -0.0,
+          0.5
+        ],
+        "dual_max_residual": 0.0,
+        "dual_rhs": -1.0,
+        "dual_min": -0.0,
+        "dual_exact_rational_check": true,
+        "dual_rational": [
+          "0",
+          "1/2",
+          "0",
+          "1/2"
+        ]
+      },
+      {
+        "source": 1,
+        "status": "infeasible",
+        "dual": [
+          0.0,
+          -0.0,
+          0.5,
+          0.5
+        ],
+        "dual_max_residual": 0.0,
+        "dual_rhs": -1.0,
+        "dual_min": -0.0,
+        "dual_exact_rational_check": true,
+        "dual_rational": [
+          "0",
+          "0",
+          "1/2",
+          "1/2"
+        ]
+      }
+    ],
+    "witness": null
+  }
+]

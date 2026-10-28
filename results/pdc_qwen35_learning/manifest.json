@@ -1,0 +1,16 @@
+{
+  "schema": "pdc.qwen35-frame-learning-run.v1",
+  "sha256": {
+    "/tmp/pdc-fieldrun-review/experiments/pdc_qwen35_memory/learning_data.npz": "771a77f88c9b5074165570ec75ea7787660ab59b58fbcb96e46f24fda80d8e99",
+    "/tmp/pdc-fieldrun-review/experiments/pdc_qwen35_memory/learning_data.json": "ced4f40697dc0579ff8cf69b678ff521902c55dbdff42882212946917aa5b1d6",
+    "/tmp/pdc-fieldrun-review/experiments/pdc_qwen35_memory/learning_data_verification.json": "d178d67bfe5bedcbf0950cb74680cee550270c142fca8370c65a053dbab8aa45",
+    "docs/notes/pdc_qwen35_learning_prereg.md": "f66c04f33563c70c1348b73d0fdc371b84cc6c70dbf22ee49044571e48a62986",
+    "/tmp/pdc-pil-review/experiments/pdc_qwen35_learning.py": "8a9481f2466f65df7b1542e5af9ad4eb9217a4340d56adf68cb97a0343784fb1",
+    "pil/p3.py": "280c6f836d99b58210507c89a9a36afe5f5fbf40c546487ed3c209c43bb2dae1"
+  },
+  "proposals_per_arm": 200,
+  "seed": 20261027,
+  "torch_threads": 4,
+  "input_embedding_and_backbone": "fixed",
+  "fresh_confirmation": false
+}

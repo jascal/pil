@@ -30,6 +30,8 @@ Off by default: nothing in the learner calls this unless a ``CertifiedP3`` is co
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import torch
 from torch import Tensor
 
@@ -69,6 +71,7 @@ class CertifiedP3:
         exact_floor: float | None = None,
         alpha_min: float = 1.0 / 1024,
         renorm: bool = True,
+        candidate_guard: Callable[[], bool] | None = None,
     ):
         self.model = model
         self.opt = optimizer
@@ -83,15 +86,16 @@ class CertifiedP3:
         # ones. Row renorm is a pil training convention, not a T-traj premise — the theorem only
         # needs ε=max‖ΔU_v‖ and β, which the backtrack measures either way.
         self.renorm = renorm
+        self.candidate_guard = candidate_guard
 
         self.sources = sources
         self.t = t_frozen.clone()
-        self.group = torch.zeros(sources.shape[0], dtype=torch.long)   # T-mass support groups
+        self.group = torch.zeros(sources.shape[0], dtype=torch.long)  # T-mass support groups
         self._recompute_rho()
-        self.budget = 0.0                       # Σ_s δ_s of ACCEPTED steps (the T-traj budget)
+        self.budget = 0.0  # Σ_s δ_s of ACCEPTED steps (the T-traj budget)
         self.n_steps = 0
         self.records: list[dict] = []
-        self.flips_on_excluded = 0              # exact_floor variant: counted, never silent
+        self.flips_on_excluded = 0  # exact_floor variant: counted, never silent
         with torch.no_grad():
             self.m0 = self._margins().clone()
 
@@ -110,7 +114,7 @@ class CertifiedP3:
         self.group = torch.cat([self.group, torch.full((sources.shape[0],), gid)])
         self._recompute_rho()
         with torch.no_grad():
-            self.m0 = torch.cat([self.m0, self._margins()[-sources.shape[0]:]])
+            self.m0 = torch.cat([self.m0, self._margins()[-sources.shape[0] :]])
 
     @torch.no_grad()
     def _margins(self) -> Tensor:
@@ -141,7 +145,7 @@ class CertifiedP3:
         loss.backward()
         self.opt.step()
         if self.renorm:
-            model.normalize_U()                 # moments keep the FULL step (clip is applied-change only)
+            model.normalize_U()  # moments keep the FULL step (clip is applied-change only)
 
         with torch.no_grad():
             U1 = model.U.detach().clone()
@@ -149,7 +153,7 @@ class CertifiedP3:
 
             alpha, tries = 1.0, 0
             while True:
-                if alpha < self.alpha_min:      # exact restore: δ = 0, no flips, guaranteed accept
+                if alpha < self.alpha_min:  # exact restore: δ = 0, no flips, guaranteed accept
                     alpha = 0.0
                     model.U.data.copy_(U0)
                     model.bias.data.copy_(b0)
@@ -166,10 +170,11 @@ class CertifiedP3:
                 L = model.forward(self.sources, target=None)["logits"]
                 decided_now = L.argmax(dim=-1) == self.t
                 m_now = margin_to_worst(L, self.t)
-                cond_a = bool((enforce & ~decided_now).sum() == 0)     # exact inviolability
-                cond_b = 2.0 * delta <= self.eta * m_protect           # certificate headroom
+                cond_a = bool((enforce & ~decided_now).sum() == 0)  # exact inviolability
+                cond_b = 2.0 * delta <= self.eta * m_protect  # certificate headroom
+                cond_extra = self.candidate_guard is None or (cond_a and cond_b and self.candidate_guard())
                 tries += 1
-                if cond_a and cond_b:
+                if cond_a and cond_b and cond_extra:
                     break
                 alpha *= 0.5
 
@@ -177,7 +182,7 @@ class CertifiedP3:
                 excl = decided_prev & ~enforce
                 self.flips_on_excluded += int((excl & ~decided_now).sum())
 
-            certified = m_prev > 2.0 * delta    # per-context step_decode_preserved premise
+            certified = m_prev > 2.0 * delta  # per-context step_decode_preserved premise
             self.budget += delta
             self.n_steps += 1
             rec = {
@@ -188,7 +193,7 @@ class CertifiedP3:
                 "eps": eps,
                 "beta": beta,
                 "delta": delta,
-                "enforced_flips": int((enforce & ~decided_now).sum()),   # must be 0
+                "enforced_flips": int((enforce & ~decided_now).sum()),  # must be 0
                 "flips_on_excluded_total": self.flips_on_excluded,
                 "certified_frac": float(certified.float().mean()),
                 "premise_hold_rate": float((m_prev > 2.0 * delta).float().mean()),
@@ -235,7 +240,7 @@ class CertifiedP3:
         return {
             "n_steps": self.n_steps,
             "rho": self.rho,
-            "eta": self.eta,                       # effective headroom used (review item)
+            "eta": self.eta,  # effective headroom used (review item)
             "m_floor": self.m_floor,
             "exact_floor": self.exact_floor,
             "enforced_flips_total": int(sum(r["enforced_flips"] for r in self.records)),

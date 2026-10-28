@@ -1,0 +1,8 @@
+{
+  "saved_primal_frames_checked": 80,
+  "margin_admissions_checked": 11,
+  "numeric_max_faithfulness_violation": 1.843787345023884e-10,
+  "minimum_admitted_guard_slack": 0.1026383434093815,
+  "positive_admissions_checked": 64,
+  "exact_rational_refusal_duals_checked": 2
+}

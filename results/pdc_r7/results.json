@@ -1,0 +1,2477 @@
+{
+  "decode": {
+    "initial": [
+      {
+        "admitted": false,
+        "source": 15,
+        "margin": -1.4255163444539471,
+        "two_delta": 13.827652704029983,
+        "violation": 15.25316904848393,
+        "gamma": 6.2010681797880185
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.840053536889524,
+        "two_delta": 18.93286637736439,
+        "violation": 21.772919914253915,
+        "gamma": 8.046406420237433
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.441197257933176,
+        "two_delta": 20.359673210992142,
+        "violation": 23.800870468925318,
+        "gamma": 8.459237976529483
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.2941800697853125,
+        "two_delta": 20.649670059799845,
+        "violation": 22.943850129585158,
+        "gamma": 9.177744995007266
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.273777421852756,
+        "two_delta": 20.912562961022445,
+        "violation": 24.1863403828752,
+        "gamma": 8.819392769584844
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8122740388593765,
+        "two_delta": 16.880794467288872,
+        "violation": 17.69306850614825,
+        "gamma": 8.034260214214747
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.042826096318361,
+        "two_delta": 21.04585737649785,
+        "violation": 24.08868347281621,
+        "gamma": 9.001515640089744
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.518587397682566,
+        "two_delta": 22.866813135626046,
+        "violation": 26.385400533308612,
+        "gamma": 9.67411286897174
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.325320927794344,
+        "two_delta": 22.67074612934948,
+        "violation": 24.996067057143826,
+        "gamma": 10.172712600777569
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.779543530802897,
+        "two_delta": 23.381971898112184,
+        "violation": 26.16151542891508,
+        "gamma": 10.301214183654643
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.4572468379287322,
+        "two_delta": 18.743502410030338,
+        "violation": 19.20074924795907,
+        "gamma": 9.143127786050803
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.4999480815381183,
+        "two_delta": 22.477588278735666,
+        "violation": 25.977536360273785,
+        "gamma": 9.488820098598774
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.140289922990874,
+        "two_delta": 23.348848789367338,
+        "violation": 26.489138712358212,
+        "gamma": 10.104279433188232
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.345535196903782,
+        "two_delta": 24.916318863296937,
+        "violation": 28.26185406020072,
+        "gamma": 10.785391833196577
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.9004657926345203,
+        "two_delta": 23.59626476883051,
+        "violation": 26.49673056146503,
+        "gamma": 10.347899488097994
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.558396411279162,
+        "two_delta": 17.021884132033044,
+        "violation": 17.580280543312206,
+        "gamma": 8.231743860376941
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.3110279630032906,
+        "two_delta": 21.63554706472253,
+        "violation": 24.94657502772582,
+        "gamma": 9.16225955085962
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.0548036932753604,
+        "two_delta": 23.636461237706953,
+        "violation": 26.691264930982314,
+        "gamma": 10.290828772215797
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.37792062023547857,
+        "two_delta": 27.47268452373605,
+        "violation": 27.850605143971528,
+        "gamma": 13.547381951750285
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.9384736920207146,
+        "two_delta": 22.788010046622105,
+        "violation": 25.72648373864282,
+        "gamma": 9.924768177300695
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.36125376749403415,
+        "two_delta": 16.40158569552915,
+        "violation": 16.762839463023184,
+        "gamma": 8.020165964017558
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.8022950475250425,
+        "two_delta": 21.553339319496985,
+        "violation": 24.355634367022027,
+        "gamma": 9.375522135985971
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.89269850941335,
+        "two_delta": 25.050254774096175,
+        "violation": 28.942953283509524,
+        "gamma": 10.578778132341412
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8913182867509377,
+        "two_delta": 27.38914509884127,
+        "violation": 28.280463385592206,
+        "gamma": 13.248913406045165
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.88013959514511,
+        "two_delta": 22.224629638735607,
+        "violation": 25.104769233880717,
+        "gamma": 9.672245021795248
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.7701913239411127,
+        "two_delta": 14.614119499711933,
+        "violation": 15.384310823653045,
+        "gamma": 6.92196408788541
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.2842459621542215,
+        "two_delta": 16.949542443080468,
+        "violation": 18.23378840523469,
+        "gamma": 7.832648240463123
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.029888179982641816,
+        "two_delta": 23.30232986543838,
+        "violation": 23.27244168545574,
+        "gamma": 11.666109022710511
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.6380604421545613,
+        "two_delta": 20.977034353855785,
+        "violation": 23.615094796010347,
+        "gamma": 9.169486955850612
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.666883330672313,
+        "two_delta": 20.71397568895975,
+        "violation": 24.380859019632062,
+        "gamma": 8.523546179143718
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5805950576886811,
+        "two_delta": 16.620187636998082,
+        "violation": 17.200782694686765,
+        "gamma": 8.0197962896547
+      },
+      {
+        "admitted": false,
+        "source": 20,
+        "margin": -0.8145342743907209,
+        "two_delta": 24.338927339208055,
+        "violation": 25.153461613598775,
+        "gamma": 11.762196532408668
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.2546665870241682,
+        "two_delta": 27.623417598677136,
+        "violation": 27.368751011652968,
+        "gamma": 13.939042092850652
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.8204415371116056,
+        "two_delta": 22.910447946943023,
+        "violation": 25.73088948405463,
+        "gamma": 10.045003204915709
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.9908864833836546,
+        "two_delta": 23.169615089900105,
+        "violation": 26.16050157328376,
+        "gamma": 10.089364303258225
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3399478927265598,
+        "two_delta": 17.43168586908454,
+        "violation": 17.7716337618111,
+        "gamma": 8.54586898817899
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.13108326318997499,
+        "two_delta": 25.134672779619095,
+        "violation": 25.00358951642912,
+        "gamma": 12.632878021404535
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.4673264982044785,
+        "two_delta": 22.69268765447255,
+        "violation": 26.16001415267703,
+        "gamma": 9.612680578134036
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.07728498484323154,
+        "two_delta": 27.085823322004217,
+        "violation": 27.163108306847448,
+        "gamma": 13.504269168580493
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.050514787215576,
+        "two_delta": 22.891120248424983,
+        "violation": 25.94163503564056,
+        "gamma": 9.920302730604703
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.507250021637141,
+        "two_delta": 15.677917303317976,
+        "violation": 16.185167324955117,
+        "gamma": 7.5853336408404175
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.042333438574775784,
+        "two_delta": 24.34709652553714,
+        "violation": 24.304763086962364,
+        "gamma": 12.194714982055958
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.8729649260776426,
+        "two_delta": 23.283325694087637,
+        "violation": 27.15629062016528,
+        "gamma": 9.705180384004997
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.39585924069962175,
+        "two_delta": 24.985013294305332,
+        "violation": 25.380872535004954,
+        "gamma": 12.294577026802855
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.156194349603929,
+        "two_delta": 23.66810602395077,
+        "violation": 24.8243003735547,
+        "gamma": 11.25595583717342
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3755611384135946,
+        "two_delta": 15.118593588271317,
+        "violation": 15.494154726684911,
+        "gamma": 7.371516224928861
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.009144266507018273,
+        "two_delta": 24.01421566398325,
+        "violation": 24.02335993049027,
+        "gamma": 12.002535698738116
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3752077467902737,
+        "two_delta": 27.428697685614566,
+        "violation": 27.80390543240484,
+        "gamma": 13.526744969412146
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.12909418700655806,
+        "two_delta": 24.472208400789626,
+        "violation": 24.601302587796184,
+        "gamma": 12.171557106891534
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.4139205199190243,
+        "two_delta": 22.14009294891352,
+        "violation": 23.554013468832544,
+        "gamma": 10.363086214497248
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.935131134987417,
+        "two_delta": 15.582173405058263,
+        "violation": 16.51730454004568,
+        "gamma": 7.323521135035423
+      },
+      {
+        "admitted": false,
+        "source": 19,
+        "margin": -0.8107659181361377,
+        "two_delta": 17.97771109707017,
+        "violation": 18.788477015206308,
+        "gamma": 8.583472589467016
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.00010296235357998285,
+        "two_delta": 21.964615679815488,
+        "violation": 21.964512717461908,
+        "gamma": 10.982359321084534
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.148755997090035,
+        "two_delta": 21.583363656934395,
+        "violation": 24.73211965402443,
+        "gamma": 9.21730382992218
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3790930247285758,
+        "two_delta": 22.436062302575706,
+        "violation": 23.815155327304282,
+        "gamma": 10.528484638923565
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.7205094124317313,
+        "two_delta": 17.38770645512139,
+        "violation": 18.10821586755312,
+        "gamma": 8.333598521344829
+      },
+      {
+        "admitted": false,
+        "source": 20,
+        "margin": -0.6905603460980316,
+        "two_delta": 22.28197812984621,
+        "violation": 22.97253847594424,
+        "gamma": 10.795708891874089
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.22475996507321128,
+        "two_delta": 25.185747070745123,
+        "violation": 24.96098710567191,
+        "gamma": 12.705253517909167
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.4909123027046576,
+        "two_delta": 23.346543835614042,
+        "violation": 26.8374561383187,
+        "gamma": 9.927815766454692
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.1721778276818036,
+        "two_delta": 22.772694600926187,
+        "violation": 23.94487242860799,
+        "gamma": 10.800258386622192
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.4958097184566448,
+        "two_delta": 17.804236474513885,
+        "violation": 18.30004619297053,
+        "gamma": 8.65421337802862
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3052627341261136,
+        "two_delta": 23.917764967708294,
+        "violation": 25.223027701834408,
+        "gamma": 11.30625111679109
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.13106182769125496,
+        "two_delta": 23.20916387698975,
+        "violation": 23.340225704681004,
+        "gamma": 11.539051024649247
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.2866450215301626,
+        "two_delta": 23.391319662335306,
+        "violation": 23.67796468386547,
+        "gamma": 11.552337320402572
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.2031856454768963,
+        "two_delta": 22.428619921020896,
+        "violation": 23.631805566497793,
+        "gamma": 10.612717137772
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.6883236977459095,
+        "two_delta": 16.696683207730366,
+        "violation": 17.385006905476274,
+        "gamma": 8.00417975499223
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.6740229362838548,
+        "two_delta": 21.307137156943924,
+        "violation": 21.98116009322778,
+        "gamma": 10.316557110330034
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.6215604471089868,
+        "two_delta": 23.308879945494056,
+        "violation": 23.930440392603042,
+        "gamma": 11.343659749192534
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8608495701373542,
+        "two_delta": 21.36758758776861,
+        "violation": 22.228437157905965,
+        "gamma": 10.253369008815628
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -2.4115992170502913,
+        "two_delta": 20.70848388320762,
+        "violation": 23.12008310025791,
+        "gamma": 9.148442333078664
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5422932085061216,
+        "two_delta": 15.154562919319602,
+        "violation": 15.696856127825724,
+        "gamma": 7.30613485540674
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.1366815371836303,
+        "two_delta": 20.777491197916476,
+        "violation": 20.914172735100106,
+        "gamma": 10.320404830366423
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.4756402250746383,
+        "two_delta": 23.83619754622397,
+        "violation": 24.31183777129861,
+        "gamma": 11.680278660574666
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3721643764844913,
+        "two_delta": 21.34010467447611,
+        "violation": 22.7122690509606,
+        "gamma": 9.983970148995809
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.7375368452161695,
+        "two_delta": 19.635928145788796,
+        "violation": 21.373464991004965,
+        "gamma": 8.949195650286313
+      }
+    ],
+    "final": [
+      {
+        "admitted": false,
+        "source": 15,
+        "margin": -1.4255109406093007,
+        "two_delta": 13.827075191170616,
+        "violation": 15.252586131779918,
+        "gamma": 6.200782125280657
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.839749847901029,
+        "two_delta": 18.93206265495546,
+        "violation": 21.771812502856488,
+        "gamma": 8.046156403527215
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.4406030739573765,
+        "two_delta": 20.360572007185432,
+        "violation": 23.80117508114281,
+        "gamma": 8.459984466614028
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.2933950799529654,
+        "two_delta": 20.648633723958625,
+        "violation": 22.94202880391159,
+        "gamma": 9.17761932200283
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.2737769945346713,
+        "two_delta": 20.91147894265984,
+        "violation": 24.185255937194512,
+        "gamma": 8.818850974062585
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8122883099235061,
+        "two_delta": 16.88025949048407,
+        "violation": 17.692547800407578,
+        "gamma": 8.033985590280283
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.0424782690849312,
+        "two_delta": 21.0466663666367,
+        "violation": 24.08914463572163,
+        "gamma": 9.002094048775884
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.517883873866552,
+        "two_delta": 22.867819541055866,
+        "violation": 26.385703414922418,
+        "gamma": 9.674967833594657
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.324557437946268,
+        "two_delta": 22.671882760008288,
+        "violation": 24.996440197954556,
+        "gamma": 10.17366266103101
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.7795646404144136,
+        "two_delta": 23.38067218298012,
+        "violation": 26.160236823394534,
+        "gamma": 10.300553771282853
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.45725742092719557,
+        "two_delta": 18.74279174668643,
+        "violation": 19.200049167613624,
+        "gamma": 9.142767162879617
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.4994537869039455,
+        "two_delta": 22.47867514257746,
+        "violation": 25.978128929481404,
+        "gamma": 9.489610677836756
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.1395637668001157,
+        "two_delta": 23.35007477789121,
+        "violation": 26.489638544691324,
+        "gamma": 10.105255505545546
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.345558769024656,
+        "two_delta": 24.91496317596534,
+        "violation": 28.260521944989996,
+        "gamma": 10.784702203470342
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.900488397673257,
+        "two_delta": 23.59492133759248,
+        "violation": 26.49540973526574,
+        "gamma": 10.347216469959612
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5584131779076849,
+        "two_delta": 17.02116525637618,
+        "violation": 17.579578434283864,
+        "gamma": 8.231376039234247
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.310445803189701,
+        "two_delta": 21.63666416289398,
+        "violation": 24.94710996608368,
+        "gamma": 9.163109179852139
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.0540215715283168,
+        "two_delta": 23.63511996970405,
+        "violation": 26.689141541232367,
+        "gamma": 10.290549199087867
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3779641817112207,
+        "two_delta": 27.471384548198202,
+        "violation": 27.849348729909423,
+        "gamma": 13.54671018324349
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.938497230928796,
+        "two_delta": 22.78671826938863,
+        "violation": 25.725215500317425,
+        "gamma": 9.924110519229917
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3612662470863519,
+        "two_delta": 16.400864301320723,
+        "violation": 16.762130548407075,
+        "gamma": 8.019799027117186
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.801668283537687,
+        "two_delta": 21.55426725730058,
+        "violation": 24.355935540838267,
+        "gamma": 9.376299486881447
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.892720147622903,
+        "two_delta": 25.048829569074883,
+        "violation": 28.941549716697786,
+        "gamma": 10.57805471072599
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8913635920704408,
+        "two_delta": 27.387832353716306,
+        "violation": 28.279195945786746,
+        "gamma": 13.248234380822932
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.8801613278456983,
+        "two_delta": 22.22337596977819,
+        "violation": 25.103537297623888,
+        "gamma": 9.671607320966245
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.770210328837436,
+        "two_delta": 14.613862297149801,
+        "violation": 15.384072625987237,
+        "gamma": 6.921825984156182
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.2839570554161526,
+        "two_delta": 16.948862918281144,
+        "violation": 18.232819973697296,
+        "gamma": 7.8324529314324955
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.030282548318247393,
+        "two_delta": 23.301399450619996,
+        "violation": 23.27111690230175,
+        "gamma": 11.665840999469122
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.637337017652655,
+        "two_delta": 20.97602019905267,
+        "violation": 23.613357216705325,
+        "gamma": 9.169341590700007
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.6668806642173806,
+        "two_delta": 20.712931822642076,
+        "violation": 24.379812486859457,
+        "gamma": 8.523025579212348
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5806107216139971,
+        "two_delta": 16.619541433454486,
+        "violation": 17.200152155068483,
+        "gamma": 8.019465355920245
+      },
+      {
+        "admitted": false,
+        "source": 20,
+        "margin": -0.814430716371346,
+        "two_delta": 24.33983894203611,
+        "violation": 25.154269658407458,
+        "gamma": 11.762704112832381
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.255129858861018,
+        "two_delta": 27.6245307319099,
+        "violation": 27.369400873048882,
+        "gamma": 13.939830295385459
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.8196847792588713,
+        "two_delta": 22.911644899813837,
+        "violation": 25.731329679072708,
+        "gamma": 10.045980060277483
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.990909340381748,
+        "two_delta": 23.168335091466915,
+        "violation": 26.159244431848663,
+        "gamma": 10.088712875542583
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3399577282245012,
+        "two_delta": 17.43087097480202,
+        "violation": 17.77082870302652,
+        "gamma": 8.545456623288759
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.13158588863193543,
+        "two_delta": 25.135638404616927,
+        "violation": 25.00405251598499,
+        "gamma": 12.633612146624431
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.4665691870251223,
+        "two_delta": 22.693892852865147,
+        "violation": 26.16046203989027,
+        "gamma": 9.613661832920013
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.07728411627082465,
+        "two_delta": 27.084531274837005,
+        "violation": 27.16181539110783,
+        "gamma": 13.50362357928309
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.050536397485935,
+        "two_delta": 22.889803857888523,
+        "violation": 25.94034025537446,
+        "gamma": 9.919633730201294
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5072665128836853,
+        "two_delta": 15.677165113122967,
+        "violation": 16.184431626006653,
+        "gamma": 7.584949300119641
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.042848328540713965,
+        "two_delta": 24.345869199103873,
+        "violation": 24.30302087056316,
+        "gamma": 12.194358763822294
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.8729758986730545,
+        "two_delta": 23.28200335925466,
+        "violation": 27.154979257927714,
+        "gamma": 9.704513730290802
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.39585736995613274,
+        "two_delta": 24.98371381390666,
+        "violation": 25.379571183862794,
+        "gamma": 12.293928221975264
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.1562300906705971,
+        "two_delta": 23.666819656507485,
+        "violation": 24.823049747178082,
+        "gamma": 11.255294782918444
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3755715545300262,
+        "two_delta": 15.117811731030471,
+        "violation": 15.493383285560498,
+        "gamma": 7.371120088250223
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.008643963305935642,
+        "two_delta": 24.0129607441649,
+        "violation": 24.021604707470836,
+        "gamma": 12.002158390429482
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.37520762207967095,
+        "two_delta": 27.42736069211294,
+        "violation": 27.802568314192612,
+        "gamma": 13.526076535016635
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.1291427147683777,
+        "two_delta": 24.470909750271304,
+        "violation": 24.60005246503968,
+        "gamma": 12.170883517751463
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.413957837814202,
+        "two_delta": 22.138851405909634,
+        "violation": 23.552809243723836,
+        "gamma": 10.362446784047716
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.9351508743484267,
+        "two_delta": 15.581601143610179,
+        "violation": 16.516752017958606,
+        "gamma": 7.323225134630876
+      },
+      {
+        "admitted": false,
+        "source": 19,
+        "margin": -0.8106933157980087,
+        "two_delta": 17.976893482868576,
+        "violation": 18.787586798666585,
+        "gamma": 8.583100083535284
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.00046471541023507257,
+        "two_delta": 21.963706684350164,
+        "violation": 21.96324196893993,
+        "gamma": 10.9820856998802
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.1481215128089417,
+        "two_delta": 21.582319172948317,
+        "violation": 24.73044068575726,
+        "gamma": 9.217098830069688
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3790761385981725,
+        "two_delta": 22.434940119236472,
+        "violation": 23.814016257834645,
+        "gamma": 10.52793199031915
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.7205248669752464,
+        "two_delta": 17.386992161075085,
+        "violation": 18.10751702805033,
+        "gamma": 8.33323364704992
+      },
+      {
+        "admitted": false,
+        "source": 20,
+        "margin": -0.6904513513832686,
+        "two_delta": 22.28282143714044,
+        "violation": 22.97327278852371,
+        "gamma": 10.796185042878587
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.22513987921806589,
+        "two_delta": 25.18678459676414,
+        "violation": 24.961644717546076,
+        "gamma": 12.705962237991104
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.490305756366098,
+        "two_delta": 23.34775436251786,
+        "violation": 26.83806011888396,
+        "gamma": 9.928724303075882
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.1721935007777127,
+        "two_delta": 22.771545143912462,
+        "violation": 23.943738644690175,
+        "gamma": 10.799675821567375
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.4958184231563081,
+        "two_delta": 17.803389944802014,
+        "violation": 18.29920836795832,
+        "gamma": 8.653785760822853
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3052696024026247,
+        "two_delta": 23.918696977966405,
+        "violation": 25.22396658036903,
+        "gamma": 11.30671368778189
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.13106237886434613,
+        "two_delta": 23.210435491234406,
+        "violation": 23.341497870098753,
+        "gamma": 11.53968655618503
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.28667708996714936,
+        "two_delta": 23.39008434467435,
+        "violation": 23.6767614346415,
+        "gamma": 11.5517036273536
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.2032127229975238,
+        "two_delta": 22.42732700191786,
+        "violation": 23.630539724915383,
+        "gamma": 10.612057139460168
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.688340575758815,
+        "two_delta": 16.695862126462586,
+        "violation": 17.3842027022214,
+        "gamma": 8.003760775351886
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.6735975063504114,
+        "two_delta": 21.308045369351476,
+        "violation": 21.981642875701887,
+        "gamma": 10.317223931500532
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.6222304260598825,
+        "two_delta": 23.30760766823238,
+        "violation": 23.92983809429226,
+        "gamma": 11.342688621086248
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8608905111348193,
+        "two_delta": 21.36633429838183,
+        "violation": 22.22722480951665,
+        "gamma": 10.252721893623505
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -2.4116277188750352,
+        "two_delta": 20.707250322684857,
+        "violation": 23.118878041559892,
+        "gamma": 9.14781130190491
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5423018797786234,
+        "two_delta": 15.153759447083218,
+        "violation": 15.696061326861841,
+        "gamma": 7.305728783652297
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.13624807170654307,
+        "two_delta": 20.77626218456726,
+        "violation": 20.9125102562738,
+        "gamma": 10.320007056430358
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.4756289963349545,
+        "two_delta": 23.83492241784583,
+        "violation": 24.310551414180786,
+        "gamma": 11.679646710755438
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3722077613177674,
+        "two_delta": 21.338848750610225,
+        "violation": 22.711056511927993,
+        "gamma": 9.983320494646229
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.7375713611130905,
+        "two_delta": 19.634730470450748,
+        "violation": 21.37230183156384,
+        "gamma": 8.948579554668829
+      }
+    ],
+    "summary": {
+      "n_steps": 200,
+      "rho": 341.74882731903114,
+      "eta": 0.9,
+      "m_floor": 0,
+      "exact_floor": null,
+      "enforced_flips_total": 0,
+      "flips_on_excluded_total": 0,
+      "clip_frac": 1.0,
+      "alpha_mean": 9.384155418956652e-06,
+      "alpha_min_seen": 7.62939453125e-06,
+      "certified_frac_mean": 1.0,
+      "certified_frac_final": 1.0,
+      "budget_2sum": 0.03555714665620939,
+      "m0_p10": 0.09546703599336581,
+      "m0_p50": 0.5748636959348659,
+      "m0_pos_n": 183,
+      "m0_pos_p10": 0.09546703599336581,
+      "m0_pos_p50": 0.5748636959348659,
+      "budget_alive_pos_p10": true,
+      "budget_alive_pos_p50": true,
+      "final_margin_p10": 0.09708977315335687,
+      "final_margin_p50": 0.57667215653575,
+      "final_decided_rate": 1.0
+    },
+    "initial_admitted": 0,
+    "final_admitted": 0,
+    "full_host_agreement": 1.0,
+    "hop2_predictions_unchanged": true
+  },
+  "admission": {
+    "initial": [
+      {
+        "admitted": false,
+        "source": 15,
+        "margin": -1.4255163444539471,
+        "two_delta": 13.827652704029983,
+        "violation": 15.25316904848393,
+        "gamma": 6.2010681797880185
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.840053536889524,
+        "two_delta": 18.93286637736439,
+        "violation": 21.772919914253915,
+        "gamma": 8.046406420237433
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.441197257933176,
+        "two_delta": 20.359673210992142,
+        "violation": 23.800870468925318,
+        "gamma": 8.459237976529483
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.2941800697853125,
+        "two_delta": 20.649670059799845,
+        "violation": 22.943850129585158,
+        "gamma": 9.177744995007266
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.273777421852756,
+        "two_delta": 20.912562961022445,
+        "violation": 24.1863403828752,
+        "gamma": 8.819392769584844
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8122740388593765,
+        "two_delta": 16.880794467288872,
+        "violation": 17.69306850614825,
+        "gamma": 8.034260214214747
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.042826096318361,
+        "two_delta": 21.04585737649785,
+        "violation": 24.08868347281621,
+        "gamma": 9.001515640089744
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.518587397682566,
+        "two_delta": 22.866813135626046,
+        "violation": 26.385400533308612,
+        "gamma": 9.67411286897174
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.325320927794344,
+        "two_delta": 22.67074612934948,
+        "violation": 24.996067057143826,
+        "gamma": 10.172712600777569
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.779543530802897,
+        "two_delta": 23.381971898112184,
+        "violation": 26.16151542891508,
+        "gamma": 10.301214183654643
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.4572468379287322,
+        "two_delta": 18.743502410030338,
+        "violation": 19.20074924795907,
+        "gamma": 9.143127786050803
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.4999480815381183,
+        "two_delta": 22.477588278735666,
+        "violation": 25.977536360273785,
+        "gamma": 9.488820098598774
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.140289922990874,
+        "two_delta": 23.348848789367338,
+        "violation": 26.489138712358212,
+        "gamma": 10.104279433188232
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.345535196903782,
+        "two_delta": 24.916318863296937,
+        "violation": 28.26185406020072,
+        "gamma": 10.785391833196577
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.9004657926345203,
+        "two_delta": 23.59626476883051,
+        "violation": 26.49673056146503,
+        "gamma": 10.347899488097994
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.558396411279162,
+        "two_delta": 17.021884132033044,
+        "violation": 17.580280543312206,
+        "gamma": 8.231743860376941
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.3110279630032906,
+        "two_delta": 21.63554706472253,
+        "violation": 24.94657502772582,
+        "gamma": 9.16225955085962
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.0548036932753604,
+        "two_delta": 23.636461237706953,
+        "violation": 26.691264930982314,
+        "gamma": 10.290828772215797
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.37792062023547857,
+        "two_delta": 27.47268452373605,
+        "violation": 27.850605143971528,
+        "gamma": 13.547381951750285
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.9384736920207146,
+        "two_delta": 22.788010046622105,
+        "violation": 25.72648373864282,
+        "gamma": 9.924768177300695
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.36125376749403415,
+        "two_delta": 16.40158569552915,
+        "violation": 16.762839463023184,
+        "gamma": 8.020165964017558
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.8022950475250425,
+        "two_delta": 21.553339319496985,
+        "violation": 24.355634367022027,
+        "gamma": 9.375522135985971
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.89269850941335,
+        "two_delta": 25.050254774096175,
+        "violation": 28.942953283509524,
+        "gamma": 10.578778132341412
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8913182867509377,
+        "two_delta": 27.38914509884127,
+        "violation": 28.280463385592206,
+        "gamma": 13.248913406045165
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.88013959514511,
+        "two_delta": 22.224629638735607,
+        "violation": 25.104769233880717,
+        "gamma": 9.672245021795248
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.7701913239411127,
+        "two_delta": 14.614119499711933,
+        "violation": 15.384310823653045,
+        "gamma": 6.92196408788541
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.2842459621542215,
+        "two_delta": 16.949542443080468,
+        "violation": 18.23378840523469,
+        "gamma": 7.832648240463123
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.029888179982641816,
+        "two_delta": 23.30232986543838,
+        "violation": 23.27244168545574,
+        "gamma": 11.666109022710511
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.6380604421545613,
+        "two_delta": 20.977034353855785,
+        "violation": 23.615094796010347,
+        "gamma": 9.169486955850612
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.666883330672313,
+        "two_delta": 20.71397568895975,
+        "violation": 24.380859019632062,
+        "gamma": 8.523546179143718
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5805950576886811,
+        "two_delta": 16.620187636998082,
+        "violation": 17.200782694686765,
+        "gamma": 8.0197962896547
+      },
+      {
+        "admitted": false,
+        "source": 20,
+        "margin": -0.8145342743907209,
+        "two_delta": 24.338927339208055,
+        "violation": 25.153461613598775,
+        "gamma": 11.762196532408668
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.2546665870241682,
+        "two_delta": 27.623417598677136,
+        "violation": 27.368751011652968,
+        "gamma": 13.939042092850652
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.8204415371116056,
+        "two_delta": 22.910447946943023,
+        "violation": 25.73088948405463,
+        "gamma": 10.045003204915709
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.9908864833836546,
+        "two_delta": 23.169615089900105,
+        "violation": 26.16050157328376,
+        "gamma": 10.089364303258225
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3399478927265598,
+        "two_delta": 17.43168586908454,
+        "violation": 17.7716337618111,
+        "gamma": 8.54586898817899
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.13108326318997499,
+        "two_delta": 25.134672779619095,
+        "violation": 25.00358951642912,
+        "gamma": 12.632878021404535
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.4673264982044785,
+        "two_delta": 22.69268765447255,
+        "violation": 26.16001415267703,
+        "gamma": 9.612680578134036
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.07728498484323154,
+        "two_delta": 27.085823322004217,
+        "violation": 27.163108306847448,
+        "gamma": 13.504269168580493
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.050514787215576,
+        "two_delta": 22.891120248424983,
+        "violation": 25.94163503564056,
+        "gamma": 9.920302730604703
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.507250021637141,
+        "two_delta": 15.677917303317976,
+        "violation": 16.185167324955117,
+        "gamma": 7.5853336408404175
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.042333438574775784,
+        "two_delta": 24.34709652553714,
+        "violation": 24.304763086962364,
+        "gamma": 12.194714982055958
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.8729649260776426,
+        "two_delta": 23.283325694087637,
+        "violation": 27.15629062016528,
+        "gamma": 9.705180384004997
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.39585924069962175,
+        "two_delta": 24.985013294305332,
+        "violation": 25.380872535004954,
+        "gamma": 12.294577026802855
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.156194349603929,
+        "two_delta": 23.66810602395077,
+        "violation": 24.8243003735547,
+        "gamma": 11.25595583717342
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3755611384135946,
+        "two_delta": 15.118593588271317,
+        "violation": 15.494154726684911,
+        "gamma": 7.371516224928861
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.009144266507018273,
+        "two_delta": 24.01421566398325,
+        "violation": 24.02335993049027,
+        "gamma": 12.002535698738116
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3752077467902737,
+        "two_delta": 27.428697685614566,
+        "violation": 27.80390543240484,
+        "gamma": 13.526744969412146
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.12909418700655806,
+        "two_delta": 24.472208400789626,
+        "violation": 24.601302587796184,
+        "gamma": 12.171557106891534
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.4139205199190243,
+        "two_delta": 22.14009294891352,
+        "violation": 23.554013468832544,
+        "gamma": 10.363086214497248
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.935131134987417,
+        "two_delta": 15.582173405058263,
+        "violation": 16.51730454004568,
+        "gamma": 7.323521135035423
+      },
+      {
+        "admitted": false,
+        "source": 19,
+        "margin": -0.8107659181361377,
+        "two_delta": 17.97771109707017,
+        "violation": 18.788477015206308,
+        "gamma": 8.583472589467016
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.00010296235357998285,
+        "two_delta": 21.964615679815488,
+        "violation": 21.964512717461908,
+        "gamma": 10.982359321084534
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.148755997090035,
+        "two_delta": 21.583363656934395,
+        "violation": 24.73211965402443,
+        "gamma": 9.21730382992218
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3790930247285758,
+        "two_delta": 22.436062302575706,
+        "violation": 23.815155327304282,
+        "gamma": 10.528484638923565
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.7205094124317313,
+        "two_delta": 17.38770645512139,
+        "violation": 18.10821586755312,
+        "gamma": 8.333598521344829
+      },
+      {
+        "admitted": false,
+        "source": 20,
+        "margin": -0.6905603460980316,
+        "two_delta": 22.28197812984621,
+        "violation": 22.97253847594424,
+        "gamma": 10.795708891874089
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.22475996507321128,
+        "two_delta": 25.185747070745123,
+        "violation": 24.96098710567191,
+        "gamma": 12.705253517909167
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.4909123027046576,
+        "two_delta": 23.346543835614042,
+        "violation": 26.8374561383187,
+        "gamma": 9.927815766454692
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.1721778276818036,
+        "two_delta": 22.772694600926187,
+        "violation": 23.94487242860799,
+        "gamma": 10.800258386622192
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.4958097184566448,
+        "two_delta": 17.804236474513885,
+        "violation": 18.30004619297053,
+        "gamma": 8.65421337802862
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3052627341261136,
+        "two_delta": 23.917764967708294,
+        "violation": 25.223027701834408,
+        "gamma": 11.30625111679109
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.13106182769125496,
+        "two_delta": 23.20916387698975,
+        "violation": 23.340225704681004,
+        "gamma": 11.539051024649247
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.2866450215301626,
+        "two_delta": 23.391319662335306,
+        "violation": 23.67796468386547,
+        "gamma": 11.552337320402572
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.2031856454768963,
+        "two_delta": 22.428619921020896,
+        "violation": 23.631805566497793,
+        "gamma": 10.612717137772
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.6883236977459095,
+        "two_delta": 16.696683207730366,
+        "violation": 17.385006905476274,
+        "gamma": 8.00417975499223
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.6740229362838548,
+        "two_delta": 21.307137156943924,
+        "violation": 21.98116009322778,
+        "gamma": 10.316557110330034
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.6215604471089868,
+        "two_delta": 23.308879945494056,
+        "violation": 23.930440392603042,
+        "gamma": 11.343659749192534
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8608495701373542,
+        "two_delta": 21.36758758776861,
+        "violation": 22.228437157905965,
+        "gamma": 10.253369008815628
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -2.4115992170502913,
+        "two_delta": 20.70848388320762,
+        "violation": 23.12008310025791,
+        "gamma": 9.148442333078664
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5422932085061216,
+        "two_delta": 15.154562919319602,
+        "violation": 15.696856127825724,
+        "gamma": 7.30613485540674
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.1366815371836303,
+        "two_delta": 20.777491197916476,
+        "violation": 20.914172735100106,
+        "gamma": 10.320404830366423
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.4756402250746383,
+        "two_delta": 23.83619754622397,
+        "violation": 24.31183777129861,
+        "gamma": 11.680278660574666
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3721643764844913,
+        "two_delta": 21.34010467447611,
+        "violation": 22.7122690509606,
+        "gamma": 9.983970148995809
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.7375368452161695,
+        "two_delta": 19.635928145788796,
+        "violation": 21.373464991004965,
+        "gamma": 8.949195650286313
+      }
+    ],
+    "final": [
+      {
+        "admitted": false,
+        "source": 15,
+        "margin": -1.4255474356995705,
+        "two_delta": 13.826135568022634,
+        "violation": 15.251683003722205,
+        "gamma": 6.200294066161532
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.839826451971824,
+        "two_delta": 18.93048917769051,
+        "violation": 21.770315629662335,
+        "gamma": 8.045331362859343
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.440549251787253,
+        "two_delta": 20.35730008138436,
+        "violation": 23.797849333171612,
+        "gamma": 8.458375414798553
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.2928644125232154,
+        "two_delta": 20.64659031983578,
+        "violation": 22.939454732358996,
+        "gamma": 9.176862953656283
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.2736103652256503,
+        "two_delta": 20.90925885169554,
+        "violation": 24.18286921692119,
+        "gamma": 8.817824243234945
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.811961615129027,
+        "two_delta": 16.878967527242366,
+        "violation": 17.690929142371395,
+        "gamma": 8.033502956056669
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.0425326859963775,
+        "two_delta": 21.042786697896872,
+        "violation": 24.08531938389325,
+        "gamma": 9.000127005950247
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.5177712648113015,
+        "two_delta": 22.86397890446426,
+        "violation": 26.381750169275563,
+        "gamma": 9.67310381982648
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.323956597956027,
+        "two_delta": 22.67050291421515,
+        "violation": 24.994459512171176,
+        "gamma": 10.173273158129561
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.779524921374822,
+        "two_delta": 23.378033596191614,
+        "violation": 26.157558517566436,
+        "gamma": 10.299254337408396
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.45696028844139747,
+        "two_delta": 18.7412104035674,
+        "violation": 19.198170692008798,
+        "gamma": 9.142125057563002
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.499198866787811,
+        "two_delta": 22.474485997547305,
+        "violation": 25.973684864335116,
+        "gamma": 9.487643565379747
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.138910875144724,
+        "two_delta": 23.34528289987078,
+        "violation": 26.484193775015505,
+        "gamma": 10.103186012363029
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.3453267537934934,
+        "two_delta": 24.912256394217536,
+        "violation": 28.25758314801103,
+        "gamma": 10.783464820212021
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.9004454317346315,
+        "two_delta": 23.59222924915551,
+        "violation": 26.49267468089014,
+        "gamma": 10.345891908710438
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5580670036995912,
+        "two_delta": 17.019548484673848,
+        "violation": 17.57761548837344,
+        "gamma": 8.230740740487128
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.310311460811981,
+        "two_delta": 21.632574712189765,
+        "violation": 24.942886173001746,
+        "gamma": 9.161131625688892
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.053340296990818,
+        "two_delta": 23.632326583203252,
+        "violation": 26.68566688019407,
+        "gamma": 10.289493143106217
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3776742578324459,
+        "two_delta": 27.468717098144353,
+        "violation": 27.8463913559768,
+        "gamma": 13.545521420155954
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.9384502517557536,
+        "two_delta": 22.78414407412444,
+        "violation": 25.722594325880195,
+        "gamma": 9.922846911184344
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3608796270867156,
+        "two_delta": 16.399202200234527,
+        "violation": 16.760081827321244,
+        "gamma": 8.019161286573905
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.80200786510035,
+        "two_delta": 21.54992108512272,
+        "violation": 24.35192895022307,
+        "gamma": 9.373956610011184
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.892476877447166,
+        "two_delta": 25.045903164072655,
+        "violation": 28.93838004151982,
+        "gamma": 10.576713143312745
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8910598109005434,
+        "two_delta": 27.385159261010017,
+        "violation": 28.27621907191056,
+        "gamma": 13.247049725054737
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.8801143244585106,
+        "two_delta": 22.220883931291254,
+        "violation": 25.100998255749765,
+        "gamma": 9.670384803416372
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.769921506665062,
+        "two_delta": 14.6122249638481,
+        "violation": 15.382146470513161,
+        "gamma": 6.921151728591519
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.2840282009945572,
+        "two_delta": 16.94736096606166,
+        "violation": 18.231389167056214,
+        "gamma": 7.831666382533551
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.03014102186251577,
+        "two_delta": 23.29940310925042,
+        "violation": 23.269262087387904,
+        "gamma": 11.664772065556468
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.636822858500743,
+        "two_delta": 20.9740151640641,
+        "violation": 23.61083802256484,
+        "gamma": 9.168596152781678
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.6668712030291033,
+        "two_delta": 20.710790955483603,
+        "violation": 24.377662158512706,
+        "gamma": 8.52195987622725
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5802812303214733,
+        "two_delta": 16.61793928830221,
+        "violation": 17.198220518623685,
+        "gamma": 8.018829028990368
+      },
+      {
+        "admitted": false,
+        "source": 20,
+        "margin": -0.8145248407426537,
+        "two_delta": 24.33555718334476,
+        "violation": 25.150082024087414,
+        "gamma": 11.760516171301054
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.2550039426930688,
+        "two_delta": 27.62053747380405,
+        "violation": 27.36553353111098,
+        "gamma": 13.937770708248559
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.8190612807708675,
+        "two_delta": 22.91023116133188,
+        "violation": 25.729292442102746,
+        "gamma": 10.045584940280506
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -2.990872056278093,
+        "two_delta": 23.165753450339082,
+        "violation": 26.156625506617175,
+        "gamma": 10.087440697030495
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3396746739567682,
+        "two_delta": 17.429024222364617,
+        "violation": 17.768698896321386,
+        "gamma": 8.544674774203925
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.13140536759563304,
+        "two_delta": 25.13120215419518,
+        "violation": 24.999796786599546,
+        "gamma": 12.631303760895406
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.465985335007673,
+        "two_delta": 22.689144690611116,
+        "violation": 26.15513002561879,
+        "gamma": 9.611579677801721
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.07719595230326348,
+        "two_delta": 27.081697606199384,
+        "violation": 27.158893558502648,
+        "gamma": 13.50225082694806
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.050502859671262,
+        "two_delta": 22.887175896779354,
+        "violation": 25.937678756450616,
+        "gamma": 9.918336518554046
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5069325571688452,
+        "two_delta": 15.675422680003607,
+        "violation": 16.18235523717245,
+        "gamma": 7.584245061417381
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.042667213819790106,
+        "two_delta": 24.34338245380549,
+        "violation": 24.3007152399857,
+        "gamma": 12.19302483381264
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.872759475219766,
+        "two_delta": 23.279264066696484,
+        "violation": 27.15202354191625,
+        "gamma": 9.70325229573836
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.395772388876388,
+        "two_delta": 24.981020047301087,
+        "violation": 25.376792436177475,
+        "gamma": 12.29262382921235
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.155998068148648,
+        "two_delta": 23.66422744828172,
+        "violation": 24.82022551643037,
+        "gamma": 11.254114690066537
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.3751920830820765,
+        "two_delta": 15.116023068854915,
+        "violation": 15.491215151936991,
+        "gamma": 7.370415492886419
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.008811822802453406,
+        "two_delta": 24.010372262385275,
+        "violation": 24.019184085187728,
+        "gamma": 12.00078021979141
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.37512056155907203,
+        "two_delta": 27.42434905909205,
+        "violation": 27.799469620651124,
+        "gamma": 13.52461424876649
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.12890458646351988,
+        "two_delta": 24.468236342924698,
+        "violation": 24.597140929388218,
+        "gamma": 12.169665878230589
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.4137072434708067,
+        "two_delta": 22.136364298055952,
+        "violation": 23.55007154152676,
+        "gamma": 10.361328527292573
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.9348299748212963,
+        "two_delta": 15.580033007939207,
+        "violation": 16.514862982760505,
+        "gamma": 7.322601516558955
+      },
+      {
+        "admitted": false,
+        "source": 19,
+        "margin": -0.810800345904565,
+        "two_delta": 17.974997849754807,
+        "violation": 18.78579819565937,
+        "gamma": 8.582098751925122
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.00036461517931840604,
+        "two_delta": 21.96170590029037,
+        "violation": 21.96134128511105,
+        "gamma": 10.981035257734844
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.1476229881246667,
+        "two_delta": 21.580235349344775,
+        "violation": 24.727858337469442,
+        "gamma": 9.216306180610054
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.378754618869447,
+        "two_delta": 22.432527162445894,
+        "violation": 23.81128178131534,
+        "gamma": 10.526886271788223
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.7201745899739223,
+        "two_delta": 17.38519855073958,
+        "violation": 18.105373140713503,
+        "gamma": 8.33251198038283
+      },
+      {
+        "admitted": false,
+        "source": 20,
+        "margin": -0.6905534973363006,
+        "two_delta": 22.278731431854908,
+        "violation": 22.969284929191208,
+        "gamma": 10.794088967259304
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": 0.2251022848370603,
+        "two_delta": 25.18298084288125,
+        "violation": 24.95787855804419,
+        "gamma": 12.704041563859155
+      },
+      {
+        "admitted": false,
+        "source": 24,
+        "margin": -3.489717650010114,
+        "two_delta": 23.346299599283824,
+        "violation": 26.83601724929394,
+        "gamma": 9.928290974636855
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.1719335050975772,
+        "two_delta": 22.768866495195795,
+        "violation": 23.940800000293372,
+        "gamma": 10.798466495049109
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.4954931298351575,
+        "two_delta": 17.801394333005554,
+        "violation": 18.29688746284071,
+        "gamma": 8.652950601585198
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3052637157111349,
+        "two_delta": 23.914286365991458,
+        "violation": 25.219550081702593,
+        "gamma": 11.304511325140162
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.13095939295910952,
+        "two_delta": 23.209026023320234,
+        "violation": 23.339985416279344,
+        "gamma": 11.539033315180562
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.28631165235006506,
+        "two_delta": 23.38725145763746,
+        "violation": 23.673563109987526,
+        "gamma": 11.550469902643698
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.2029379695230418,
+        "two_delta": 22.424675288807208,
+        "violation": 23.62761325833025,
+        "gamma": 10.610868659642083
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.687954234096587,
+        "two_delta": 16.693922316824562,
+        "violation": 17.38187655092115,
+        "gamma": 8.002984041363987
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.673659334254932,
+        "two_delta": 21.303553956992857,
+        "violation": 21.97721329124779,
+        "gamma": 10.314947311368963
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.6223053404931775,
+        "two_delta": 23.304743349804156,
+        "violation": 23.927048690297333,
+        "gamma": 11.341219004655489
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.8605135021414441,
+        "two_delta": 21.363710275055354,
+        "violation": 22.224223777196798,
+        "gamma": 10.251598386456955
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -2.4112839639460937,
+        "two_delta": 20.70471359685638,
+        "violation": 23.115997560802473,
+        "gamma": 9.146714816455143
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.5418769403824832,
+        "two_delta": 15.151886692641611,
+        "violation": 15.693763633024094,
+        "gamma": 7.305004876129564
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.13627639905840638,
+        "two_delta": 20.773619304039713,
+        "violation": 20.90989570309812,
+        "gamma": 10.318671452490653
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -0.47543484526006097,
+        "two_delta": 23.831956953230943,
+        "violation": 24.307391798491004,
+        "gamma": 11.678261053985441
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.3718141426979926,
+        "two_delta": 21.336244046745136,
+        "violation": 22.70805818944313,
+        "gamma": 9.982214952023572
+      },
+      {
+        "admitted": false,
+        "source": 22,
+        "margin": -1.7372764995980177,
+        "two_delta": 19.63228552370886,
+        "violation": 21.369562023306877,
+        "gamma": 8.94750451205542
+      }
+    ],
+    "summary": {
+      "n_steps": 200,
+      "rho": 341.74882731903114,
+      "eta": 0.9,
+      "m_floor": 0,
+      "exact_floor": null,
+      "enforced_flips_total": 0,
+      "flips_on_excluded_total": 0,
+      "clip_frac": 1.0,
+      "alpha_mean": 1.4076233128434978e-05,
+      "alpha_min_seen": 7.62939453125e-06,
+      "certified_frac_mean": 1.0,
+      "certified_frac_final": 1.0,
+      "budget_2sum": 0.05339116968234441,
+      "m0_p10": 0.09546703599336581,
+      "m0_p50": 0.5748636959348659,
+      "m0_pos_n": 183,
+      "m0_pos_p10": 0.09546703599336581,
+      "m0_pos_p50": 0.5748636959348659,
+      "budget_alive_pos_p10": true,
+      "budget_alive_pos_p50": true,
+      "final_margin_p10": 0.09565254207558382,
+      "final_margin_p50": 0.5750068385428762,
+      "final_decided_rate": 1.0
+    },
+    "initial_admitted": 0,
+    "final_admitted": 0,
+    "full_host_agreement": 1.0,
+    "hop2_predictions_unchanged": true
+  },
+  "advance_gate": {
+    "passed": false,
+    "gain_count": 0,
+    "control_advantage_count": 0
+  }
+}
